@@ -33,7 +33,9 @@ import {
 } from 'lucide-react'
 import {
     updateLayerProperties,
-    type PSDLayer
+    type PSDLayer,
+    uploadPSD,
+    type PSDUploadResponse
 } from '@/api/upload'
 import { useCanvas } from '@/contexts/canvas'
 import { TemplateManager } from '@/components/template/TemplateManager'
@@ -74,6 +76,12 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     const [draggedImageData, setDraggedImageData] = useState<{ url: string, name: string } | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // PSD模板相关状态
+    const [psdTemplates, setPsdTemplates] = useState<string[]>([])
+    const [selectedPsdTemplate, setSelectedPsdTemplate] = useState<string | null>(null)
+    const [psdTemplateData, setPsdTemplateData] = useState<PSDUploadResponse | null>(null)
+    const [loadingPsd, setLoadingPsd] = useState(false)
 
     // 处理图片上传
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -352,6 +360,77 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         fetchPlatformImages()
     }, [assetSubTab, assetSource])
 
+    // 获取PSD模板列表
+    useEffect(() => {
+        const fetchPsdTemplates = async () => {
+            if (assetSubTab !== 'templates') return
+
+            setLoading(true)
+            setError(null)
+
+            try {
+                // 模拟数据加载延迟
+                await new Promise(resolve => setTimeout(resolve, 300))
+
+                // PSD文件列表（来自public/psd目录）
+                const mockPsdTemplates = [
+                    '01 momo M09 鋪底_專業抗敏護齦牙膏100g 8入+買舒酸定指定品 送_1200x1200.psd',
+                    '02 momo 舒酸定 M09 0905,0908 滿888現折100_1200x1200.psd',
+                    '04 9288701 好便宜0912 _1200x628.psd',
+                    'test.psd',
+                    '主圖測試.psd'
+                ]
+
+                setPsdTemplates(mockPsdTemplates)
+            } catch (err) {
+                setError('获取PSD模板失败')
+                console.error('获取PSD模板失败:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchPsdTemplates()
+    }, [assetSubTab])
+
+    // 处理PSD模板点击
+    const handlePsdTemplateClick = async (psdFileName: string) => {
+        try {
+            console.log('🎯 点击PSD模板:', psdFileName)
+            setLoadingPsd(true)
+            setSelectedPsdTemplate(psdFileName)
+
+            // 从public/psd目录获取PSD文件
+            const response = await fetch(`/psd/${psdFileName}`)
+            if (!response.ok) {
+                throw new Error('获取PSD文件失败')
+            }
+
+            const blob = await response.blob()
+            const file = new File([blob], psdFileName, { type: 'application/octet-stream' })
+
+            // 上传并解析PSD
+            const result = await uploadPSD(file)
+            console.log('PSD解析结果:', result)
+
+            setPsdTemplateData(result)
+
+            toast.success(`PSD模板 "${psdFileName}" 加载成功`)
+        } catch (err) {
+            console.error('加载PSD模板失败:', err)
+            toast.error('加载PSD模板失败')
+            setSelectedPsdTemplate(null)
+        } finally {
+            setLoadingPsd(false)
+        }
+    }
+
+    // 关闭PSD预览
+    const handleClosePsdPreview = () => {
+        setSelectedPsdTemplate(null)
+        setPsdTemplateData(null)
+    }
+
     // // 获取画布中图层的实时状态
     // const getLayerCanvasState = useCallback((layerIndex: number) => {
     //     const canvasElement = canvasElements.find(element =>
@@ -506,16 +585,136 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     )}
                     {/* 内容区：根据 Templates / Library / Fonts 显示不同结构 */}
                     {assetSubTab === 'templates' && (
-                        <div className="p-3 space-y-2 overflow-auto">
-                            {['Social Media Posts', 'Marketing Banners', 'Blog Thumbnails'].map((folder, idx) => (
-                                <div key={idx} className="flex items-center justify-between px-3 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/60 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <FolderOpen className="h-5 w-5 opacity-80" />
-                                        <span className="text-base">{folder}</span>
-                                    </div>
-                                    <span className="opacity-60">›</span>
+                        <div className="flex-1 flex flex-col overflow-hidden">
+                            {/* PSD模板列表 */}
+                            {!selectedPsdTemplate ? (
+                                <div className="p-3 space-y-2 overflow-auto">
+                                    {loading && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            加载中...
+                                        </div>
+                                    )}
+
+                                    {error && (
+                                        <div className="text-center py-8 text-red-500">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    {!loading && !error && psdTemplates.length > 0 && (
+                                        psdTemplates.map((psdFile, idx) => (
+                                            <button
+                                                key={idx}
+                                                className="w-full flex items-center justify-between px-3 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 transition-all shadow-sm hover:shadow-md text-left"
+                                                onClick={() => handlePsdTemplateClick(psdFile)}
+                                                disabled={loadingPsd}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="text-sm font-medium truncate">{psdFile}</div>
+                                                        <div className="text-xs text-gray-500">PSD模板</div>
+                                                    </div>
+                                                </div>
+                                                <span className="opacity-60 flex-shrink-0">›</span>
+                                            </button>
+                                        ))
+                                    )}
+
+                                    {!loading && !error && psdTemplates.length === 0 && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            暂无PSD模板
+                                        </div>
+                                    )}
                                 </div>
-                            ))}
+                            ) : (
+                                // PSD预览区域
+                                <div className="flex-1 flex flex-col overflow-hidden">
+                                    {/* 标题栏 */}
+                                    <div className="flex items-center justify-between p-3 border-b">
+                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <button
+                                                onClick={handleClosePsdPreview}
+                                                className="flex-shrink-0 p-1 hover:bg-gray-100 rounded"
+                                                aria-label="返回模板列表"
+                                                title="返回"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                                </svg>
+                                            </button>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-sm font-medium truncate">{selectedPsdTemplate}</div>
+                                                <div className="text-xs text-gray-500">
+                                                    {psdTemplateData ? `${psdTemplateData.layers.length} 个图层` : '加载中...'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* PSD图层预览 */}
+                                    {loadingPsd ? (
+                                        <div className="flex-1 flex items-center justify-center">
+                                            <div className="text-center">
+                                                <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-primary animate-spin mx-auto mb-3"></div>
+                                                <div className="text-sm text-gray-500">解析PSD中...</div>
+                                            </div>
+                                        </div>
+                                    ) : psdTemplateData ? (
+                                        <div className="flex-1 overflow-auto p-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {psdTemplateData.layers
+                                                    .filter(layer => layer.image_url && layer.visible !== false)
+                                                    .map((layer, idx) => (
+                                                        <div
+                                                            key={idx}
+                                                            className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer relative group"
+                                                            title={layer.name}
+                                                        >
+                                                            <img
+                                                                src={layer.image_url}
+                                                                alt={layer.name}
+                                                                className="w-full h-full object-contain"
+                                                                draggable
+                                                                onDragStart={(e) => {
+                                                                    try {
+                                                                        const dragData = {
+                                                                            type: 'psd-layer',
+                                                                            layer: layer,
+                                                                            psdFileId: psdTemplateData.file_id
+                                                                        };
+                                                                        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                                                                        e.dataTransfer.effectAllowed = 'copy';
+                                                                        toast.info(`拖拽图层 "${layer.name}" 到画布`);
+                                                                    } catch (error) {
+                                                                        console.error('Failed to set drag data:', error);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1.5 truncate">
+                                                                {layer.name}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </div>
+
+                                            {psdTemplateData.layers.filter(l => l.image_url && l.visible !== false).length === 0 && (
+                                                <div className="text-center py-8 text-gray-500">
+                                                    该PSD没有可显示的图层
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 flex items-center justify-center text-gray-500">
+                                            加载失败
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                     {assetSubTab === 'library' && (

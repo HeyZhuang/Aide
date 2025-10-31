@@ -37,6 +37,23 @@ interface DragImageData {
   };
 }
 
+// PSD图层拖拽数据接口
+interface DragPsdLayerData {
+  type: string;
+  layer: {
+    index: number;
+    name: string;
+    image_url: string;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    opacity?: number;
+    visible?: boolean;
+  };
+  psdFileId: string;
+}
+
 type LastImagePosition = {
   x: number
   y: number
@@ -172,10 +189,10 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     }
 
     try {
-      const parsedData = JSON.parse(dragData) as DragImageData;
+      const parsedData = JSON.parse(dragData) as DragImageData | DragPsdLayerData;
 
-      // 检查是否是有效的library图片数据
-      if (parsedData.type === 'library-image' && parsedData.image && parsedData.image.url) {
+      // 处理Library图片拖拽
+      if (parsedData.type === 'library-image' && 'image' in parsedData && parsedData.image && parsedData.image.url) {
         console.log('🎨 从Library拖拽的图片:', parsedData.image);
 
         // 获取鼠标位置下的元素
@@ -441,6 +458,225 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             console.log('✅ 新图片已添加到画布');
           } catch (error) {
             console.error('❌ 添加图片失败:', error);
+          }
+        }
+      }
+      // 处理PSD图层拖拽
+      else if (parsedData.type === 'psd-layer' && 'layer' in parsedData && parsedData.layer && parsedData.layer.image_url) {
+        console.log('🎨 从PSD拖拽的图层:', parsedData.layer);
+
+        // 获取鼠标位置下的元素
+        const { clientX, clientY } = e;
+        const elements = excalidrawAPI.getSceneElements();
+        const appState = excalidrawAPI.getAppState();
+
+        // 获取画布容器
+        const canvasContainer = document.querySelector('.excalidraw') as HTMLElement;
+        if (!canvasContainer) {
+          console.error('❌ 未找到画布容器');
+          return;
+        }
+
+        const containerRect = canvasContainer.getBoundingClientRect();
+
+        // 计算鼠标在画布中的场景坐标（考虑缩放和偏移）
+        const sceneX = (clientX - containerRect.left - appState.offsetLeft) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top - appState.offsetTop) / appState.zoom.value - appState.scrollY;
+
+        console.log('🎯 鼠标场景坐标:', { sceneX, sceneY });
+
+        // 找到鼠标位置下的图片元素 - 从后往前遍历（优先选择最上层的元素）
+        let targetElement = null;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+
+          if (el.type !== 'image' || el.isDeleted) continue;
+
+          // 计算元素的边界框
+          const elementLeft = el.x;
+          const elementTop = el.y;
+          const elementRight = el.x + el.width;
+          const elementBottom = el.y + el.height;
+
+          // 判断鼠标是否在图片元素范围内
+          if (sceneX >= elementLeft &&
+            sceneX <= elementRight &&
+            sceneY >= elementTop &&
+            sceneY <= elementBottom) {
+            targetElement = el;
+            break;
+          }
+        }
+
+        // 如果找到了目标图片元素，则替换它
+        if (targetElement) {
+          console.log('✅ 找到目标图片元素，开始替换');
+
+          try {
+            // 获取PSD图层的数据
+            const dataURL = parsedData.layer.image_url;
+            const mimeType = 'image/png';
+
+            // 获取图层的实际尺寸
+            const img = new Image();
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = reject;
+              img.src = dataURL;
+            });
+
+            const newImageWidth = img.naturalWidth;
+            const newImageHeight = img.naturalHeight;
+            const newImageRatio = newImageWidth / newImageHeight;
+
+            console.log('📐 PSD图层原始尺寸:', { width: newImageWidth, height: newImageHeight, ratio: newImageRatio });
+
+            // 获取被替换图片的尺寸作为参考
+            const targetWidth = targetElement.width;
+            const targetHeight = targetElement.height;
+            const targetRatio = targetWidth / targetHeight;
+
+            // 计算保持宽高比的新尺寸
+            let finalWidth: number;
+            let finalHeight: number;
+
+            if (newImageRatio > targetRatio) {
+              finalWidth = targetWidth;
+              finalHeight = targetWidth / newImageRatio;
+            } else {
+              finalHeight = targetHeight;
+              finalWidth = targetHeight * newImageRatio;
+            }
+
+            console.log('📐 最终尺寸（保持宽高比）:', { width: finalWidth, height: finalHeight });
+
+            const fileId = `psd-layer-${parsedData.layer.index}-${Date.now()}`;
+
+            // 添加新图片文件到Excalidraw
+            excalidrawAPI.addFiles([{
+              id: fileId as any,
+              dataURL: dataURL as any,
+              mimeType: mimeType as any,
+              created: Date.now()
+            }]);
+
+            // 保留原图片的位置，使用计算后的尺寸
+            const replacementElement: any = {
+              ...targetElement,
+              fileId: fileId as any,
+              width: finalWidth,
+              height: finalHeight,
+              opacity: parsedData.layer.opacity ? Math.round(parsedData.layer.opacity / 255 * 100) : 100,
+              updated: Date.now(),
+              version: (targetElement.version || 0) + 1,
+              versionNonce: Math.floor(Math.random() * 1000000000),
+              customData: {
+                ...targetElement.customData,
+                psdLayerIndex: parsedData.layer.index,
+                psdLayerName: parsedData.layer.name,
+                psdFileId: parsedData.psdFileId
+              }
+            };
+
+            // 更新场景
+            const updatedElements = elements.map(el =>
+              el.id === targetElement.id ? replacementElement : el
+            );
+
+            excalidrawAPI.updateScene({ elements: updatedElements as any });
+            console.log('✅ PSD图层替换成功！');
+          } catch (error) {
+            console.error('❌ PSD图层替换失败:', error);
+          }
+        } else {
+          // 如果没有找到目标图片元素，在鼠标位置添加新图层
+          console.log('📍 鼠标位置下没有图片元素，将在此位置添加PSD图层');
+
+          try {
+            const dataURL = parsedData.layer.image_url;
+            const mimeType = 'image/png';
+
+            // 获取图层的实际尺寸
+            const img = new Image();
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = reject;
+              img.src = dataURL;
+            });
+
+            const newImageWidth = img.naturalWidth;
+            const newImageHeight = img.naturalHeight;
+            const newImageRatio = newImageWidth / newImageHeight;
+
+            console.log('📐 PSD图层原始尺寸:', { width: newImageWidth, height: newImageHeight, ratio: newImageRatio });
+
+            // 计算保持宽高比的适当尺寸（默认最大宽度300）
+            const maxWidth = 300;
+            let finalWidth: number;
+            let finalHeight: number;
+
+            if (newImageWidth > maxWidth) {
+              finalWidth = maxWidth;
+              finalHeight = maxWidth / newImageRatio;
+            } else {
+              finalWidth = newImageWidth;
+              finalHeight = newImageHeight;
+            }
+
+            console.log('📐 最终尺寸（保持宽高比）:', { width: finalWidth, height: finalHeight });
+
+            const fileId = `psd-layer-${parsedData.layer.index}-${Date.now()}`;
+
+            // 添加文件到Excalidraw
+            excalidrawAPI.addFiles([{
+              id: fileId as any,
+              dataURL: dataURL as any,
+              mimeType: mimeType as any,
+              created: Date.now()
+            }]);
+
+            // 在鼠标位置创建新图层元素
+            const newImageElement: any = {
+              id: `image-${fileId}`,
+              type: 'image' as const,
+              x: sceneX - finalWidth / 2,
+              y: sceneY - finalHeight / 2,
+              width: finalWidth,
+              height: finalHeight,
+              angle: 0,
+              strokeColor: 'transparent',
+              backgroundColor: 'transparent',
+              fillStyle: 'solid' as const,
+              strokeWidth: 1,
+              strokeStyle: 'solid' as const,
+              roughness: 0,
+              opacity: parsedData.layer.opacity ? Math.round(parsedData.layer.opacity / 255 * 100) : 100,
+              fileId: fileId as any,
+              scale: [1, 1] as [number, number],
+              status: 'saved' as const,
+              locked: false,
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000000),
+              isDeleted: false,
+              groupIds: [],
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              customData: {
+                psdLayerIndex: parsedData.layer.index,
+                psdLayerName: parsedData.layer.name,
+                psdFileId: parsedData.psdFileId
+              }
+            };
+
+            // 添加到画布
+            excalidrawAPI.updateScene({
+              elements: [...elements, newImageElement]
+            });
+
+            console.log('✅ PSD图层已添加到画布');
+          } catch (error) {
+            console.error('❌ 添加PSD图层失败:', error);
           }
         }
       }
