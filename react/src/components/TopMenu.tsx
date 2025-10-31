@@ -45,7 +45,7 @@ export default function TopMenu({
           <img src={LOGO_URL} alt="logo" className="size-5" draggable={false} />
           <motion.div className="flex relative overflow-hidden items-start h-7 text-xl font-bold">
             <motion.span className="flex items-center" layout>
-              {window.location.pathname === '/' ? 'Jaaz' : t('canvas:back')}
+              {window.location.pathname === '/' ? 'Aide' : t('canvas:back')}
             </motion.span>
           </motion.div>
         </motion.div>

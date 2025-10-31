@@ -31,6 +31,7 @@ import {
     Bookmark,
     Star,
 } from 'lucide-react'
+import { saveCanvas } from '@/api/canvas'
 import {
     updateLayerProperties,
     type PSDLayer,
@@ -374,11 +375,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
                 // PSD文件列表（来自public/psd目录）
                 const mockPsdTemplates = [
-                    '01 momo M09 鋪底_專業抗敏護齦牙膏100g 8入+買舒酸定指定品 送_1200x1200.psd',
-                    '02 momo 舒酸定 M09 0905,0908 滿888現折100_1200x1200.psd',
-                    '04 9288701 好便宜0912 _1200x628.psd',
                     'test.psd',
-                    '主圖測試.psd'
+                    'c.psd'
                 ]
 
                 setPsdTemplates(mockPsdTemplates)
@@ -961,5 +959,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         </div>
     )
 }
+
+
 
 

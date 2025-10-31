@@ -125,7 +125,7 @@ const createWindow = (pyPort) => {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, '../assets/icons/jaaz.png'), // ✅ Use .png for dev
+    icon: path.join(__dirname, '../assets/icons/ai_logo.svg'), // ✅ Use .png for dev
     autoHideMenuBar: true, // Hide menu bar (can be toggled with Alt key)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -162,8 +162,8 @@ const createWindow = (pyPort) => {
     const newWindow = new BrowserWindow({
       width: 800,
       height: 600,
-      title: 'Jaaz Preview',
-      icon: path.join(__dirname, '../assets/icons/jaaz.png'),
+      title: 'Aide Preview',
+      icon: path.join(__dirname, '../assets/icons/ai_logo.svg'),
       autoHideMenuBar: true,
       webPreferences: {
         nodeIntegration: false,

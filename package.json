@@ -50,7 +50,7 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
-      "icon": "assets/icons/jaaz.icns",
+      "icon": "assets/icons/ai_logo.svg",
       "target": [
         "dmg",
         "zip"
@@ -63,7 +63,7 @@
     },
     "afterSign": "scripts/notarize.js",
     "win": {
-      "icon": "assets/icons/jaaz.ico",
+      "icon": "assets/icons/ai_logo.svg",
       "target": [
         "nsis"
       ]
