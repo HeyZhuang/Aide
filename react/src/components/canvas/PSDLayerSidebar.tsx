@@ -393,7 +393,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         fetchPsdTemplates()
     }, [assetSubTab])
 
-    // 处理PSD模板点击
+    // 处理PSD模板点击 - 直接上传到画布
     const handlePsdTemplateClick = async (psdFileName: string) => {
         try {
             console.log('🎯 点击PSD模板:', psdFileName)
@@ -413,9 +413,117 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             const result = await uploadPSD(file)
             console.log('PSD解析结果:', result)
 
-            setPsdTemplateData(result)
+            // 直接添加所有图层到画布（复用 PSDCanvasUploader 的逻辑）
+            if (excalidrawAPI && result.layers) {
+                console.log('开始添加PSD图层到画布，共', result.layers.length, '个图层')
 
-            toast.success(`PSD模板 "${psdFileName}" 加载成功`)
+                // 获取画布状态
+                const appState = excalidrawAPI.getAppState()
+                const currentElements = excalidrawAPI.getSceneElements()
+
+                // 计算视口中心
+                const viewportCenter = {
+                    x: -appState.scrollX + (appState.width || 0) / 2 / appState.zoom.value,
+                    y: -appState.scrollY + (appState.height || 0) / 2 / appState.zoom.value,
+                }
+
+                // 过滤有效图层
+                const validLayers = result.layers.filter(layer => {
+                    return layer.image_url &&
+                        layer.visible !== false &&
+                        layer.width > 0 &&
+                        layer.height > 0
+                })
+
+                console.log('有效图层数量:', validLayers.length)
+
+                if (validLayers.length === 0) {
+                    toast.warning('该PSD文件没有可显示的图层')
+                    setSelectedPsdTemplate(null)
+                    return
+                }
+
+                // 计算PSD整体边界
+                const minLeft = Math.min(...validLayers.map(l => l.left || 0))
+                const minTop = Math.min(...validLayers.map(l => l.top || 0))
+                const maxRight = Math.max(...validLayers.map(l => (l.left || 0) + (l.width || 0)))
+                const maxBottom = Math.max(...validLayers.map(l => (l.top || 0) + (l.height || 0)))
+                const psdWidth = maxRight - minLeft
+                const psdHeight = maxBottom - minTop
+
+                // 计算居中偏移
+                const centerOffsetX = viewportCenter.x - (minLeft + psdWidth / 2)
+                const centerOffsetY = viewportCenter.y - (minTop + psdHeight / 2)
+
+                // 按图层顺序添加
+                const sortedLayers = [...validLayers].sort((a, b) => a.index - b.index)
+                const newElements: any[] = []
+
+                for (const layer of sortedLayers) {
+                    try {
+                        const fileId = `psd-layer-${result.file_id}-${layer.index}-${Date.now()}`
+
+                        // 添加文件到Excalidraw
+                        excalidrawAPI.addFiles([{
+                            id: fileId as any,
+                            dataURL: layer.image_url as any,
+                            mimeType: 'image/png' as any,
+                            created: Date.now()
+                        }])
+
+                        // 创建图层元素
+                        const imageElement: any = {
+                            id: `image-${fileId}`,
+                            type: 'image',
+                            x: (layer.left || 0) + centerOffsetX,
+                            y: (layer.top || 0) + centerOffsetY,
+                            width: layer.width,
+                            height: layer.height,
+                            angle: 0,
+                            strokeColor: 'transparent',
+                            backgroundColor: 'transparent',
+                            fillStyle: 'solid',
+                            strokeWidth: 1,
+                            strokeStyle: 'solid',
+                            roughness: 0,
+                            opacity: layer.opacity ? Math.round(layer.opacity / 255 * 100) : 100,
+                            fileId: fileId,
+                            scale: [1, 1],
+                            status: 'saved',
+                            locked: false,
+                            version: 1,
+                            versionNonce: Math.floor(Math.random() * 1000000000),
+                            isDeleted: false,
+                            groupIds: [],
+                            boundElements: null,
+                            updated: Date.now(),
+                            link: null,
+                            customData: {
+                                psdLayerIndex: layer.index,
+                                psdLayerName: layer.name,
+                                psdFileId: result.file_id
+                            }
+                        }
+
+                        newElements.push(imageElement)
+
+                        // 添加小延迟避免过快请求
+                        await new Promise(resolve => setTimeout(resolve, 50))
+                    } catch (error) {
+                        console.error('添加图层失败:', layer.name, error)
+                    }
+                }
+
+                // 更新画布
+                excalidrawAPI.updateScene({
+                    elements: [...currentElements, ...newElements]
+                })
+
+                toast.success(`PSD模板 "${psdFileName}" 已添加到画布（${newElements.length}个图层）`)
+            }
+
+            // 重置状态
+            setSelectedPsdTemplate(null)
         } catch (err) {
             console.error('加载PSD模板失败:', err)
             toast.error('加载PSD模板失败')
@@ -423,12 +531,6 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         } finally {
             setLoadingPsd(false)
         }
-    }
-
-    // 关闭PSD预览
-    const handleClosePsdPreview = () => {
-        setSelectedPsdTemplate(null)
-        setPsdTemplateData(null)
     }
 
     // // 获取画布中图层的实时状态
@@ -585,134 +687,52 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     )}
                     {/* 内容区：根据 Templates / Library / Fonts 显示不同结构 */}
                     {assetSubTab === 'templates' && (
-                        <div className="flex-1 flex flex-col overflow-hidden">
-                            {/* PSD模板列表 */}
-                            {!selectedPsdTemplate ? (
-                                <div className="p-3 space-y-2 overflow-auto">
-                                    {loading && (
-                                        <div className="text-center py-8 text-gray-500">
-                                            加载中...
-                                        </div>
-                                    )}
-
-                                    {error && (
-                                        <div className="text-center py-8 text-red-500">
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    {!loading && !error && psdTemplates.length > 0 && (
-                                        psdTemplates.map((psdFile, idx) => (
-                                            <button
-                                                key={idx}
-                                                className="w-full flex items-center justify-between px-3 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 transition-all shadow-sm hover:shadow-md text-left"
-                                                onClick={() => handlePsdTemplateClick(psdFile)}
-                                                disabled={loadingPsd}
-                                            >
-                                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                    <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                                                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                        </svg>
-                                                    </div>
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="text-sm font-medium truncate">{psdFile}</div>
-                                                        <div className="text-xs text-gray-500">PSD模板</div>
-                                                    </div>
-                                                </div>
-                                                <span className="opacity-60 flex-shrink-0">›</span>
-                                            </button>
-                                        ))
-                                    )}
-
-                                    {!loading && !error && psdTemplates.length === 0 && (
-                                        <div className="text-center py-8 text-gray-500">
-                                            暂无PSD模板
-                                        </div>
-                                    )}
+                        <div className="p-3 space-y-2 overflow-auto">
+                            {loading && (
+                                <div className="text-center py-8 text-gray-500">
+                                    加载中...
                                 </div>
-                            ) : (
-                                // PSD预览区域
-                                <div className="flex-1 flex flex-col overflow-hidden">
-                                    {/* 标题栏 */}
-                                    <div className="flex items-center justify-between p-3 border-b">
-                                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                                            <button
-                                                onClick={handleClosePsdPreview}
-                                                className="flex-shrink-0 p-1 hover:bg-gray-100 rounded"
-                                                aria-label="返回模板列表"
-                                                title="返回"
-                                            >
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                                </svg>
-                                            </button>
+                            )}
+
+                            {error && (
+                                <div className="text-center py-8 text-red-500">
+                                    {error}
+                                </div>
+                            )}
+
+                            {!loading && !error && psdTemplates.length > 0 && (
+                                psdTemplates.map((psdFile, idx) => (
+                                    <button
+                                        key={idx}
+                                        className="w-full flex items-center justify-between px-3 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 transition-all shadow-sm hover:shadow-md text-left"
+                                        onClick={() => handlePsdTemplateClick(psdFile)}
+                                        disabled={loadingPsd}
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                {loadingPsd && selectedPsdTemplate === psdFile ? (
+                                                    <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                                                ) : (
+                                                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                    </svg>
+                                                )}
+                                            </div>
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-sm font-medium truncate">{selectedPsdTemplate}</div>
+                                                <div className="text-sm font-medium truncate">{psdFile}</div>
                                                 <div className="text-xs text-gray-500">
-                                                    {psdTemplateData ? `${psdTemplateData.layers.length} 个图层` : '加载中...'}
+                                                    {loadingPsd && selectedPsdTemplate === psdFile ? '上传中...' : 'PSD模板'}
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                        <span className="opacity-60 flex-shrink-0">›</span>
+                                    </button>
+                                ))
+                            )}
 
-                                    {/* PSD图层预览 */}
-                                    {loadingPsd ? (
-                                        <div className="flex-1 flex items-center justify-center">
-                                            <div className="text-center">
-                                                <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-primary animate-spin mx-auto mb-3"></div>
-                                                <div className="text-sm text-gray-500">解析PSD中...</div>
-                                            </div>
-                                        </div>
-                                    ) : psdTemplateData ? (
-                                        <div className="flex-1 overflow-auto p-3">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {psdTemplateData.layers
-                                                    .filter(layer => layer.image_url && layer.visible !== false)
-                                                    .map((layer, idx) => (
-                                                        <div
-                                                            key={idx}
-                                                            className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer relative group"
-                                                            title={layer.name}
-                                                        >
-                                                            <img
-                                                                src={layer.image_url}
-                                                                alt={layer.name}
-                                                                className="w-full h-full object-contain"
-                                                                draggable
-                                                                onDragStart={(e) => {
-                                                                    try {
-                                                                        const dragData = {
-                                                                            type: 'psd-layer',
-                                                                            layer: layer,
-                                                                            psdFileId: psdTemplateData.file_id
-                                                                        };
-                                                                        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-                                                                        e.dataTransfer.effectAllowed = 'copy';
-                                                                        toast.info(`拖拽图层 "${layer.name}" 到画布`);
-                                                                    } catch (error) {
-                                                                        console.error('Failed to set drag data:', error);
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-1.5 truncate">
-                                                                {layer.name}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                            </div>
-
-                                            {psdTemplateData.layers.filter(l => l.image_url && l.visible !== false).length === 0 && (
-                                                <div className="text-center py-8 text-gray-500">
-                                                    该PSD没有可显示的图层
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex-1 flex items-center justify-center text-gray-500">
-                                            加载失败
-                                        </div>
-                                    )}
+                            {!loading && !error && psdTemplates.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    暂无PSD模板
                                 </div>
                             )}
                         </div>
@@ -941,3 +961,5 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         </div>
     )
 }
+
+
