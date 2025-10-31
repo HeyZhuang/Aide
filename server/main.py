@@ -7,7 +7,16 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
-from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, psd_router, font_router, psd_resize_router
+from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation
+
+# 条件导入PSD相关路由器，以支持在没有psd-tools的环境中运行
+psd_router = None
+psd_resize_router = None
+try:
+    from routers import psd_router, psd_resize_router
+    print('Successfully imported PSD routers')
+except ImportError as e:
+    print(f'Skipping PSD routers import due to missing dependencies: {e}')
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
@@ -63,11 +72,16 @@ app.include_router(root_router.router)
 app.include_router(canvas.router)
 app.include_router(workspace.router)
 app.include_router(image_router.router)
-app.include_router(psd_router.router)
-app.include_router(psd_resize_router.router)
+
+# 只有当PSD路由器成功导入时才包含它们
+if psd_router:
+    app.include_router(psd_router.router)
+if psd_resize_router:
+    app.include_router(psd_resize_router.router)
+
 app.include_router(ssl_test.router)
 app.include_router(chat_router.router)
-app.include_router(font_router.router)
+app.include_router(tool_confirmation.router)
 
 # Mount the React build directory
 react_build_dir = os.environ.get('UI_DIST_DIR', os.path.join(

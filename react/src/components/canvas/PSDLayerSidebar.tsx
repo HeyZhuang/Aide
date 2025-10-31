@@ -68,6 +68,212 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     const [assetSubTab, setAssetSubTab] = useState<'templates' | 'library' | 'fonts'>('library')
     const [assetSource, setAssetSource] = useState<'platform' | 'uploads'>('platform')
 
+    // 图片数据状态管理
+    const [platformImages, setPlatformImages] = useState<string[]>([])
+    const [userUploadedImages, setUserUploadedImages] = useState<Array<{ id: string, name: string, url: string }>>([])
+    const [draggedImageData, setDraggedImageData] = useState<{ url: string, name: string } | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    // 处理图片上传
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const files = event.target.files
+        if (!files || files.length === 0) return
+
+        try {
+            // 模拟上传过程
+            setLoading(true)
+
+            // 使用FileReader读取图片并转换为Data URL
+            const readFileAsDataURL = (file: File): Promise<string> => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                        if (typeof reader.result === 'string') {
+                            resolve(reader.result)
+                        } else {
+                            reject(new Error('无法读取文件内容'))
+                        }
+                    }
+                    reader.onerror = () => reject(new Error('读取文件失败'))
+                    reader.readAsDataURL(file)
+                })
+            }
+
+            const newImages: any[] = []
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                try {
+                    // 验证是否为有效的图片文件
+                    if (!file.type.startsWith('image/')) {
+                        console.warn('跳过非图片文件:', file.name)
+                        continue
+                    }
+
+                    // 使用FileReader读取文件为Data URL
+                    const dataUrl = await readFileAsDataURL(file)
+                    console.log('成功创建Data URL:', '文件名:', file.name, '类型:', file.type, '大小:', file.size)
+
+                    const imageObj = {
+                        id: Date.now() + '-' + i + '-' + Math.random().toString(36).substr(2, 9),
+                        name: file.name,
+                        url: dataUrl,
+                        type: file.type,
+                        size: file.size
+                    }
+
+                    newImages.push(imageObj)
+                } catch (fileError) {
+                    console.error('读取文件失败:', fileError, '文件:', file.name)
+                }
+            }
+
+            // 使用函数式更新确保状态正确合并
+            setUserUploadedImages(prev => {
+                const updated = [...prev, ...newImages]
+                console.log('更新后的上传图片列表:', updated.length, '张图片')
+                return updated
+            })
+
+            if (newImages.length > 0) {
+                toast.success(`成功上传 ${newImages.length} 张图片`)
+            } else {
+                setError('无法上传图片，请确保选择的是有效的图片文件')
+            }
+
+            // 清空文件输入
+            event.target.value = ''
+        } catch (err) {
+            console.error('上传处理失败:', err)
+            setError('处理图片时出错')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // 由于使用Data URL而非Object URL，不再需要清理临时URL
+    // 保留此effect以便将来如果切换回Object URL时使用
+    useEffect(() => {
+        return () => {
+            console.log('组件卸载，当前使用Data URL不需要清理')
+        }
+    }, [userUploadedImages])
+
+    // 处理图片点击事件 - 添加图片到画布中心
+    const handleImageClick = async (imageInfo: { name: string, url?: string }) => {
+        try {
+            console.log('🖱️ 点击图片:', imageInfo.name)
+
+            if (!excalidrawAPI) {
+                toast.error('画布未初始化')
+                return
+            }
+
+            // 准备图片数据
+            let dataURL = imageInfo.url || `/assets/${imageInfo.name}`
+            let mimeType = 'image/png'
+
+            // 如果是相对路径，需要fetch获取blob
+            if (!dataURL.startsWith('data:')) {
+                const response = await fetch(dataURL)
+                const blob = await response.blob()
+                mimeType = blob.type
+
+                // 转换为DataURL
+                dataURL = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onload = () => resolve(reader.result as string)
+                    reader.onerror = reject
+                    reader.readAsDataURL(blob)
+                })
+            }
+
+            // 创建图片元素ID
+            const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+            // 添加文件到Excalidraw
+            excalidrawAPI.addFiles([{
+                id: fileId as any,
+                dataURL: dataURL as any,
+                mimeType: mimeType as any,
+                created: Date.now()
+            }])
+
+            // 获取画布状态和当前元素
+            const appState = excalidrawAPI.getAppState()
+            const currentElements = excalidrawAPI.getSceneElements()
+
+            // 在画布中心创建图片元素
+            const newImageElement = {
+                id: `image-${fileId}`,
+                type: 'image' as const,
+                x: -appState.scrollX + (appState.width / 2 / appState.zoom.value) - 100,
+                y: -appState.scrollY + (appState.height / 2 / appState.zoom.value) - 100,
+                width: 200,
+                height: 200,
+                angle: 0,
+                strokeColor: 'transparent',
+                backgroundColor: 'transparent',
+                fillStyle: 'solid' as const,
+                strokeWidth: 1,
+                strokeStyle: 'solid' as const,
+                roughness: 0,
+                opacity: 100,
+                fileId: fileId,
+                scale: [1, 1] as [number, number],
+                status: 'saved' as const,
+                locked: false,
+                version: 1,
+                versionNonce: Math.floor(Math.random() * 1000000000),
+                isDeleted: false,
+                groupIds: [],
+                boundElements: null,
+                updated: Date.now(),
+                link: null,
+                customData: {
+                    libraryImage: true,
+                    imageName: imageInfo.name
+                }
+            }
+
+            // 添加到画布
+            excalidrawAPI.updateScene({
+                elements: [...currentElements, newImageElement as any]
+            })
+
+            toast.success(`图片 "${imageInfo.name}" 已添加到画布`)
+        } catch (err) {
+            console.error('添加图片到画布失败:', err)
+            toast.error('添加图片失败，请重试')
+        }
+    }
+
+    // 处理图片删除事件
+    const handleImageDelete = (imageId: string, imageName: string) => {
+        try {
+            // 显示确认对话框
+            if (!window.confirm(`确定要删除图片 "${imageName}" 吗？`)) {
+                return
+            }
+
+            console.log('删除图片:', imageId, imageName)
+
+            // 更新状态，过滤掉要删除的图片
+            setUserUploadedImages(prev => {
+                const updated = prev.filter(image => image.id !== imageId)
+                console.log('删除后的图片列表:', updated.length, '张图片')
+                return updated
+            })
+
+            // 显示删除成功提示
+            toast.success(`图片 "${imageName}" 已成功删除`)
+        } catch (err) {
+            console.error('删除图片失败:', err)
+            toast.error('删除图片失败，请重试')
+        }
+    }
+
     // 监听画布变化，实时同步图层状态
     useEffect(() => {
         if (!excalidrawAPI || !isVisible) return
@@ -101,334 +307,112 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         }
     }, [excalidrawAPI, isVisible])
 
-    // 获取画布中图层的实时状态
-    const getLayerCanvasState = useCallback((layerIndex: number) => {
-        const canvasElement = canvasElements.find(element =>
-            element.customData?.psdLayerIndex === layerIndex
-        )
+    // 获取平台图片数据
+    useEffect(() => {
+        const fetchPlatformImages = async () => {
+            if (assetSubTab !== 'library' || assetSource !== 'platform') return
 
-        if (!canvasElement) {
-            return {
-                exists: false,
-                visible: false,
-                opacity: 100,
-                element: null
-            }
-        }
-
-        // 检查可见性：主要基于opacity，同时检查customData中的visible状态
-        const opacityVisible = canvasElement.opacity > 0
-        const customDataVisible = canvasElement.customData?.visible !== false
-        const isVisible = opacityVisible && customDataVisible
-
-        return {
-            exists: true,
-            visible: isVisible,
-            opacity: canvasElement.opacity || 100,
-            element: canvasElement
-        }
-    }, [canvasElements])
-
-    // 过滤和搜索图层
-    const filteredLayers = useMemo(() => {
-        if (!psdData) return []
-
-        let filtered = psdData.layers.filter(layer => {
-            const matchesSearch = layer.name.toLowerCase().includes(searchTerm.toLowerCase())
-            const matchesFilter = filterType === 'all' || layer.type === filterType
-            return matchesSearch && matchesFilter
-        })
-
-        // 按图层顺序排序（从底层到顶层）
-        return filtered.sort((a, b) => a.index - b.index)
-    }, [psdData?.layers, searchTerm, filterType])
-
-    // 图层可见性切换（与画布同步）
-    const handleLayerVisibilityToggle = useCallback(
-        async (layerIndex: number) => {
-            if (!psdData || !excalidrawAPI) return
+            setLoading(true)
+            setError(null)
 
             try {
-                const canvasState = getLayerCanvasState(layerIndex)
-                const newVisible = !canvasState.visible
+                // 模拟API调用
+                // 实际项目中应该替换为真实的API调用
+                // const response = await fetch('/api/platform/images')
+                // const data = await response.json()
+                // setPlatformImages(data.images)
 
-                if (canvasState.exists) {
-                    // 如果图层在画布中存在，直接切换可见性
-                    const currentElements = excalidrawAPI.getSceneElements()
-                    const updatedElements = currentElements.map(element => {
-                        if (element.customData?.psdLayerIndex === layerIndex) {
-                            // 保存原始透明度
-                            const originalOpacity = element.customData?.originalOpacity || 100
+                // 模拟数据加载延迟
+                await new Promise(resolve => setTimeout(resolve, 500))
 
-                            return {
-                                ...element,
-                                // 使用原始透明度或默认100
-                                opacity: newVisible ? originalOpacity : 0,
-                                // 不使用isDeleted，只使用opacity控制
-                                isDeleted: false,
-                                // 更新customData中的可见性状态
-                                customData: {
-                                    ...element.customData,
-                                    visible: newVisible
-                                }
-                            }
-                        }
-                        return element
-                    })
+                // 使用public/assets中的图片作为模拟数据
+                const mockPlatformImages = [
+                    // 素材模板中的图片
+                    '01-momo-M09-鋪底_專業抗敏護齦牙膏100g-8入+買舒酸定指定品-送_1200x1200.jpg',
+                    '02-momo-舒酸定-M09-0905,0908-滿888現折100_1200x1200.jpg',
+                    '04-9288701-好便宜0912-_1200x628.jpg',
+                    '60000000201964 舒酸定專業抗敏護齦牙膏 100g_tube.png',
+                    '60000000201964 舒酸定專業抗敏護齦牙膏 100g_正面立體圖.png',
+                    '60000000201964 舒酸定專業抗敏護齦牙膏 100g_直式立體圖.png',
+                    '60000000211457 舒酸定專業抗敏護齦強化琺瑯質牙膏_tube.png',
+                    'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_正面立體圖.png',
+                    'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_直式立體圖.png',
+                    '主圖測試.jpg'
+                ]
 
-                    // 强制更新场景
-                    excalidrawAPI.updateScene({
-                        elements: updatedElements,
-                        appState: excalidrawAPI.getAppState()
-                    })
-
-                    // 触发重绘
-                    excalidrawAPI.history.clear()
-
-                    // 强制刷新画布状态
-                    setTimeout(() => {
-                        const refreshedElements = excalidrawAPI.getSceneElements()
-                        const refreshedPsdElements = refreshedElements.filter(element => element.customData?.psdFileId)
-                        setCanvasElements(refreshedPsdElements)
-                        setLastUpdateTime(Date.now())
-
-                        // 验证更新是否成功
-                        const targetElement = refreshedElements.find(el => el.customData?.psdLayerIndex === layerIndex)
-                        if (targetElement) {
-                            console.log('图层状态验证:', {
-                                layerIndex,
-                                layerName: targetElement.customData?.layerName,
-                                isDeleted: targetElement.isDeleted,
-                                opacity: targetElement.opacity,
-                                customDataVisible: targetElement.customData?.visible,
-                                expectedVisible: newVisible,
-                                actualVisible: targetElement.opacity > 0
-                            })
-
-                            // 如果更新失败，尝试再次更新
-                            if (targetElement.opacity === 0 && newVisible) {
-                                console.warn('图层显示失败，尝试强制显示')
-                                const forceUpdatedElements = refreshedElements.map(el => {
-                                    if (el.customData?.psdLayerIndex === layerIndex) {
-                                        return {
-                                            ...el,
-                                            opacity: el.customData?.originalOpacity || 100,
-                                            isDeleted: false,
-                                            customData: {
-                                                ...el.customData,
-                                                visible: true
-                                            }
-                                        }
-                                    }
-                                    return el
-                                })
-
-                                excalidrawAPI.updateScene({
-                                    elements: forceUpdatedElements
-                                })
-                            }
-                        }
-                    }, 50)
-
-                    console.log(`图层 ${layerIndex} 可见性切换为: ${newVisible}`, {
-                        element: canvasState.element,
-                        originalOpacity: canvasState.element?.customData?.originalOpacity || 100,
-                        newOpacity: newVisible ? (canvasState.element?.customData?.originalOpacity || 100) : 0,
-                        isDeleted: false
-                    })
-                } else {
-                    // 如果图层不在画布中，更新PSD数据
-                    const updatedLayers = psdData.layers.map((layer) =>
-                        layer.index === layerIndex ? { ...layer, visible: newVisible } : layer
-                    )
-
-                    await updateLayerProperties(psdData.file_id, layerIndex, {
-                        visible: newVisible
-                    })
-
-                    onUpdate({
-                        ...psdData,
-                        layers: updatedLayers,
-                    })
-                }
-
-                toast.success(`图层可见性已切换为: ${newVisible ? '可见' : '隐藏'}`)
-            } catch (error) {
-                console.error('更新图层可见性失败:', error)
-                toast.error('更新图层可见性失败')
+                setPlatformImages(mockPlatformImages)
+            } catch (err) {
+                setError('获取平台图片失败')
+                console.error('获取平台图片失败:', err)
+            } finally {
+                setLoading(false)
             }
-        },
-        [psdData, excalidrawAPI, getLayerCanvasState, onUpdate]
-    )
-
-    // 图层透明度调整（与画布同步）
-    const handleOpacityChange = useCallback(
-        async (layerIndex: number, opacity: number) => {
-            if (!psdData || !excalidrawAPI) return
-
-            try {
-                const canvasState = getLayerCanvasState(layerIndex)
-
-                if (canvasState.exists) {
-                    // 如果图层在画布中存在，直接更新透明度
-                    const updatedElements = excalidrawAPI.getSceneElements().map(element => {
-                        if (element.customData?.psdLayerIndex === layerIndex) {
-                            return { ...element, opacity }
-                        }
-                        return element
-                    })
-
-                    excalidrawAPI.updateScene({
-                        elements: updatedElements
-                    })
-
-                    console.log(`图层 ${layerIndex} 透明度更新为: ${opacity}%`)
-                } else {
-                    // 如果图层不在画布中，更新PSD数据
-                    const updatedLayers = psdData.layers.map((layer) =>
-                        layer.index === layerIndex ? { ...layer, opacity } : layer
-                    )
-
-                    await updateLayerProperties(psdData.file_id, layerIndex, { opacity })
-
-                    onUpdate({
-                        ...psdData,
-                        layers: updatedLayers,
-                    })
-                }
-
-                toast.success(`图层透明度已更新为: ${opacity}%`)
-            } catch (error) {
-                console.error('更新图层透明度失败:', error)
-                toast.error('更新图层透明度失败')
-            }
-        },
-        [psdData, excalidrawAPI, getLayerCanvasState, onUpdate]
-    )
-
-    // 文字图层属性更新（与画布同步）
-    const handleTextPropertyUpdate = useCallback(
-        async (layerIndex: number, property: string, value: any) => {
-            if (!psdData || !excalidrawAPI) return
-
-            try {
-                const canvasState = getLayerCanvasState(layerIndex)
-
-                if (canvasState.exists) {
-                    // 如果图层在画布中存在，直接更新画布中的文字元素
-                    const currentElements = excalidrawAPI.getSceneElements()
-                    const updatedElements = currentElements.map(element => {
-                        if (element.customData?.psdLayerIndex === layerIndex) {
-                            // 更新文字元素的属性
-                            const updatedElement = { ...element }
-
-                            if (property === 'text_content') {
-                                // 更新文字内容
-                                if (updatedElement.type === 'text') {
-                                    (updatedElement as any).text = value
-                                }
-                            } else if (property === 'font_weight') {
-                                // 更新字体粗细
-                                if (updatedElement.type === 'text') {
-                                    (updatedElement as any).fontWeight = value === 'bold' ? 600 : 400
-                                }
-                            } else if (property === 'font_style') {
-                                // 更新字体样式
-                                if (updatedElement.type === 'text') {
-                                    (updatedElement as any).fontStyle = value === 'italic' ? 'italic' : 'normal'
-                                }
-                            }
-
-                            // 更新customData
-                            updatedElement.customData = {
-                                ...updatedElement.customData,
-                                [property]: value
-                            }
-
-                            return updatedElement
-                        }
-                        return element
-                    })
-
-                    // 强制更新场景
-                    excalidrawAPI.updateScene({
-                        elements: updatedElements,
-                        appState: excalidrawAPI.getAppState()
-                    })
-
-                    console.log(`文字图层 ${layerIndex} ${property} 更新为: ${value}`)
-                } else {
-                    // 如果图层不在画布中，更新PSD数据
-                    const updatedLayers = psdData.layers.map((layer) =>
-                        layer.index === layerIndex ? { ...layer, [property]: value } : layer
-                    )
-
-                    await updateLayerProperties(psdData.file_id, layerIndex, { [property]: value })
-
-                    onUpdate({
-                        ...psdData,
-                        layers: updatedLayers,
-                    })
-                }
-
-                toast.success('文字属性已更新')
-            } catch (error) {
-                console.error('更新文字属性失败:', error)
-                toast.error('更新文字属性失败')
-            }
-        },
-        [psdData, excalidrawAPI, getLayerCanvasState, onUpdate]
-    )
-
-    // 保存图层为模板
-    const handleSaveLayerAsTemplate = useCallback(async (layer: PSDLayer) => {
-        try {
-            const templateData = {
-                name: `${layer.name} - 模板`,
-                description: `从PSD图层 "${layer.name}" 创建的模板`,
-                category_id: 'default', // 默认分类，实际应用中应该让用户选择
-                tags: ['psd', 'layer', layer.type],
-                is_public: false,
-            }
-
-            await createTemplateFromPSDLayer(psdData!.file_id, layer.index, templateData)
-            toast.success(`图层 "${layer.name}" 已保存为模板`)
-        } catch (error) {
-            console.error('保存模板失败:', error)
-            toast.error('保存模板失败')
         }
-    }, [psdData])
 
-    // 获取图层图标
-    const getLayerIcon = (layer: PSDLayer) => {
-        switch (layer.type) {
-            case 'text':
-                return <Type className="h-4 w-4 text-blue-500" />
-            case 'group':
-                return <FolderOpen className="h-4 w-4 text-yellow-500" />
-            default:
-                return <ImageIcon className="h-4 w-4 text-green-500" />
-        }
-    }
+        fetchPlatformImages()
+    }, [assetSubTab, assetSource])
 
-    // 获取图层类型标签
-    const getLayerTypeLabel = (layer: PSDLayer) => {
-        switch (layer.type) {
-            case 'text':
-                return '文字'
-            case 'group':
-                return '群组'
-            default:
-                return '图层'
-        }
-    }
+    // // 获取画布中图层的实时状态
+    // const getLayerCanvasState = useCallback((layerIndex: number) => {
+    //     const canvasElement = canvasElements.find(element =>
+    //         element.customData?.psdLayerIndex === layerIndex
+    //     )
+
+    //     if (!canvasElement) {
+    //         return {
+    //             exists: false,
+    //             visible: false,
+    //             opacity: 100,
+    //             element: null
+    //         }
+    //     }
+
+    //     // 检查可见性：主要基于opacity，同时检查customData中的visible状态
+    //     const opacityVisible = canvasElement.opacity > 0
+    //     const customDataVisible = canvasElement.customData?.visible !== false
+    //     const isVisible = opacityVisible && customDataVisible
+
+    //     return {
+    //         exists: true,
+    //         visible: isVisible,
+    //         opacity: canvasElement.opacity || 100,
+    //         element: canvasElement
+    //     }
+    // }, [canvasElements])
+
+    // // 保存图层为模板
+    // const handleSaveLayerAsTemplate = useCallback(async (layer: PSDLayer) => {
+    //     try {
+    //         const templateData = {
+    //             name: `${layer.name} - 模板`,
+    //             description: `从PSD图层 "${layer.name}" 创建的模板`,
+    //             category_id: 'default', // 默认分类，实际应用中应该让用户选择
+    //             tags: ['psd', 'layer', layer.type],
+    //             is_public: false,
+    //         }
+
+    //         await createTemplateFromPSDLayer(psdData!.file_id, layer.index, templateData)
+    //         toast.success(`图层 "${layer.name}" 已保存为模板`)
+    //     } catch (error) {
+    //         console.error('保存模板失败:', error)
+    //         toast.error('保存模板失败')
+    //     }
+    // }, [psdData])
+
+    // // 获取图层图标
+    // const getLayerIcon = (layer: PSDLayer) => {
+    //     switch (layer.type) {
+    //         case 'text':
+    //             return <Type className="h-4 w-4 text-blue-500" />
+    //         case 'group':
+    //             return <FolderOpen className="h-4 w-4 text-yellow-500" />
+    //         default:
+    //             return <ImageIcon className="h-4 w-4 text-green-500" />
+    //     }
+    // }
+
 
     // console.log('PSDLayerSidebar 渲染狀態:', { isVisible, psdData: !!psdData, layersCount: psdData?.layers?.length })
-
-    // 始终显示面板，不受 isVisible 控制
-    // if (!isVisible) {
-    //     return null
-    // }
 
     // 如果没有 PSD 数据，显示空状态（但仍然渲染面板结构）
     const hasData = psdData && psdData.layers && psdData.layers.length > 0
@@ -536,13 +520,197 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     )}
                     {assetSubTab === 'library' && (
                         <div className="grid grid-cols-3 gap-3 p-3 overflow-auto">
-                            {Array.from({ length: 12 }).map((_, i) => (
-                                <div key={i} className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden">
-                                    <div className="w-full h-full flex items-center justify-center text-sm">
-                                        library {i + 1}
+                            {/* 加载状态 */}
+                            {loading && (
+                                Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="aspect-square rounded-xl border bg-gray-50/60 animate-pulse flex items-center justify-center">
+                                        <div className="w-10 h-10 rounded-full bg-gray-200"></div>
                                     </div>
+                                ))
+                            )}
+
+                            {/* 错误状态 */}
+                            {error && (
+                                <div className="col-span-3 text-center py-8 text-red-500">
+                                    {error}
+                                    <button
+                                        className="mt-2 text-sm text-primary hover:underline"
+                                        onClick={() => {
+                                            setError(null)
+                                            setPlatformImages([])
+                                        }}
+                                    >
+                                        重试
+                                    </button>
                                 </div>
-                            ))}
+                            )}
+
+                            {/* 根据选择的来源显示不同的图片 */}
+                            {!loading && !error && (
+                                <>
+                                    {/* 仅在My Uploads标签下显示上传按钮 */}
+                                    {assetSource === 'uploads' && (
+                                        <div className="col-span-3">
+                                            <button
+                                                onClick={() => document.getElementById('image-upload')?.click()}
+                                                className="w-full py-2 px-4 border border-dashed rounded-lg text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                                上传图片
+                                            </button>
+                                            <input
+                                                id="image-upload"
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="hidden"
+                                                onChange={handleImageUpload}
+                                                aria-label="上传图片"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {assetSource === 'platform' ? (
+                                        platformImages.length > 0 ? (
+                                            platformImages.map((imageName, i) => (
+                                                <div key={i} className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer">
+                                                    <img
+                                                        src={`/assets/${imageName}`}
+                                                        alt={`Platform image ${i + 1}`}
+                                                        className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-80"
+                                                        // onClick={() => handleImageClick({ name: imageName })}
+                                                        draggable
+                                                        onDragStart={(e) => {
+                                                            try {
+                                                                console.log('🎯 开始拖拽平台图片:', imageName)
+                                                                const dragData = {
+                                                                    type: 'library-image',
+                                                                    image: {
+                                                                        id: `platform-${i}`,
+                                                                        name: imageName,
+                                                                        url: `/assets/${imageName}`
+                                                                    }
+                                                                };
+                                                                e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                                                                e.dataTransfer.effectAllowed = 'copy';
+
+                                                                // 设置拖拽时的视觉效果
+                                                                const dragImage = e.currentTarget.cloneNode(true) as HTMLImageElement;
+                                                                dragImage.style.width = '80px';
+                                                                dragImage.style.height = '80px';
+                                                                dragImage.style.opacity = '0.7';
+                                                                document.body.appendChild(dragImage);
+                                                                e.dataTransfer.setDragImage(dragImage, 40, 40);
+                                                                setTimeout(() => document.body.removeChild(dragImage), 0);
+
+                                                                toast.info('拖拽到画布中的图片上进行替换，或拖到空白处添加新图片');
+                                                            } catch (error) {
+                                                                console.error('Failed to set drag data:', error);
+                                                            }
+                                                        }}
+                                                        onDragEnd={() => {
+                                                            console.log('🏁 拖拽结束');
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-3 text-center py-8 text-gray-500">
+                                                暂无平台图片
+                                            </div>
+                                        )
+                                    ) : (
+                                        userUploadedImages.length > 0 ? (
+                                            userUploadedImages.map((image) => {
+                                                // console.log('渲染上传图片:', image.id, image.name, image.url)
+                                                return (
+                                                    <div key={image.id} className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer relative group">
+                                                        <div className="relative w-full h-full">
+                                                            <img
+                                                                src={image.url}
+                                                                alt={`My uploaded image: ${image.name}`}
+                                                                className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-80"
+                                                                // onClick={() => handleImageClick(image)}
+                                                                draggable
+                                                                onDragStart={(e) => {
+                                                                    try {
+                                                                        console.log('🎯 开始拖拽上传图片:', image.name)
+                                                                        const dragData = {
+                                                                            type: 'library-image',
+                                                                            image: {
+                                                                                id: image.id,
+                                                                                name: image.name,
+                                                                                url: image.url
+                                                                            }
+                                                                        };
+                                                                        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                                                                        e.dataTransfer.effectAllowed = 'copy';
+
+                                                                        // 设置拖拽时的视觉效果
+                                                                        const dragImage = e.currentTarget.cloneNode(true) as HTMLImageElement;
+                                                                        dragImage.style.width = '80px';
+                                                                        dragImage.style.height = '80px';
+                                                                        dragImage.style.opacity = '0.7';
+                                                                        document.body.appendChild(dragImage);
+                                                                        e.dataTransfer.setDragImage(dragImage, 40, 40);
+                                                                        setTimeout(() => document.body.removeChild(dragImage), 0);
+
+                                                                        toast.info('拖拽到画布中的图片上进行替换，或拖到空白处添加新图片');
+                                                                    } catch (error) {
+                                                                        console.error('Failed to set drag data:', error);
+                                                                    }
+                                                                }}
+                                                                onDragEnd={() => {
+                                                                    console.log('🏁 拖拽结束');
+                                                                }}
+                                                                onLoad={() => console.log('图片加载成功:', image.id)}
+                                                                onError={(e) => {
+                                                                    console.error('图片加载失败:', image.id, image.url, e)
+                                                                    const target = e.target as HTMLImageElement
+                                                                    // 设置占位图
+                                                                    target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Cpath d="M50 30C60 30 68 38 68 48C68 58 60 66 50 66C40 66 32 58 32 48C32 38 40 30 50 30ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20ZM50 75C36.2 75 25 63.8 25 50C25 36.2 36.2 25 50 25C63.8 25 75 36.2 75 50C75 63.8 63.8 75 50 75Z" fill="%23dddddd"/%3E%3C/svg%3E'
+                                                                    // 尝试使用createObjectURL重新创建URL
+                                                                    try {
+                                                                        const newUrl = URL.createObjectURL(new Blob([], { type: (image as any).type || 'image/png' }))
+                                                                        console.log('尝试创建新的临时URL:', newUrl)
+                                                                        setTimeout(() => {
+                                                                            target.src = newUrl
+                                                                        }, 100)
+                                                                    } catch (retryError) {
+                                                                        console.error('重试创建URL失败:', retryError)
+                                                                    }
+                                                                }}
+                                                            />
+                                                            {/* 显示图片名称 */}
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
+                                                                {image.name}
+                                                            </div>
+                                                            {/* 删除按钮 - 仅在悬停时显示 */}
+                                                            <button
+                                                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                onClick={(e) => {
+                                                                    // 阻止事件冒泡，避免触发图片点击
+                                                                    e.stopPropagation()
+                                                                    handleImageDelete(image.id, image.name)
+                                                                }}
+                                                                aria-label={`删除图片 ${image.name}`}
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })
+                                        ) : (
+                                            <div className="col-span-3 text-center py-8 text-gray-500">
+                                                暂无上传的图片，请点击上方按钮上传
+                                            </div>
+                                        )
+                                    )}
+                                </>
+                            )}
                         </div>
                     )}
                     {assetSubTab === 'fonts' && (

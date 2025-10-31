@@ -26,6 +26,17 @@ import { VideoElement } from './VideoElement'
 
 import '@/assets/style/canvas.css'
 
+// 图片替换相关接口
+interface DragImageData {
+  type: string;
+  image: {
+    id: string;
+    name: string;
+    url: string;
+    type?: string;
+  };
+}
+
 type LastImagePosition = {
   x: number
   y: number
@@ -73,7 +84,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     }
   }
 
-  // Debounced handler for saving (performance optimization)
+  // 用于保存的去抖处理器（性能优化）
   const handleSave = useDebounce(
     (
       elements: Readonly<OrderedExcalidrawElement[]>,
@@ -109,15 +120,15 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     1000
   )
 
-  // Combined handler that calls both immediate and debounced functions
+  // 同时调用立即函数和去抖函数的组合处理程序
   const handleChange = (
     elements: Readonly<OrderedExcalidrawElement[]>,
     appState: AppState,
     files: BinaryFiles
   ) => {
-    // Immediate UI updates
+    // 即时用户界面更新
     handleSelectionChange(elements, appState)
-    // Debounced save operation
+    // 防抖保存操作
     handleSave(elements, appState, files)
   }
 
@@ -130,6 +141,313 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   // 添加自定义类名以便应用我们的CSS修复
   const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix' : ''}`
+
+  // 处理拖拽悬停事件
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // 检查是否是图片文件
+    const types = Array.from(e.dataTransfer.types);
+    if (types.includes('application/json') || types.includes('Files')) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  // 处理拖拽释放事件
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    // 立即阻止所有默认行为和事件传播
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+
+    // 获取拖拽的数据
+    const dragData = e.dataTransfer.getData('application/json');
+
+    if (!excalidrawAPI) return;
+
+    if (!dragData) {
+      console.log('⚠️ 未检测到拖拽数据');
+      return;
+    }
+
+    try {
+      const parsedData = JSON.parse(dragData) as DragImageData;
+
+      // 检查是否是有效的library图片数据
+      if (parsedData.type === 'library-image' && parsedData.image && parsedData.image.url) {
+        console.log('🎨 从Library拖拽的图片:', parsedData.image);
+
+        // 获取鼠标位置下的元素
+        const { clientX, clientY } = e;
+        const elements = excalidrawAPI.getSceneElements();
+        const appState = excalidrawAPI.getAppState();
+
+        // 获取画布容器
+        const canvasContainer = document.querySelector('.excalidraw') as HTMLElement;
+        if (!canvasContainer) {
+          console.error('❌ 未找到画布容器');
+          return;
+        }
+
+        const containerRect = canvasContainer.getBoundingClientRect();
+
+        // 计算鼠标在画布中的场景坐标（考虑缩放和偏移）
+        const sceneX = (clientX - containerRect.left - appState.offsetLeft) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top - appState.offsetTop) / appState.zoom.value - appState.scrollY;
+
+        console.log('🎯 鼠标场景坐标:', { sceneX, sceneY });
+        console.log('📊 画布状态:', {
+          zoom: appState.zoom.value,
+          scrollX: appState.scrollX,
+          scrollY: appState.scrollY,
+          offsetLeft: appState.offsetLeft,
+          offsetTop: appState.offsetTop,
+          containerRect: { left: containerRect.left, top: containerRect.top }
+        });
+
+        // 找到鼠标位置下的图片元素 - 从后往前遍历（优先选择最上层的元素）
+        let targetElement = null;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+
+          if (el.type !== 'image' || el.isDeleted) continue;
+
+          // 计算元素的边界框
+          const elementLeft = el.x;
+          const elementTop = el.y;
+          const elementRight = el.x + el.width;
+          const elementBottom = el.y + el.height;
+
+          console.log(`🔍 检查图片元素 ${el.id}:`, {
+            bounds: { left: elementLeft, top: elementTop, right: elementRight, bottom: elementBottom },
+            mouseIn: sceneX >= elementLeft && sceneX <= elementRight && sceneY >= elementTop && sceneY <= elementBottom
+          });
+
+          // 判断鼠标是否在图片元素范围内
+          if (sceneX >= elementLeft &&
+            sceneX <= elementRight &&
+            sceneY >= elementTop &&
+            sceneY <= elementBottom) {
+            targetElement = el;
+            break; // 找到最上层的元素后立即停止
+          }
+        }
+
+        // 如果找到了目标图片元素，则替换它
+        if (targetElement) {
+          console.log('✅ 找到目标图片元素:', {
+            id: targetElement.id,
+            position: { x: targetElement.x, y: targetElement.y },
+            size: { width: targetElement.width, height: targetElement.height }
+          });
+
+          // 创建新的图片文件
+          try {
+            console.log('🔄 开始替换图片...');
+
+            // 获取新图片的数据
+            let dataURL = parsedData.image.url;
+            let mimeType = 'image/png';
+
+            // 如果是相对路径，需要fetch获取blob
+            if (!dataURL.startsWith('data:')) {
+              const response = await fetch(parsedData.image.url);
+              const blob = await response.blob();
+              mimeType = blob.type;
+
+              // 转换为DataURL
+              dataURL = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            }
+
+            // 获取新图片的实际尺寸
+            const img = new Image();
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = reject;
+              img.src = dataURL;
+            });
+
+            const newImageWidth = img.naturalWidth;
+            const newImageHeight = img.naturalHeight;
+            const newImageRatio = newImageWidth / newImageHeight;
+
+            console.log('📐 新图片原始尺寸:', { width: newImageWidth, height: newImageHeight, ratio: newImageRatio });
+
+            // 获取被替换图片的尺寸作为参考
+            const targetWidth = targetElement.width;
+            const targetHeight = targetElement.height;
+            const targetRatio = targetWidth / targetHeight;
+
+            console.log('📐 目标图片尺寸:', { width: targetWidth, height: targetHeight, ratio: targetRatio });
+
+            // 计算保持宽高比的新尺寸
+            let finalWidth: number;
+            let finalHeight: number;
+
+            if (newImageRatio > targetRatio) {
+              // 新图片更宽，以宽度为基准
+              finalWidth = targetWidth;
+              finalHeight = targetWidth / newImageRatio;
+            } else {
+              // 新图片更高，以高度为基准
+              finalHeight = targetHeight;
+              finalWidth = targetHeight * newImageRatio;
+            }
+
+            console.log('📐 最终尺寸（保持宽高比）:', { width: finalWidth, height: finalHeight });
+
+            const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            console.log('📁 新文件ID:', fileId);
+
+            // 添加新图片文件到Excalidraw
+            excalidrawAPI.addFiles([{
+              id: fileId as any,
+              dataURL: dataURL as any,
+              mimeType: mimeType as any,
+              created: Date.now()
+            }]);
+
+            // 保留原图片的位置，使用计算后的尺寸
+            const replacementElement: any = {
+              ...targetElement,
+              fileId: fileId as any,
+              width: finalWidth,
+              height: finalHeight,
+              updated: Date.now(),
+              version: (targetElement.version || 0) + 1,
+              versionNonce: Math.floor(Math.random() * 1000000000)
+            };
+
+            // 更新场景
+            const updatedElements = elements.map(el =>
+              el.id === targetElement.id ? replacementElement : el
+            );
+
+            excalidrawAPI.updateScene({ elements: updatedElements as any });
+            console.log('✅ 图片替换成功！');
+          } catch (error) {
+            console.error('❌ 图片替换失败:', error);
+            alert('替换图片失败，请重试');
+          }
+        } else {
+          // 如果没有找到目标图片元素，在鼠标位置添加新图片
+          console.log('📍 鼠标位置下没有图片元素，将在此位置添加新图片');
+
+          try {
+            // 获取新图片的数据
+            let dataURL = parsedData.image.url;
+            let mimeType = 'image/png';
+
+            // 如果是相对路径，需要fetch获取blob
+            if (!dataURL.startsWith('data:')) {
+              const response = await fetch(parsedData.image.url);
+              const blob = await response.blob();
+              mimeType = blob.type;
+
+              // 转换为DataURL
+              dataURL = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            }
+
+            // 获取新图片的实际尺寸
+            const img = new Image();
+            await new Promise<void>((resolve, reject) => {
+              img.onload = () => resolve();
+              img.onerror = reject;
+              img.src = dataURL;
+            });
+
+            const newImageWidth = img.naturalWidth;
+            const newImageHeight = img.naturalHeight;
+            const newImageRatio = newImageWidth / newImageHeight;
+
+            console.log('📐 新图片原始尺寸:', { width: newImageWidth, height: newImageHeight, ratio: newImageRatio });
+
+            // 计算保持宽高比的适当尺寸（默认最大宽度300）
+            const maxWidth = 300;
+            let finalWidth: number;
+            let finalHeight: number;
+
+            if (newImageWidth > maxWidth) {
+              // 图片较大，需要缩放
+              finalWidth = maxWidth;
+              finalHeight = maxWidth / newImageRatio;
+            } else {
+              // 使用原始尺寸
+              finalWidth = newImageWidth;
+              finalHeight = newImageHeight;
+            }
+
+            console.log('📐 最终尺寸（保持宽高比）:', { width: finalWidth, height: finalHeight });
+
+            const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+            // 添加文件到Excalidraw
+            excalidrawAPI.addFiles([{
+              id: fileId as any,
+              dataURL: dataURL as any,
+              mimeType: mimeType as any,
+              created: Date.now()
+            }]);
+
+            // 在鼠标位置创建新图片元素
+            const newImageElement: any = {
+              id: `image-${fileId}`,
+              type: 'image' as const,
+              x: sceneX - finalWidth / 2, // 图片中心对齐鼠标位置
+              y: sceneY - finalHeight / 2,
+              width: finalWidth,
+              height: finalHeight,
+              angle: 0,
+              strokeColor: 'transparent',
+              backgroundColor: 'transparent',
+              fillStyle: 'solid' as const,
+              strokeWidth: 1,
+              strokeStyle: 'solid' as const,
+              roughness: 0,
+              opacity: 100,
+              fileId: fileId as any,
+              scale: [1, 1] as [number, number],
+              status: 'saved' as const,
+              locked: false,
+              version: 1,
+              versionNonce: Math.floor(Math.random() * 1000000000),
+              isDeleted: false,
+              groupIds: [],
+              boundElements: null,
+              updated: Date.now(),
+              link: null,
+              customData: {
+                libraryImage: true,
+                imageName: parsedData.image.name
+              }
+            };
+
+            // 添加到画布
+            excalidrawAPI.updateScene({
+              elements: [...elements, newImageElement]
+            });
+
+            console.log('✅ 新图片已添加到画布');
+          } catch (error) {
+            console.error('❌ 添加图片失败:', error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ 处理拖拽数据失败:', error);
+    }
+  }, [excalidrawAPI]);
 
   // 在深色模式下使用自定义主题设置，避免使用默认的滤镜
   // 这样可以确保颜色在深色模式下正确显示
@@ -162,7 +480,6 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       const currentElements = excalidrawAPI.getSceneElements()
 
       excalidrawAPI.addFiles([file])
-
       console.log('👇 Adding new image element to canvas:', imageElement.id)
       console.log('👇 Image element properties:', {
         id: imageElement.id,
@@ -396,42 +713,49 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   }, [handleImageGenerated, handleVideoGenerated])
 
   return (
-    <Excalidraw
-      theme={customTheme as Theme}
-      langCode={i18n.language}
-      excalidrawAPI={(api) => {
-        setExcalidrawAPI(api)
-      }}
-      onChange={handleChange}
-      initialData={() => {
-        const data = initialData
-        console.log('👇initialData', data)
-        if (data?.appState) {
-          data.appState = {
-            ...data.appState,
-            collaborators: undefined!,
+    <div
+      className="excalidraw-wrapper"
+      style={{ width: '100%', height: '100%' }}
+      onDragOverCapture={handleDragOver}
+      onDropCapture={handleDrop}
+    >
+      <Excalidraw
+        theme={customTheme as Theme}
+        langCode={i18n.language}
+        excalidrawAPI={(api) => {
+          setExcalidrawAPI(api)
+        }}
+        onChange={handleChange}
+        initialData={() => {
+          const data = initialData
+          console.log('👇initialData', data)
+          if (data?.appState) {
+            data.appState = {
+              ...data.appState,
+              collaborators: undefined!,
+            }
           }
-        }
-        return data || null
-      }}
-      renderEmbeddable={renderEmbeddable}
-      // Allow all URLs for embeddable content
-      validateEmbeddable={(url: string) => {
-        console.log('👇 Validating embeddable URL:', url)
-        // Allow all URLs - return true for everything
-        return true
-      }}
-      // Ensure interactive mode is enabled
-      viewModeEnabled={false}
-      zenModeEnabled={false}
-      // Allow element manipulation
-      onPointerUpdate={(payload) => {
-        // Minimal logging - only log significant pointer events
-        if (payload.button === 'down' && Math.random() < 0.05) {
-          // console.log('👇 Pointer down on:', payload.pointer.x, payload.pointer.y)
-        }
-      }}
-    />
+          return data || null
+        }}
+        renderEmbeddable={renderEmbeddable}
+        // Allow all URLs for embeddable content
+        validateEmbeddable={(url: string) => {
+          console.log('👇 Validating embeddable URL:', url)
+          // Allow all URLs - return true for everything
+          return true
+        }}
+        // Ensure interactive mode is enabled
+        viewModeEnabled={false}
+        zenModeEnabled={false}
+        // Allow element manipulation
+        onPointerUpdate={(payload) => {
+          // Minimal logging - only log significant pointer events
+          if (payload.button === 'down' && Math.random() < 0.05) {
+            // console.log('👇 Pointer down on:', payload.pointer.x, payload.pointer.y)
+          }
+        }}
+      />
+    </div>
   )
 }
 

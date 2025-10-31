@@ -30,6 +30,7 @@ import {
     Upload,
     X,
 } from 'lucide-react'
+import { useCanvas } from '@/contexts/canvas'
 
 interface PSDLayerEditorProps {
     psdData: PSDUploadResponse
@@ -39,9 +40,11 @@ interface PSDLayerEditorProps {
 }
 
 export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerEditorProps) {
+    const { excalidrawAPI } = useCanvas()
     const [selectedLayer, setSelectedLayer] = useState<PSDLayer | null>(null)
     const [exporting, setExporting] = useState(false)
     const [updating, setUpdating] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
     const layerFileInputRef = useRef<HTMLInputElement>(null)
 
     const handleLayerUpdate = useCallback(
@@ -106,19 +109,176 @@ export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerE
 
             setUpdating(true)
             try {
+                console.log('🔄 开始上传图层图片...', { layerIndex, fileName: file.name })
+
+                // 1. 上传图片到服务器
                 await updatePSDLayer(psdData.file_id, layerIndex, file)
-                toast.success('图层图片更新成功')
-                // 重新获取PSD数据
-                // const updatedPsd = await getPSDMetadata(psdData.file_id)
-                // onUpdate(updatedPsd)
+
+                // 2. 如果有 excalidrawAPI，更新画布上对应的图片
+                if (excalidrawAPI) {
+                    console.log('🎨 开始更新画布上的图片...')
+
+                    // 将文件转换为 DataURL
+                    const dataURL = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader()
+                        reader.onload = () => resolve(reader.result as string)
+                        reader.onerror = reject
+                        reader.readAsDataURL(file)
+                    })
+
+                    // 生成新的文件ID
+                    const newFileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                    console.log('📁 新文件ID:', newFileId)
+
+                    // 添加新图片文件到 Excalidraw
+                    excalidrawAPI.addFiles([{
+                        id: newFileId,
+                        dataURL: dataURL,
+                        mimeType: file.type,
+                        created: Date.now()
+                    }])
+
+                    // 获取当前画布元素
+                    const currentElements = excalidrawAPI.getSceneElements()
+                    console.log('📋 当前画布元素数量:', currentElements.length)
+
+                    // 打印所有图片元素的信息，用于调试
+                    const imageElements = currentElements.filter(el => el.type === 'image')
+                    console.log('🖼️ 画布上的图片元素:', imageElements.map(el => ({
+                        id: el.id,
+                        fileId: el.fileId,
+                        customData: el.customData,
+                        psdLayerIndex: el.customData?.psdLayerIndex,
+                        layerName: el.customData?.layerName
+                    })))
+
+                    console.log('🔍 正在查找的图层索引:', layerIndex)
+
+                    // 找到对应图层的图片元素
+                    const targetElement = currentElements.find(element =>
+                        element.type === 'image' &&
+                        element.customData?.psdLayerIndex === layerIndex
+                    )
+
+                    if (targetElement) {
+                        console.log('🎯 找到目标图片元素:', {
+                            id: targetElement.id,
+                            fileId: targetElement.fileId,
+                            customData: targetElement.customData
+                        })
+
+                        // 创建更新后的元素（保持位置、大小等属性，只更新图片）
+                        const updatedElement = {
+                            ...targetElement,
+                            fileId: newFileId,
+                            updated: Date.now(),
+                            version: (targetElement.version || 0) + 1
+                        }
+
+                        // 更新场景
+                        const updatedElements = currentElements.map(el =>
+                            el.id === targetElement.id ? updatedElement : el
+                        )
+
+                        excalidrawAPI.updateScene({
+                            elements: updatedElements
+                        })
+
+                        console.log('✅ 画布图片已成功更新')
+                        toast.success('图层图片已更新到画布')
+                    } else {
+                        console.warn('⚠️ 未在画布上找到对应的图层元素')
+                        toast.success('图层图片更新成功（画布上无对应元素）')
+                    }
+                } else {
+                    console.warn('⚠️ excalidrawAPI 不可用')
+                    toast.success('图层图片更新成功')
+                }
+
             } catch (error) {
-                console.error('更新图层图片失败:', error)
+                console.error('❌ 更新图层图片失败:', error)
                 toast.error('更新图层图片失败')
             } finally {
                 setUpdating(false)
             }
         },
-        [psdData, onUpdate]
+        [psdData, excalidrawAPI]
+    )
+
+    // 处理拖拽进入
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        console.log('🎯 拖拽进入')
+        setIsDragging(true)
+    }, [])
+
+    // 处理拖拽经过（必须阻止默认行为以允许 drop）
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+    }, [])
+
+    // 处理拖拽离开（检查是否真的离开容器）
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        // 检查是否离开了拖放容器（而不是移动到子元素）
+        const rect = e.currentTarget.getBoundingClientRect()
+        const x = e.clientX
+        const y = e.clientY
+
+        if (x <= rect.left || x >= rect.right || y <= rect.top || y >= rect.bottom) {
+            console.log('👋 拖拽离开')
+            setIsDragging(false)
+        }
+    }, [])
+
+    // 处理文件拖放
+    const handleDrop = useCallback(
+        async (e: React.DragEvent, layerIndex: number) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log('📦 文件拖放，图层索引:', layerIndex)
+            setIsDragging(false)
+
+            // 获取拖放的文件
+            const files = e.dataTransfer.files
+            console.log('📁 拖放文件数量:', files.length)
+
+            if (files.length === 0) {
+                toast.error('未检测到文件')
+                return
+            }
+
+            const imageFile = files[0]
+            console.log('📷 文件信息:', {
+                name: imageFile.name,
+                type: imageFile.type,
+                size: imageFile.size
+            })
+
+            // 验证文件类型
+            if (!imageFile.type.startsWith('image/')) {
+                console.error('❌ 文件类型不是图片:', imageFile.type)
+                toast.error('请拖放图片文件')
+                return
+            }
+
+            // 验证文件大小（限制为10MB）
+            const maxSize = 10 * 1024 * 1024
+            if (imageFile.size > maxSize) {
+                console.error('❌ 文件过大:', imageFile.size)
+                toast.error('图片文件不能超过10MB')
+                return
+            }
+
+            console.log('✅ 开始上传图层图片')
+            // 调用上传处理函数
+            await handleLayerImageUpload(layerIndex, imageFile)
+        },
+        [handleLayerImageUpload]
     )
 
     const handleExport = useCallback(
@@ -312,12 +472,34 @@ export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerE
                                         {selectedLayer.image_url && (
                                             <div>
                                                 <Label className="text-sm font-medium">图层预览</Label>
-                                                <div className="mt-2 border rounded-md p-2">
-                                                    <img
-                                                        src={selectedLayer.image_url}
-                                                        alt={selectedLayer.name}
-                                                        className="max-w-full max-h-32 object-contain"
-                                                    />
+                                                <div
+                                                    className={`mt-2 border-2 rounded-md p-4 transition-all ${
+                                                        isDragging
+                                                            ? 'border-primary border-dashed bg-primary/5'
+                                                            : 'border-border'
+                                                    }`}
+                                                    onDragEnter={handleDragEnter}
+                                                    onDragOver={handleDragOver}
+                                                    onDragLeave={handleDragLeave}
+                                                    onDrop={(e) => handleDrop(e, selectedLayer.index)}
+                                                >
+                                                    {isDragging ? (
+                                                        <div className="flex flex-col items-center justify-center py-8 text-primary">
+                                                            <Upload className="h-8 w-8 mb-2" />
+                                                            <p className="text-sm font-medium">拖放图片到此处替换</p>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <img
+                                                                src={selectedLayer.image_url}
+                                                                alt={selectedLayer.name}
+                                                                className="max-w-full max-h-32 object-contain mx-auto"
+                                                            />
+                                                            <p className="text-xs text-muted-foreground text-center mt-2">
+                                                                拖放图片到此处或点击下方按钮更新
+                                                            </p>
+                                                        </>
+                                                    )}
                                                 </div>
                                                 <div className="mt-2">
                                                     <input
