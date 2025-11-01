@@ -253,7 +253,7 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-96 select-none">
+      <DropdownMenuContent className="w-96 select-none z-[1000]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b">
           <div>{t('chat:modelSelector.title')}</div>

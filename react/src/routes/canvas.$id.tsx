@@ -6,13 +6,13 @@ import CanvasPopbarWrapper from '@/components/canvas/pop-bar'
 // VideoCanvasOverlay removed - using native Excalidraw embeddable elements instead
 import ChatInterface from '@/components/chat/Chat'
 import { PSDLayerSidebar } from '@/components/canvas/PSDLayerSidebar'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { CanvasProvider } from '@/contexts/canvas'
-import { Session } from '@/types/types'
+import { CanvasData, Session } from '@/types/types'
 import { createFileRoute, useParams, useSearch } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PSDUploadResponse } from '@/api/upload'
+import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
 
 export const Route = createFileRoute('/canvas/$id')({
   component: Canvas,
@@ -20,7 +20,7 @@ export const Route = createFileRoute('/canvas/$id')({
 
 function Canvas() {
   const { id } = useParams({ from: '/canvas/$id' })
-  const [canvas, setCanvas] = useState<any>(null)
+  const [canvas, setCanvas] = useState<{ data: CanvasData | null; name: string; sessions: Session[] } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [canvasName, setCanvasName] = useState('')
@@ -34,6 +34,10 @@ function Canvas() {
     sessionId: string
   }
   const searchSessionId = search?.sessionId || ''
+
+  // 聊天窗口最小化状态 - 默认设置为true（收起状态）
+  const [isChatMinimized, setIsChatMinimized] = useState(true)
+
   useEffect(() => {
     let mounted = true
 
@@ -100,6 +104,17 @@ function Canvas() {
     )
   }
 
+  // 将CanvasData转换为ExcalidrawInitialDataState
+  const getInitialData = (): ExcalidrawInitialDataState | undefined => {
+    if (!canvas?.data) return undefined
+
+    return {
+      elements: canvas.data.elements,
+      appState: canvas.data.appState,
+      files: canvas.data.files
+    }
+  }
+
   return (
     <CanvasProvider>
       <div className='flex flex-col w-screen h-screen'>
@@ -115,34 +130,23 @@ function Canvas() {
             // 这里可以添加应用模板的逻辑
           }}
         />
-        <ResizablePanelGroup
-          direction='horizontal'
-          className='w-screen h-screen'
-          autoSaveId='jaaz-chat-panel'
-        >
-          {/* 移除ResizableHandle，因为右侧面板不再是可调整大小的 */}
-          <ResizablePanel className='relative' defaultSize={100}>
-            <div className='w-full h-full'>
-              {isLoading ? (
-                <div className='flex-1 flex-grow px-4 bg-accent w-[24%] absolute right-0'>
-                  <div className='flex items-center justify-center h-full'>
-                    <Loader2 className='w-4 h-4 animate-spin' />
-                  </div>
-                </div>
-              ) : (
-                <div className='relative w-full h-full'>
-                  <CanvasExcali canvasId={id} initialData={canvas?.data} />
-                  <CanvasMenu canvasId={id} />
-                  <CanvasPopbarWrapper />
-                </div>
-              )}
-            </div>
-          </ResizablePanel>
+        <div className="flex flex-1 overflow-hidden relative">
+          <div className="flex-1 relative">
+            {isLoading ? (
+              <div className='flex items-center justify-center h-full'>
+                <Loader2 className='w-6 h-6 animate-spin' />
+              </div>
+            ) : (
+              <div className='relative w-full h-full'>
+                <CanvasExcali canvasId={id} initialData={getInitialData()} />
+                <CanvasMenu canvasId={id} />
+                <CanvasPopbarWrapper />
+              </div>
+            )}
+          </div>
 
-          <ResizableHandle />
-
-          {/* 移除可调整大小的面板，改为绝对定位的固定面板 */}
-          <div className="absolute right-10 top-1/2 -translate-y-1/2 w-[20vw] h-[80vh] bg-accent/50 z-10">
+          {/* PSD Layer Sidebar - Positioned separately */}
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[20vw] h-[80vh] bg-accent/50 z-10">
             <PSDLayerSidebar
               psdData={psdData}
               isVisible={isLayerSidebarVisible}
@@ -152,7 +156,19 @@ function Canvas() {
               onUpdate={handlePSDUpdate}
             />
           </div>
-        </ResizablePanelGroup>
+        </div>
+
+        {/* Chat Interface - Small floating window at the bottom center */}
+        <div className={`bottom-chat-container ${isChatMinimized ? 'minimized' : ''}`}>
+          <ChatInterface
+            canvasId={id}
+            sessionList={sessionList}
+            setSessionList={setSessionList}
+            sessionId={searchSessionId}
+            isMinimized={isChatMinimized}
+            onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+          />
+        </div>
       </div>
     </CanvasProvider>
   )

@@ -583,7 +583,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       />
 
       <div className="flex items-center justify-between gap-2 w-full">
-        <div className="flex items-center gap-2 max-w-[calc(100%-50px)] flex-wrap">
+        <div className="flex items-center gap-1 max-w-[calc(100%-50px)] flex-nowrap overflow-x-auto">
           <input
             ref={imageInputRef}
             type="file"
@@ -631,7 +631,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
                 <ChevronDown className="size-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-32">
+            <DropdownMenuContent align="start" className="w-32 z-[1000]">
               {['auto', '1:1', '4:3', '3:4', '16:9', '9:16'].map((ratio) => (
                 <DropdownMenuItem
                   key={ratio}
@@ -664,7 +664,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <AnimatePresence>
               {showQuantitySlider && (
                 <motion.div
-                  className="absolute bottom-full mb-2 left-0  bg-background border border-border rounded-lg p-4 shadow-lg min-w-48"
+                  className="absolute bottom-full mb-2 left-0  bg-background border border-border rounded-lg p-4 shadow-lg min-w-48 z-[1000]"
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
