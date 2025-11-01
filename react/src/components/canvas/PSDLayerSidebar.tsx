@@ -294,7 +294,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
         const updateCanvasElements = () => {
             const elements = excalidrawAPI.getSceneElements()
-            const psdElements = elements.filter(element => element.customData?.psdFileId)
+            const psdElements = elements.filter(element => 
+                element.customData?.psdFileId || 
+                element.customData?.psdLayerIndex !== undefined ||
+                element.customData?.psdLayerName
+            )
 
             setCanvasElements(psdElements)
             setLastUpdateTime(Date.now())
@@ -310,13 +314,12 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         updateCanvasElements()
 
         // 监听画布变化事件
-        const unsubscribe = (excalidrawAPI as any).on?.('change', updateCanvasElements) || null
+        excalidrawAPI?.onChange(updateCanvasElements)
 
         // 定期检查更新（作为备用机制）
         const interval = setInterval(updateCanvasElements, 1000)
 
         return () => {
-            unsubscribe?.()
             clearInterval(interval)
         }
     }, [excalidrawAPI, isVisible])
@@ -818,6 +821,132 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     // 如果没有 PSD 数据，显示空状态（但仍然渲染面板结构）
     const hasData = psdData && psdData.layers && psdData.layers.length > 0
 
+    // 从画布元素构建图层列表数据（按类别分组）
+    const canvasLayerList = useMemo(() => {
+        if (!excalidrawAPI || uiTopTab !== 'layers') return {
+            all: [],
+            text: [],
+            layer: [],
+            group: []
+        }
+
+        // 获取所有画布元素
+        const elements = excalidrawAPI.getSceneElements()
+        
+        // 过滤出PSD相关的图层元素
+        const psdElements = elements.filter(element => {
+            if (element.isDeleted) return false
+            return element.customData?.psdFileId || 
+                   element.customData?.psdLayerIndex !== undefined ||
+                   element.customData?.psdLayerName ||
+                   element.customData?.templateId
+        })
+
+        // 构建图层数据
+        const layerMap = new Map<number, any>()
+
+        psdElements.forEach(element => {
+            const layerIndex = element.customData?.psdLayerIndex
+            const layerName = element.customData?.psdLayerName || `Layer ${layerIndex || 'unknown'}`
+            
+            // 如果元素有 psdLayerIndex，尝试从 psdData 获取完整信息
+            let layerData: any = null
+            if (layerIndex !== undefined && psdData) {
+                layerData = psdData.layers.find(l => l.index === layerIndex)
+            }
+
+            // 确定图层类型
+            let layerType: 'text' | 'layer' | 'group' = 'layer'
+            if (element.type === 'text') {
+                layerType = 'text'
+            } else if (layerData) {
+                layerType = layerData.type
+            } else {
+                // 根据元素类型推断
+                if (element.type === 'image') {
+                    layerType = 'layer'
+                }
+            }
+
+            // 获取缩略图 URL
+            let thumbnailUrl: string | null = null
+            let textPreview: string | null = null
+            
+            if (layerType === 'layer' || element.type === 'image') {
+                // 图像图层：优先使用 PSD 的 image_url，否则尝试从 Excalidraw 获取
+                if (layerData?.image_url) {
+                    thumbnailUrl = layerData.image_url
+                } else if (element.type === 'image' && element.fileId) {
+                    // 尝试从 Excalidraw 文件获取缩略图
+                    try {
+                        const files = (excalidrawAPI as any).getFiles()
+                        const file = files?.[element.fileId]
+                        if (file?.dataURL) {
+                            thumbnailUrl = file.dataURL
+                        }
+                    } catch (e) {
+                        console.warn('获取文件缩略图失败:', e)
+                    }
+                }
+            } else if (layerType === 'text' || element.type === 'text') {
+                // 文字图层：获取文字内容预览
+                const textContent = (element as any).text || layerData?.text_content || layerData?.name || layerName
+                textPreview = textContent?.substring(0, 20) || '文字'
+            }
+
+            // 构建图层项
+            const layerItem = {
+                index: layerIndex ?? elements.indexOf(element),
+                name: layerName,
+                type: layerType,
+                visible: element.opacity > 0 && !element.isDeleted,
+                opacity: Math.round(element.opacity || 100),
+                elementId: element.id,
+                element: element,
+                // 保留原始PSD图层数据
+                psdLayerData: layerData,
+                // 缩略图相关
+                thumbnailUrl: thumbnailUrl,
+                textPreview: textPreview
+            }
+
+            // 使用索引作为key，如果索引相同则合并（取最新）
+            const key = layerIndex ?? elements.indexOf(element)
+            if (!layerMap.has(key) || !layerData) {
+                layerMap.set(key, layerItem)
+            } else if (layerData) {
+                // 如果已有数据但新数据有完整的PSD信息，则更新
+                layerMap.set(key, { ...layerItem, psdLayerData: layerData })
+            }
+        })
+
+        // 转换为数组并按类型分组
+        const layers = Array.from(layerMap.values())
+
+        // 按类型分组
+        const grouped = {
+            text: layers.filter(l => l.type === 'text'),
+            layer: layers.filter(l => l.type === 'layer'),
+            group: layers.filter(l => l.type === 'group')
+        }
+
+        // 应用搜索过滤
+        const filterLayers = (layers: any[]): any[] => {
+            return layers.filter((layer: any) => {
+                const matchesSearch = layer.name.toLowerCase().includes(searchTerm.toLowerCase())
+                const matchesFilter = filterType === 'all' || layer.type === filterType
+                return matchesSearch && matchesFilter
+            })
+        }
+
+        return {
+            all: filterLayers(layers),
+            text: filterLayers(grouped.text),
+            layer: filterLayers(grouped.layer),
+            group: filterLayers(grouped.group)
+        }
+    }, [excalidrawAPI, canvasElements, lastUpdateTime, uiTopTab, searchTerm, filterType, psdData])
+
     // 仅参照布局UI：顶部两类（Layers/Assets）+ 对应内容
     return (
         <div
@@ -847,30 +976,324 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-3 border-b border-border">
+                    <div className="p-3 border-b border-border space-y-2">
                         <Input
                             placeholder="搜索图层..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="h-8 text-xs"
                         />
+                        <div className="flex gap-1">
+                            <button
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                    filterType === 'all' 
+                                        ? 'bg-primary text-primary-foreground font-medium' 
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                onClick={() => setFilterType('all')}
+                            >
+                                全部
+                            </button>
+                            <button
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                    filterType === 'text' 
+                                        ? 'bg-primary text-primary-foreground font-medium' 
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                onClick={() => setFilterType('text')}
+                            >
+                                文字
+                            </button>
+                            <button
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                    filterType === 'layer' 
+                                        ? 'bg-primary text-primary-foreground font-medium' 
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                onClick={() => setFilterType('layer')}
+                            >
+                                图像
+                            </button>
+                            <button
+                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                    filterType === 'group' 
+                                        ? 'bg-primary text-primary-foreground font-medium' 
+                                        : 'bg-gray-100 hover:bg-gray-200'
+                                }`}
+                                onClick={() => setFilterType('group')}
+                            >
+                                群组
+                            </button>
+                        </div>
                     </div>
                     <div className="flex-1 overflow-auto p-3 space-y-2">
-                        {[{ name: 'Header Group', type: 'group' }, { name: 'Main Content', type: 'group' }, { name: 'Background Shape', type: 'layer' }, { name: 'Footer Text', type: 'text' }]
-                            .filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                            .map((item, idx) => (
-                                <div key={idx} className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <span className="w-3 text-center">›</span>
-                                        {item.type === 'group' ? <FolderOpen className="h-4 w-4" /> : item.type === 'text' ? <Type className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
-                                        <span className="truncate">{item.name}</span>
+                        {canvasLayerList.all.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">画布中暂无图层</p>
+                                <p className="text-xs text-gray-400 mt-1">上传PSD文件或添加图层到画布</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* 按类别显示图层 */}
+                                {filterType === 'all' && (
+                                    <>
+                                        {/* 文字图层 */}
+                                        {canvasLayerList.text.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="flex items-center gap-2 mb-2 px-2">
+                                                    <Type className="h-3 w-3 text-blue-500" />
+                                                    <span className="text-xs font-semibold text-gray-600">文字图层 ({canvasLayerList.text.length})</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {canvasLayerList.text.map((layer) => (
+                                                        <div
+                                                            key={layer.elementId}
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
+                                                            onClick={() => {
+                                                                if (excalidrawAPI && layer.elementId) {
+                                                                    try {
+                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                            fitToContent: true,
+                                                                            animate: true
+                                                                        })
+                                                                    } catch (e) {
+                                                                        console.warn('Failed to scroll to element:', e)
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            {/* 文字预览缩略图 */}
+                                                            <div className="w-12 h-12 flex-shrink-0 rounded border bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center overflow-hidden">
+                                                                {layer.textPreview ? (
+                                                                    <span className="text-[10px] text-blue-700 font-medium text-center px-1 leading-tight">
+                                                                        {layer.textPreview}
+                                                                    </span>
+                                                                ) : (
+                                                                    <Type className="h-5 w-5 text-blue-400" />
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                <Type className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                                                <span className="truncate text-sm">{layer.name}</span>
+                                                                <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                                                                    {Math.round(layer.opacity)}%
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                                {layer.visible ? (
+                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                ) : (
+                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 图像图层 */}
+                                        {canvasLayerList.layer.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="flex items-center gap-2 mb-2 px-2">
+                                                    <ImageIcon className="h-3 w-3 text-green-500" />
+                                                    <span className="text-xs font-semibold text-gray-600">图像图层 ({canvasLayerList.layer.length})</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {canvasLayerList.layer.map((layer) => (
+                                                        <div
+                                                            key={layer.elementId}
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
+                                                            onClick={() => {
+                                                                if (excalidrawAPI && layer.elementId) {
+                                                                    try {
+                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                            fitToContent: true,
+                                                                            animate: true
+                                                                        })
+                                                                    } catch (e) {
+                                                                        console.warn('Failed to scroll to element:', e)
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            {/* 图像缩略图 */}
+                                                            <div className="w-12 h-12 flex-shrink-0 rounded border bg-gray-100 overflow-hidden relative">
+                                                                {layer.thumbnailUrl ? (
+                                                                    <img
+                                                                        src={layer.thumbnailUrl}
+                                                                        alt={layer.name}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={(e) => {
+                                                                            // 如果图片加载失败，显示占位符
+                                                                            const target = e.target as HTMLImageElement
+                                                                            target.style.display = 'none'
+                                                                            if (target.parentElement) {
+                                                                                target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                        <ImageIcon className="h-6 w-6 text-gray-400" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                <ImageIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                                <span className="truncate text-sm">{layer.name}</span>
+                                                                <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                                                                    {Math.round(layer.opacity)}%
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                                {layer.visible ? (
+                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                ) : (
+                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 群组图层 */}
+                                        {canvasLayerList.group.length > 0 && (
+                                            <div className="mb-4">
+                                                <div className="flex items-center gap-2 mb-2 px-2">
+                                                    <FolderOpen className="h-3 w-3 text-yellow-500" />
+                                                    <span className="text-xs font-semibold text-gray-600">群组图层 ({canvasLayerList.group.length})</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {canvasLayerList.group.map((layer) => (
+                                                        <div
+                                                            key={layer.elementId}
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
+                                                            onClick={() => {
+                                                                if (excalidrawAPI && layer.elementId) {
+                                                                    try {
+                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                            fitToContent: true,
+                                                                            animate: true
+                                                                        })
+                                                                    } catch (e) {
+                                                                        console.warn('Failed to scroll to element:', e)
+                                                                    }
+                                                                }
+                                                            }}
+                                                        >
+                                                            {/* 群组预览缩略图 */}
+                                                            <div className="w-12 h-12 flex-shrink-0 rounded border bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center overflow-hidden">
+                                                                <FolderOpen className="h-6 w-6 text-yellow-500" />
+                                                            </div>
+                                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                                <FolderOpen className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                                                                <span className="truncate text-sm">{layer.name}</span>
+                                                                <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                                                                    {Math.round(layer.opacity)}%
+                                                                </Badge>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                                {layer.visible ? (
+                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                ) : (
+                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+
+                                {/* 按过滤类型显示 */}
+                                {filterType !== 'all' && (
+                                    <div className="space-y-1">
+                                        {canvasLayerList.all.map((layer) => (
+                                            <div
+                                                key={layer.elementId}
+                                                className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
+                                                onClick={() => {
+                                                    if (excalidrawAPI && layer.elementId) {
+                                                        try {
+                                                            excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                fitToContent: true,
+                                                                animate: true
+                                                            })
+                                                        } catch (e) {
+                                                            console.warn('Failed to scroll to element:', e)
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                {/* 缩略图 - 根据类型显示不同的预览 */}
+                                                {layer.type === 'layer' ? (
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded border bg-gray-100 overflow-hidden relative">
+                                                        {layer.thumbnailUrl ? (
+                                                            <img
+                                                                src={layer.thumbnailUrl}
+                                                                alt={layer.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => {
+                                                                    const target = e.target as HTMLImageElement
+                                                                    target.style.display = 'none'
+                                                                    if (target.parentElement) {
+                                                                        target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
+                                                                    }
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center">
+                                                                <ImageIcon className="h-6 w-6 text-gray-400" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : layer.type === 'text' ? (
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded border bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center overflow-hidden">
+                                                        {layer.textPreview ? (
+                                                            <span className="text-[10px] text-blue-700 font-medium text-center px-1 leading-tight">
+                                                                {layer.textPreview}
+                                                            </span>
+                                                        ) : (
+                                                            <Type className="h-5 w-5 text-blue-400" />
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded border bg-gradient-to-br from-yellow-50 to-yellow-100 flex items-center justify-center overflow-hidden">
+                                                        <FolderOpen className="h-6 w-6 text-yellow-500" />
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                    {layer.type === 'group' ? (
+                                                        <FolderOpen className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                                                    ) : layer.type === 'text' ? (
+                                                        <Type className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                                    ) : (
+                                                        <ImageIcon className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                                    )}
+                                                    <span className="truncate text-sm">{layer.name}</span>
+                                                    <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                                                        {Math.round(layer.opacity)}%
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex items-center gap-2 flex-shrink-0">
+                                                    {layer.visible ? (
+                                                        <Eye className="h-4 w-4 text-gray-500" />
+                                                    ) : (
+                                                        <EyeOff className="h-4 w-4 text-gray-300" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="opacity-60">🔒</span>
-                                        <Eye className="h-4 w-4" />
-                                    </div>
-                                </div>
-                            ))}
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             ) : (

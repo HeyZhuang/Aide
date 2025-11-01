@@ -1,0 +1,93 @@
+你现在是一名资深前端架构师，正在协助我将 GitHub 项目「Jaaz」的前端（React + TypeScript）全面改造成一个【毛玻璃风格的商用级图层管理网站】。请你基于专业设计系统标准、现代交互规范以及代码工程化最佳实践，系统性地执行以下改造：
+
+---
+
+### 🎨 一、整体视觉风格（Glassmorphism）
+
+1. 全站采用毛玻璃视觉风格（Glassmorphism）：
+   - 使用透明与模糊层叠效果：`backdrop-filter: blur(20px)`。
+   - 卡片与面板半透明，背景色：`rgba(255,255,255,0.15)` 或 `rgba(24,24,24,0.25)`。
+   - 统一圆角：`border-radius: 16px`。
+   - 阴影柔和：`box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25)`。
+   - 全局字体：`Inter`, `Poppins`。
+   - 主色调：`#6C63FF`，辅助色：`#E0E0E0`。
+   - 支持暗黑模式（Dark / Light Theme Switch）。
+
+2. 修改全局样式文件：
+   - 若项目使用 TailwindCSS，请在 `tailwind.config.js` 中添加透明度与模糊配置。
+   - 若使用传统 CSS，请在 `index.css` 或全局样式中引入上述效果。
+
+---
+
+### 🧱 二、布局与组件结构优化
+
+1. 优化主页面（如 MagicCanvas、Home、Workspace）：
+   - 背景应用模糊渐变玻璃背景。
+   - 主要卡片与画布采用半透明容器。
+   - 所有交互按钮统一视觉语言（半透明 + 光影高亮边框）。
+
+2. 顶部导航栏（Navbar）与侧边栏（Sidebar）：
+   - 使用毛玻璃背景（透明+模糊）。
+   - 悬停时亮度略提升。
+   - 侧边栏背景渐变：`linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05))`。
+   - 导航栏左侧为 LOGO，右侧为用户头像、模式切换、设置图标。
+   - 图标使用 lucide-react 或 Material Symbols。
+
+3. 所有主要组件（Button、Card、Modal、Input、Tabs）改造成 Glassmorphism 风格组件库。
+   - 可使用 `framer-motion` 增加动效。
+   - 例如按钮悬浮时轻微放大（scale 1.05）与光泽动画。
+
+---
+
+### 🧩 三、图层管理界面（核心功能区）
+
+将 Jaaz 的图层面板（LayerPanel、MagicCanvas、useMagicGenerate 等）改造成商用级图层管理系统：
+
+- 每个图层展示：
+  - 缩略图、图层名、可见性开关（眼睛图标）。
+  - 锁定图层（锁图标）。
+  - 拖拽排序（使用 react-beautiful-dnd 或 sortablejs）。
+- 悬停高亮、选中时玻璃边框发光。
+- 添加顶部操作栏按钮：
+  - “新建图层”、“删除图层”、“重命名图层”、“导入图片”。
+- 支持多选操作与快捷键（Shift + Click）。
+
+---
+
+### ⚙️ 四、动效与用户体验优化
+
+1. 全站引入 `Framer Motion` 动效库，添加：
+   - 页面淡入动画（fade-in）。
+   - 卡片/图层 hover 缓动动画。
+   - 拖拽惯性动画（easeInOut, duration 0.25）。
+2. 所有过渡效果流畅自然，保证 60fps。
+
+3. 为魔法生成区域增加加载动画和错误弹窗（毛玻璃风格的 Modal）。
+
+---
+
+### 🧰 五、商用级优化与体验增强
+
+1. 设计系统：
+   - 定义全局 Design Tokens（颜色、阴影、字体、模糊强度）。
+   - 所有组件继承同一视觉层级（Glass Elevation System）。
+
+2. 响应式布局：
+   - 桌面、平板、移动端自适应；
+   - 侧边栏自动折叠。
+
+3. 体验增强：
+   - 添加加载骨架（Skeleton Loading）；
+   - 错误提示（模糊背景 Toast）；
+   - 状态反馈（生成中、成功、失败）。
+
+---
+
+### 🚀 六、输出要求
+
+- 列出被修改的文件路径（例如：`src/features/magic/MagicCanvas.tsx`、`src/components/LayerPanel.tsx`）。
+- 在每个主要组件中注释说明新增样式或动画的作用。
+- 保留原有功能逻辑，仅改造 UI / UX 层。
+- 所有 CSS 或 Tailwind 修改应模块化，不影响后端或 API 调用。
+
+---
