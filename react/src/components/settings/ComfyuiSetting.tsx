@@ -168,7 +168,7 @@ export default function ComfyuiSetting({
         // Recheck status after starting
         setTimeout(() => {
           checkComfyUIStatus()
-        }, 3000)
+        }, 3004)
       } else {
         console.error('Failed to start ComfyUI:', result?.message)
       }

@@ -175,3 +175,48 @@ export async function applyPSDTemplate(templateId: string, canvasId?: string) {
   }
   return await response.json()
 }
+
+// 获取template文件夹下的PSD模板列表
+export interface PSDTemplateInfo {
+  template_id: string | null
+  name: string
+  display_name: string
+  description?: string | null
+  width: number
+  height: number
+  layers_count: number
+  thumbnail_url?: string | null
+  is_parsed: boolean
+  created_at?: string | null
+  size?: number
+  mtime?: number
+}
+
+export async function listPSDTemplates(): Promise<PSDTemplateInfo[]> {
+  const response = await fetch('/api/psd/templates/list')
+  if (!response.ok) {
+    throw new Error(`Failed to list PSD templates: ${response.statusText}`)
+  }
+  const data = await response.json()
+  return data.templates || []
+}
+
+// 根据模板ID获取已解析的PSD模板数据（快速加载）
+export async function getPSDTemplateById(templateId: string): Promise<PSDUploadResponse> {
+  const response = await fetch(`/api/psd/templates/by-id/${templateId}`)
+  if (!response.ok) {
+    throw new Error(`Failed to get PSD template: ${response.statusText}`)
+  }
+  return await response.json()
+}
+
+// 解析PSD模板文件
+export async function parsePSDTemplate(filename: string): Promise<{ template_id: string, already_parsed: boolean, message: string }> {
+  const response = await fetch(`/api/psd/templates/parse/${encodeURIComponent(filename)}`, {
+    method: 'POST'
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to parse PSD template: ${response.statusText}`)
+  }
+  return await response.json()
+}

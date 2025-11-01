@@ -646,7 +646,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                 }
             }
         },
-        [onPSDUploaded, handleAutoAddLayers]
+        [onPSDUploaded, handleAutoAddLayers, loadTemplateCategories]
     )
 
     const handlePSDUpdate = useCallback((updatedPsdData: PSDUploadResponse) => {
@@ -676,6 +676,19 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                 </Button>
             </div>
 
+            {/* PSD保存为模板对话框 */}
+            <PSDSaveToTemplateDialog
+                isOpen={showSaveDialog}
+                onClose={() => setShowSaveDialog(false)}
+                psdData={psdData}
+                categories={templateCategories}
+                onSuccess={() => {
+                    toast.success('PSD模板保存成功！')
+                    setShowSaveDialog(false)
+                }}
+            />
         </>
     )
 }
+
+

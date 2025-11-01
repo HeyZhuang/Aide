@@ -137,7 +137,7 @@ async function detectNvidiaGPU() {
       setTimeout(() => {
         nvidiaSmi.kill()
         resolve(false)
-      }, 3000)
+      }, 3004)
     } catch (error) {
       resolve(false)
     }
@@ -369,7 +369,7 @@ async function startComfyUIProcess() {
     // Keep process attached to main process for proper cleanup
 
     // Wait a moment to see if the process starts successfully
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 3004))
 
     // Check if process is still running after 3 seconds
     if (comfyUIProcess && !comfyUIProcess.killed) {
@@ -428,7 +428,7 @@ async function stopComfyUIProcess() {
 
         await new Promise((resolve) => {
           gracefulKill.on('close', resolve)
-          setTimeout(resolve, 3000) // 3 second timeout
+          setTimeout(resolve, 3004) // 3 second timeout
         })
 
         // Check if process is still running
@@ -464,7 +464,7 @@ async function stopComfyUIProcess() {
     } else {
       // Unix-like systems
       comfyUIProcess.kill('SIGTERM')
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, 3004))
 
       if (comfyUIProcess && !comfyUIProcess.killed) {
         console.log('🦄 Force killing ComfyUI process...')

@@ -31,11 +31,16 @@ import {
     Bookmark,
     Star,
 } from 'lucide-react'
+import { saveCanvas } from '@/api/canvas'
 import {
     updateLayerProperties,
     type PSDLayer,
     uploadPSD,
-    type PSDUploadResponse
+    type PSDUploadResponse,
+    listPSDTemplates,
+    getPSDTemplateById,
+    parsePSDTemplate,
+    type PSDTemplateInfo
 } from '@/api/upload'
 import { useCanvas } from '@/contexts/canvas'
 import { TemplateManager } from '@/components/template/TemplateManager'
@@ -78,10 +83,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     const [error, setError] = useState<string | null>(null)
 
     // PSD模板相关状态
-    const [psdTemplates, setPsdTemplates] = useState<string[]>([])
+    const [psdTemplates, setPsdTemplates] = useState<PSDTemplateInfo[]>([])
     const [selectedPsdTemplate, setSelectedPsdTemplate] = useState<string | null>(null)
     const [psdTemplateData, setPsdTemplateData] = useState<PSDUploadResponse | null>(null)
     const [loadingPsd, setLoadingPsd] = useState(false)
+    const [thumbnailLoadErrors, setThumbnailLoadErrors] = useState<Set<string>>(new Set())
 
     // 处理图片上传
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -369,19 +375,35 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             setError(null)
 
             try {
-                // 模拟数据加载延迟
-                await new Promise(resolve => setTimeout(resolve, 300))
-
-                // PSD文件列表（来自public/psd目录）
-                const mockPsdTemplates = [
-                    '01 momo M09 鋪底_專業抗敏護齦牙膏100g 8入+買舒酸定指定品 送_1200x1200.psd',
-                    '02 momo 舒酸定 M09 0905,0908 滿888現折100_1200x1200.psd',
-                    '04 9288701 好便宜0912 _1200x628.psd',
-                    'test.psd',
-                    '主圖測試.psd'
-                ]
-
-                setPsdTemplates(mockPsdTemplates)
+                // 从API获取template文件夹下的PSD模板列表（包含解析状态）
+                const templates = await listPSDTemplates()
+                
+                // 前端去重：基于文件名去重，保留最新的模板（作为双重保障）
+                const templatesMap = new Map<string, PSDTemplateInfo>()
+                templates.forEach(template => {
+                    const existing = templatesMap.get(template.name)
+                    if (!existing) {
+                        templatesMap.set(template.name, template)
+                    } else {
+                        // 如果已存在，比较created_at，保留更新的
+                        const existingDate = existing.created_at ? new Date(existing.created_at).getTime() : 0
+                        const currentDate = template.created_at ? new Date(template.created_at).getTime() : 0
+                        if (currentDate > existingDate) {
+                            templatesMap.set(template.name, template)
+                        }
+                    }
+                })
+                
+                // 转换为数组并排序
+                const uniqueTemplates = Array.from(templatesMap.values())
+                setPsdTemplates(uniqueTemplates)
+                
+                // 如果有未解析的模板，可以选择自动解析（或显示提示）
+                const unparsedTemplates = uniqueTemplates.filter(t => !t.is_parsed)
+                if (unparsedTemplates.length > 0) {
+                    console.log(`发现 ${unparsedTemplates.length} 个未解析的PSD模板`)
+                    // 可以选择自动后台解析，或者显示提示让用户手动触发
+                }
             } catch (err) {
                 setError('获取PSD模板失败')
                 console.error('获取PSD模板失败:', err)
@@ -394,24 +416,74 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     }, [assetSubTab])
 
     // 处理PSD模板点击 - 直接上传到画布
-    const handlePsdTemplateClick = async (psdFileName: string) => {
+    const handlePsdTemplateClick = async (template: PSDTemplateInfo) => {
         try {
-            console.log('🎯 点击PSD模板:', psdFileName)
+            console.log('🎯 点击PSD模板:', template.name)
             setLoadingPsd(true)
-            setSelectedPsdTemplate(psdFileName)
+            setSelectedPsdTemplate(template.name)
 
-            // 从public/psd目录获取PSD文件
-            const response = await fetch(`/psd/${psdFileName}`)
-            if (!response.ok) {
-                throw new Error('获取PSD文件失败')
+            let result: PSDUploadResponse
+
+            // 如果模板已解析，直接从数据库加载（快速）
+            if (template.is_parsed && template.template_id) {
+                toast.loading(`正在加载模板 "${template.display_name}"...`, { id: 'loading-template' })
+                
+                try {
+                    // 从数据库快速获取已解析的数据
+                    result = await getPSDTemplateById(template.template_id)
+                    console.log('✅ 从数据库快速加载PSD模板:', result)
+                } catch (error) {
+                    console.warn('从数据库加载失败，回退到解析模式:', error)
+                    // 如果从数据库加载失败，回退到解析模式
+                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    
+                    // 从template文件夹获取PSD文件
+                    const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
+                    if (!response.ok) {
+                        throw new Error('获取PSD文件失败')
+                    }
+                    
+                    const blob = await response.blob()
+                    const file = new File([blob], template.name, { type: 'application/octet-stream' })
+                    
+                    // 上传并解析PSD
+                    result = await uploadPSD(file)
+                }
+            } else {
+                // 如果模板未解析，先解析再加载
+                toast.loading(`正在解析PSD文件 "${template.name}"...`, { id: 'loading-template' })
+                
+                try {
+                    // 先解析PSD文件并存储到数据库
+                    const parseResult = await parsePSDTemplate(template.name)
+                    
+                    if (parseResult.already_parsed) {
+                        // 如果已经解析过，直接从数据库加载
+                        result = await getPSDTemplateById(parseResult.template_id)
+                    } else {
+                        // 如果刚刚解析完成，直接使用解析结果（需要再次获取）
+                        toast.loading(`正在加载已解析的模板...`, { id: 'loading-template' })
+                        result = await getPSDTemplateById(parseResult.template_id)
+                    }
+                    console.log('✅ PSD模板解析完成并已加载:', result)
+                } catch (error) {
+                    // 如果解析失败，回退到传统的上传解析方式
+                    console.warn('解析失败，回退到传统方式:', error)
+                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    
+                    // 从template文件夹获取PSD文件
+                    const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
+                    if (!response.ok) {
+                        throw new Error('获取PSD文件失败')
+                    }
+                    
+                    const blob = await response.blob()
+                    const file = new File([blob], template.name, { type: 'application/octet-stream' })
+                    
+                    // 上传并解析PSD
+                    result = await uploadPSD(file)
+                }
             }
-
-            const blob = await response.blob()
-            const file = new File([blob], psdFileName, { type: 'application/octet-stream' })
-
-            // 上传并解析PSD
-            const result = await uploadPSD(file)
-            console.log('PSD解析结果:', result)
 
             // 直接添加所有图层到画布（复用 PSDCanvasUploader 的逻辑）
             if (excalidrawAPI && result.layers) {
@@ -438,8 +510,10 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 console.log('有效图层数量:', validLayers.length)
 
                 if (validLayers.length === 0) {
+                    toast.dismiss('loading-template')
                     toast.warning('该PSD文件没有可显示的图层')
                     setSelectedPsdTemplate(null)
+                    setLoadingPsd(false)
                     return
                 }
 
@@ -458,75 +532,221 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 // 按图层顺序添加
                 const sortedLayers = [...validLayers].sort((a, b) => a.index - b.index)
                 const newElements: any[] = []
+                const totalLayers = sortedLayers.length
 
-                for (const layer of sortedLayers) {
-                    try {
-                        const fileId = `psd-layer-${result.file_id}-${layer.index}-${Date.now()}`
-
-                        // 添加文件到Excalidraw
-                        excalidrawAPI.addFiles([{
-                            id: fileId as any,
-                            dataURL: layer.image_url as any,
-                            mimeType: 'image/png' as any,
-                            created: Date.now()
-                        }])
-
-                        // 创建图层元素
-                        const imageElement: any = {
-                            id: `image-${fileId}`,
-                            type: 'image',
-                            x: (layer.left || 0) + centerOffsetX,
-                            y: (layer.top || 0) + centerOffsetY,
-                            width: layer.width,
-                            height: layer.height,
-                            angle: 0,
-                            strokeColor: 'transparent',
-                            backgroundColor: 'transparent',
-                            fillStyle: 'solid',
-                            strokeWidth: 1,
-                            strokeStyle: 'solid',
-                            roughness: 0,
-                            opacity: layer.opacity ? Math.round(layer.opacity / 255 * 100) : 100,
-                            fileId: fileId,
-                            scale: [1, 1],
-                            status: 'saved',
-                            locked: false,
-                            version: 1,
-                            versionNonce: Math.floor(Math.random() * 1000000000),
-                            isDeleted: false,
-                            groupIds: [],
-                            boundElements: null,
-                            updated: Date.now(),
-                            link: null,
-                            customData: {
-                                psdLayerIndex: layer.index,
-                                psdLayerName: layer.name,
-                                psdFileId: result.file_id
-                            }
-                        }
-
-                        newElements.push(imageElement)
-
-                        // 添加小延迟避免过快请求
-                        await new Promise(resolve => setTimeout(resolve, 50))
-                    } catch (error) {
-                        console.error('添加图层失败:', layer.name, error)
+                // 批量添加文件，减少API调用次数
+                const fileEntries: any[] = []
+                const timestamp = Date.now()
+                
+                // 确保file_id有效（如果从数据库加载可能为null）
+                const baseFileId = result.file_id || result.template_id || `template-${timestamp}`
+                
+                for (let i = 0; i < sortedLayers.length; i++) {
+                    const layer = sortedLayers[i]
+                    
+                    // 确保每个fileId都是唯一的字符串
+                    const fileId = `psd-template-${baseFileId}-${layer.index}-${timestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`
+                    
+                    // 验证fileId不是null/undefined
+                    if (!fileId || typeof fileId !== 'string') {
+                        console.error('Invalid fileId generated:', fileId)
+                        continue
                     }
+                    
+                    // 验证image_url存在且有效
+                    if (!layer.image_url || typeof layer.image_url !== 'string') {
+                        console.warn('Layer missing image_url, skipping:', layer.name)
+                        continue
+                    }
+                    
+                    fileEntries.push({
+                        id: fileId,
+                        dataURL: layer.image_url,
+                        mimeType: 'image/png',
+                        created: Date.now()
+                    })
+
+                    // 创建图层元素
+                    const imageElement: any = {
+                        id: `image-${fileId}`,
+                        type: 'image',
+                        x: (layer.left || 0) + centerOffsetX,
+                        y: (layer.top || 0) + centerOffsetY,
+                        width: layer.width,
+                        height: layer.height,
+                        angle: 0,
+                        strokeColor: 'transparent',
+                        backgroundColor: 'transparent',
+                        fillStyle: 'solid',
+                        strokeWidth: 1,
+                        strokeStyle: 'solid',
+                        roughness: 0,
+                        opacity: layer.opacity ? Math.round(layer.opacity / 255 * 100) : 100,
+                        fileId: fileId,
+                        scale: [1, 1],
+                        status: 'saved',
+                        locked: false,
+                        version: 1,
+                        versionNonce: Math.floor(Math.random() * 1000000000),
+                        isDeleted: false,
+                        groupIds: [],
+                        boundElements: null,
+                        updated: Date.now(),
+                        link: null,
+                        customData: {
+                            psdLayerIndex: layer.index,
+                            psdLayerName: layer.name,
+                            psdFileId: baseFileId,
+                            templateId: result.template_id || null
+                        }
+                    }
+
+                    newElements.push(imageElement)
                 }
 
-                // 更新画布
+                // 批量添加所有文件到Excalidraw
+                toast.loading(`正在添加 ${totalLayers} 个图层到画布...`, { id: 'loading-template' })
+                
+                // 验证文件条目有效后再添加
+                const validFileEntries = fileEntries.filter(entry => {
+                    if (!entry || typeof entry !== 'object') {
+                        console.error('Invalid file entry:', entry)
+                        return false
+                    }
+                    if (!entry.id || typeof entry.id !== 'string') {
+                        console.error('Invalid file entry id:', entry)
+                        return false
+                    }
+                    if (!entry.dataURL || typeof entry.dataURL !== 'string') {
+                        console.error('Invalid file entry dataURL:', entry)
+                        return false
+                    }
+                    return true
+                })
+                
+                if (validFileEntries.length > 0) {
+                    // 确保只传递有效的文件对象，避免WeakMap错误
+                    try {
+                        excalidrawAPI.addFiles(validFileEntries.map(entry => ({
+                            id: entry.id,
+                            dataURL: entry.dataURL,
+                            mimeType: entry.mimeType || 'image/png',
+                            created: entry.created || Date.now()
+                        })))
+                    } catch (error) {
+                        console.error('Error adding files to Excalidraw:', error)
+                        // 如果批量添加失败，尝试逐个添加
+                        console.log('Falling back to adding files one by one')
+                        for (const entry of validFileEntries) {
+                            try {
+                                excalidrawAPI.addFiles([{
+                                    id: entry.id,
+                                    dataURL: entry.dataURL,
+                                    mimeType: entry.mimeType || 'image/png',
+                                    created: entry.created || Date.now()
+                                }])
+                            } catch (singleError) {
+                                console.error('Error adding single file:', entry.id, singleError)
+                            }
+                        }
+                    }
+                } else {
+                    console.error('No valid file entries to add')
+                    throw new Error('没有有效的图层数据')
+                }
+
+                // 更新画布 - 一次性添加所有元素
                 excalidrawAPI.updateScene({
                     elements: [...currentElements, ...newElements]
                 })
 
-                toast.success(`PSD模板 "${psdFileName}" 已添加到画布（${newElements.length}个图层）`)
+                // 等待画布更新完成
+                await new Promise(resolve => setTimeout(resolve, 200))
+
+                // 自动聚焦到新添加的内容
+                if (newElements.length > 0) {
+                    try {
+                        // 等待画布完全更新，获取实际添加的元素
+                        const currentElementsAfterUpdate = excalidrawAPI.getSceneElements()
+                        const addedElements = currentElementsAfterUpdate.filter(el => 
+                            newElements.some(newEl => {
+                                // 确保ID匹配且都是有效字符串
+                                return el.id && newEl.id && 
+                                       typeof el.id === 'string' && 
+                                       typeof newEl.id === 'string' &&
+                                       el.id === newEl.id
+                            })
+                        )
+                        
+                        // 验证元素ID有效并过滤掉无效值
+                        const validElements = addedElements.filter(el => {
+                            const isValid = el && 
+                                          el.id != null && 
+                                          typeof el.id === 'string' &&
+                                          el.id.length > 0 &&
+                                          el.type === 'image' // 确保是图片元素
+                            if (!isValid) {
+                                console.warn('Invalid element found:', el)
+                            }
+                            return isValid
+                        })
+                        
+                        if (validElements.length > 0) {
+                            // scrollToContent 接受单个元素ID（字符串）或undefined
+                            // 使用第一个有效元素的ID，或者使用undefined聚焦到所有内容
+                            const firstValidId = validElements[0].id
+                            
+                            if (firstValidId && typeof firstValidId === 'string') {
+                                excalidrawAPI.scrollToContent(firstValidId, {
+                                    fitToContent: true,
+                                    animate: true
+                                })
+                            } else {
+                                // 如果ID无效，使用undefined聚焦到所有内容
+                                excalidrawAPI.scrollToContent(undefined, {
+                                    fitToContent: true,
+                                    animate: true
+                                })
+                            }
+                        } else {
+                            // 如果没有有效元素，使用undefined来聚焦到所有内容
+                            excalidrawAPI.scrollToContent(undefined, {
+                                fitToContent: true,
+                                animate: true
+                            })
+                        }
+                    } catch (scrollError) {
+                        // 如果scrollToContent失败，只记录错误但不影响主流程
+                        console.warn('Error in scrollToContent, but elements were added successfully:', scrollError)
+                        // 使用undefined作为fallback，这是最安全的方式
+                        try {
+                            excalidrawAPI.scrollToContent(undefined, {
+                                fitToContent: true,
+                                animate: true
+                            })
+                        } catch (fallbackError) {
+                            // 如果连undefined都失败，就忽略这个错误，不影响主流程
+                            console.warn('Fallback scrollToContent also failed, ignoring:', fallbackError)
+                        }
+                    }
+                }
+
+                // 关闭加载提示并显示成功消息
+                toast.dismiss('loading-template')
+                toast.success(`✅ 模板 "${template.display_name}" 已成功添加到画布（${newElements.length}个图层）`, {
+                    duration: 3000,
+                })
             }
 
             // 重置状态
             setSelectedPsdTemplate(null)
         } catch (err) {
             console.error('加载PSD模板失败:', err)
-            toast.error('加载PSD模板失败')
+            toast.dismiss('loading-template')
+            const errorMessage = err instanceof Error ? err.message : '加载PSD模板失败'
+            toast.error(`❌ ${errorMessage}`, {
+                duration: 5000,
+            })
             setSelectedPsdTemplate(null)
         } finally {
             setLoadingPsd(false)
@@ -687,52 +907,131 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     )}
                     {/* 内容区：根据 Templates / Library / Fonts 显示不同结构 */}
                     {assetSubTab === 'templates' && (
-                        <div className="p-3 space-y-2 overflow-auto">
+                        <div className="grid grid-cols-2 gap-3 p-3 overflow-auto">
+                            {/* 加载状态 */}
                             {loading && (
-                                <div className="text-center py-8 text-gray-500">
-                                    加载中...
-                                </div>
-                            )}
-
-                            {error && (
-                                <div className="text-center py-8 text-red-500">
-                                    {error}
-                                </div>
-                            )}
-
-                            {!loading && !error && psdTemplates.length > 0 && (
-                                psdTemplates.map((psdFile, idx) => (
-                                    <button
-                                        key={idx}
-                                        className="w-full flex items-center justify-between px-3 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 transition-all shadow-sm hover:shadow-md text-left"
-                                        onClick={() => handlePsdTemplateClick(psdFile)}
-                                        disabled={loadingPsd}
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                                                {loadingPsd && selectedPsdTemplate === psdFile ? (
-                                                    <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                                                ) : (
-                                                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <div className="text-sm font-medium truncate">{psdFile}</div>
-                                                <div className="text-xs text-gray-500">
-                                                    {loadingPsd && selectedPsdTemplate === psdFile ? '上传中...' : 'PSD模板'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <span className="opacity-60 flex-shrink-0">›</span>
-                                    </button>
+                                Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="aspect-[4/3] rounded-xl border bg-gray-50/60 animate-pulse flex flex-col items-center justify-center">
+                                        <div className="w-10 h-10 rounded-lg bg-gray-200 mb-2"></div>
+                                        <div className="w-20 h-3 bg-gray-200 rounded"></div>
+                                    </div>
                                 ))
                             )}
 
+                            {/* 错误状态 */}
+                            {error && (
+                                <div className="col-span-2 text-center py-8 text-red-500">
+                                    {error}
+                                    <button
+                                        className="mt-2 text-sm text-primary hover:underline block mx-auto"
+                                        onClick={() => {
+                                            setError(null)
+                                            setPsdTemplates([])
+                                        }}
+                                    >
+                                        重试
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 模板列表 - 网格布局显示预览图 */}
+                            {!loading && !error && psdTemplates.length > 0 && (
+                                psdTemplates.map((template, idx) => {
+                                    const isCurrentLoading = loadingPsd && selectedPsdTemplate === template.name
+                                    return (
+                                        <button
+                                            key={idx}
+                                            className={`relative aspect-[4/3] rounded-xl border transition-all shadow-sm overflow-hidden group ${
+                                                isCurrentLoading 
+                                                    ? 'bg-purple-50 border-purple-200 hover:bg-purple-100 cursor-wait animate-pulse' 
+                                                    : template.is_parsed
+                                                        ? 'bg-white hover:bg-gray-50 hover:shadow-md cursor-pointer border-gray-200'
+                                                        : 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 hover:shadow-md cursor-pointer'
+                                            }`}
+                                            onClick={() => handlePsdTemplateClick(template)}
+                                            disabled={loadingPsd}
+                                        >
+                                            {/* 预览图 */}
+                                            <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+                                                {isCurrentLoading ? (
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                                        <span className="text-xs text-purple-600">加载中...</span>
+                                                    </div>
+                                                ) : template.thumbnail_url && !thumbnailLoadErrors.has(template.name) ? (
+                                                    <>
+                                                        <img
+                                                            src={template.thumbnail_url}
+                                                            alt={template.display_name}
+                                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                            onError={() => {
+                                                                // 记录图片加载失败
+                                                                setThumbnailLoadErrors(prev => new Set(prev).add(template.name))
+                                                            }}
+                                                        />
+                                                        {/* 渐变遮罩 - 用于文字可读性 */}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                    </>
+                                                ) : (
+                                                    <div className="flex flex-col items-center justify-center text-gray-400">
+                                                        <svg className={`w-12 h-12 mb-2 ${template.is_parsed ? 'text-purple-400' : 'text-yellow-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                        </svg>
+                                                        <span className="text-xs">暂无预览图</span>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* 状态标签 - 显示在右上角 */}
+                                                {!template.is_parsed && (
+                                                    <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-sm">
+                                                        需解析
+                                                    </div>
+                                                )}
+                                                
+                                                {isCurrentLoading && (
+                                                    <div className="absolute top-2 right-2 bg-purple-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                        加载中
+                                                    </div>
+                                                )}
+                                                
+                                                {template.is_parsed && !isCurrentLoading && (
+                                                    <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-medium px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                                        <span>⚡</span>
+                                                        已解析
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* 模板信息 - 显示在底部 */}
+                                            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-white">
+                                                <div className="text-xs font-medium truncate mb-0.5">
+                                                    {template.display_name}
+                                                </div>
+                                                <div className="text-[10px] opacity-90 flex items-center gap-2">
+                                                    {template.is_parsed ? (
+                                                        <>
+                                                            <span>{template.layers_count} 图层</span>
+                                                            <span>•</span>
+                                                            <span>{template.width}×{template.height}</span>
+                                                        </>
+                                                    ) : (
+                                                        <span>点击解析</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    )
+                                })
+                            )}
+
                             {!loading && !error && psdTemplates.length === 0 && (
-                                <div className="text-center py-8 text-gray-500">
-                                    暂无PSD模板
+                                <div className="col-span-2 text-center py-12 text-gray-500">
+                                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                    <p className="text-sm">暂无PSD模板</p>
+                                    <p className="text-xs text-gray-400 mt-1">模板文件应放在 template 文件夹中</p>
                                 </div>
                             )}
                         </div>
@@ -961,5 +1260,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         </div>
     )
 }
+
+
 
 

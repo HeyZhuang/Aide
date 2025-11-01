@@ -528,7 +528,7 @@ async function waitForXiaohongshuUploadComplete(page) {
     }
 
     // Wait a bit before checking again
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(3004)
   }
   return false
 }
@@ -544,7 +544,7 @@ async function publishBilibili(data) {
   const page = await browser.newPage()
   try {
     await page.goto('https://member.bilibili.com/platform/upload/video/frame')
-    await page.waitForTimeout(3000) // Let Vue UI settle
+    await page.waitForTimeout(3004) // Let Vue UI settle
 
     // Ensure the "上传视频" button is visible and clickable
     const uploadButton = await page.waitForSelector('.bcc-upload-wrapper', {
@@ -602,7 +602,7 @@ async function publishYoutube(data) {
   const page = await browser.newPage()
   try {
     await page.goto('https://www.youtube.com/upload')
-    await page.waitForTimeout(3000) // Let Vue UI settle
+    await page.waitForTimeout(3004) // Let Vue UI settle
   } catch (err) {
     console.error('Upload error:', err)
     throw err

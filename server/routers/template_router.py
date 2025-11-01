@@ -138,7 +138,7 @@ def save_uploaded_file(file: UploadFile, subfolder: str = "") -> str:
         buffer.write(content)
     
     # 返回完整的URL路径
-    return f"http://localhost:3000/api/templates/uploads/{subfolder}/{filename}"
+    return f"http://localhost:3004/api/templates/uploads/{subfolder}/{filename}"
 
 def generate_thumbnail(image_path: str, size: tuple = (200, 200)) -> str:
     """生成缩略图"""
@@ -163,7 +163,7 @@ router = APIRouter(prefix="/templates", tags=["templates"])
 async def get_categories(db: Session = Depends(get_db)):
     """获取所有分类"""
     categories = db.query(TemplateCategory).all()
-    return [{
+    return JSONResponse([{
         "id": cat.id,
         "name": cat.name,
         "description": cat.description,
@@ -171,7 +171,7 @@ async def get_categories(db: Session = Depends(get_db)):
         "color": cat.color,
         "created_at": cat.created_at.isoformat(),
         "updated_at": cat.updated_at.isoformat(),
-    } for cat in categories]
+    } for cat in categories])
 
 @router.post("/categories")
 async def create_category(category: TemplateCategoryCreate, db: Session = Depends(get_db)):
@@ -181,7 +181,7 @@ async def create_category(category: TemplateCategoryCreate, db: Session = Depend
     db.commit()
     db.refresh(db_category)
     
-    return {
+    return JSONResponse({
         "id": db_category.id,
         "name": db_category.name,
         "description": db_category.description,
@@ -189,7 +189,7 @@ async def create_category(category: TemplateCategoryCreate, db: Session = Depend
         "color": db_category.color,
         "created_at": db_category.created_at.isoformat(),
         "updated_at": db_category.updated_at.isoformat(),
-    }
+    })
 
 @router.put("/categories/{category_id}")
 async def update_category(category_id: str, category: TemplateCategoryUpdate, db: Session = Depends(get_db)):
@@ -206,7 +206,7 @@ async def update_category(category_id: str, category: TemplateCategoryUpdate, db
     db.commit()
     db.refresh(db_category)
     
-    return {
+    return JSONResponse({
         "id": db_category.id,
         "name": db_category.name,
         "description": db_category.description,
@@ -214,7 +214,7 @@ async def update_category(category_id: str, category: TemplateCategoryUpdate, db
         "color": db_category.color,
         "created_at": db_category.created_at.isoformat(),
         "updated_at": db_category.updated_at.isoformat(),
-    }
+    })
 
 @router.delete("/categories/{category_id}")
 async def delete_category(category_id: str, db: Session = Depends(get_db)):
@@ -230,7 +230,7 @@ async def delete_category(category_id: str, db: Session = Depends(get_db)):
     
     db.delete(db_category)
     db.commit()
-    return {"message": "Category deleted successfully"}
+    return JSONResponse({"message": "Category deleted successfully"})
 
 # 模板管理
 @router.get("/items")
@@ -258,7 +258,7 @@ async def get_templates(
         query = query.filter(TemplateItem.created_by == created_by)
     
     templates = query.all()
-    return [{
+    return JSONResponse([{
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -274,7 +274,7 @@ async def get_templates(
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    } for template in templates]
+    } for template in templates])
 
 @router.get("/items/{template_id}")
 async def get_template(template_id: str, db: Session = Depends(get_db)):
@@ -283,7 +283,7 @@ async def get_template(template_id: str, db: Session = Depends(get_db)):
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
-    return {
+    return JSONResponse({
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -299,7 +299,7 @@ async def get_template(template_id: str, db: Session = Depends(get_db)):
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    }
+    })
 
 @router.post("/items")
 async def create_template(
@@ -348,7 +348,7 @@ async def create_template(
     db.commit()
     db.refresh(template)
     
-    return {
+    return JSONResponse({
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -364,7 +364,7 @@ async def create_template(
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    }
+    })
 
 @router.put("/items/{template_id}")
 async def update_template(
@@ -415,7 +415,7 @@ async def update_template(
     db.commit()
     db.refresh(template)
     
-    return {
+    return JSONResponse({
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -431,7 +431,7 @@ async def update_template(
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    }
+    })
 
 @router.delete("/items/{template_id}")
 async def delete_template(template_id: str, db: Session = Depends(get_db)):
@@ -453,7 +453,7 @@ async def delete_template(template_id: str, db: Session = Depends(get_db)):
     
     db.delete(template)
     db.commit()
-    return {"message": "Template deleted successfully"}
+    return JSONResponse({"message": "Template deleted successfully"})
 
 @router.post("/items/{template_id}/favorite")
 async def toggle_favorite(template_id: str, db: Session = Depends(get_db)):
@@ -467,10 +467,10 @@ async def toggle_favorite(template_id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(template)
     
-    return {
+    return JSONResponse({
         "id": template.id,
         "is_favorite": template.is_favorite,
-    }
+    })
 
 @router.post("/items/{template_id}/usage")
 async def increment_usage(template_id: str, db: Session = Depends(get_db)):
@@ -483,14 +483,14 @@ async def increment_usage(template_id: str, db: Session = Depends(get_db)):
     template.updated_at = datetime.utcnow()
     db.commit()
     
-    return {"message": "Usage count incremented"}
+    return JSONResponse({"message": "Usage count incremented"})
 
 # 集合管理
 @router.get("/collections")
 async def get_collections(db: Session = Depends(get_db)):
     """获取所有集合"""
     collections = db.query(TemplateCollection).all()
-    return [{
+    return JSONResponse([{
         "id": collection.id,
         "name": collection.name,
         "description": collection.description,
@@ -500,7 +500,7 @@ async def get_collections(db: Session = Depends(get_db)):
         "created_at": collection.created_at.isoformat(),
         "updated_at": collection.updated_at.isoformat(),
         "created_by": collection.created_by,
-    } for collection in collections]
+    } for collection in collections])
 
 @router.post("/collections")
 async def create_collection(collection: TemplateCollectionCreate, db: Session = Depends(get_db)):
@@ -510,7 +510,7 @@ async def create_collection(collection: TemplateCollectionCreate, db: Session = 
     db.commit()
     db.refresh(db_collection)
     
-    return {
+    return JSONResponse({
         "id": db_collection.id,
         "name": db_collection.name,
         "description": db_collection.description,
@@ -520,7 +520,7 @@ async def create_collection(collection: TemplateCollectionCreate, db: Session = 
         "created_at": db_collection.created_at.isoformat(),
         "updated_at": db_collection.updated_at.isoformat(),
         "created_by": db_collection.created_by,
-    }
+    })
 
 @router.put("/collections/{collection_id}")
 async def update_collection(collection_id: str, collection: TemplateCollectionUpdate, db: Session = Depends(get_db)):
@@ -537,7 +537,7 @@ async def update_collection(collection_id: str, collection: TemplateCollectionUp
     db.commit()
     db.refresh(db_collection)
     
-    return {
+    return JSONResponse({
         "id": db_collection.id,
         "name": db_collection.name,
         "description": db_collection.description,
@@ -547,7 +547,7 @@ async def update_collection(collection_id: str, collection: TemplateCollectionUp
         "created_at": db_collection.created_at.isoformat(),
         "updated_at": db_collection.updated_at.isoformat(),
         "created_by": db_collection.created_by,
-    }
+    })
 
 @router.delete("/collections/{collection_id}")
 async def delete_collection(collection_id: str, db: Session = Depends(get_db)):
@@ -558,7 +558,7 @@ async def delete_collection(collection_id: str, db: Session = Depends(get_db)):
     
     db.delete(db_collection)
     db.commit()
-    return {"message": "Collection deleted successfully"}
+    return JSONResponse({"message": "Collection deleted successfully"})
 
 # 特殊功能
 @router.post("/from-psd-layer")
@@ -602,7 +602,7 @@ async def create_from_psd_layer(
     db.commit()
     db.refresh(template)
     
-    return {
+    return JSONResponse({
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -616,7 +616,7 @@ async def create_from_psd_layer(
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    }
+    })
 
 @router.post("/apply-to-canvas")
 async def apply_to_canvas(
@@ -644,7 +644,7 @@ async def apply_to_canvas(
             position_data = None
     
     # 返回模板数据，前端将使用这些数据在Excalidraw中创建元素
-    return {
+    return JSONResponse({
         "message": "Template applied to canvas successfully",
         "template": {
             "id": template.id,
@@ -658,7 +658,7 @@ async def apply_to_canvas(
             "position": position_data,
             "canvas_id": canvas_id
         }
-    }
+    })
 
 @router.get("/search")
 async def search_templates(
@@ -691,7 +691,7 @@ async def search_templates(
         query = query.filter(TemplateItem.is_public == is_public)
     
     templates = query.all()
-    return [{
+    return JSONResponse([{
         "id": template.id,
         "name": template.name,
         "description": template.description,
@@ -707,7 +707,7 @@ async def search_templates(
         "created_at": template.created_at.isoformat(),
         "updated_at": template.updated_at.isoformat(),
         "created_by": template.created_by,
-    } for template in templates]
+    } for template in templates])
 
 @router.get("/stats")
 async def get_stats(db: Session = Depends(get_db)):
@@ -732,13 +732,13 @@ async def get_stats(db: Session = Depends(get_db)):
         "created_at": template.created_at.isoformat(),
     } for template in recent]
     
-    return {
+    return JSONResponse({
         "total_templates": total_templates,
         "total_categories": total_categories,
         "total_collections": total_collections,
         "most_used_templates": most_used_templates,
         "recent_templates": recent_templates,
-    }
+    })
 
 # 文件服务
 @router.get("/uploads/{subfolder}/{filename}")

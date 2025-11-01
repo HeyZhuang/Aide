@@ -11,7 +11,7 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 from common import DEFAULT_PORT
 from tools.utils.image_canvas_utils import generate_file_id
-from services.config_service import FILES_DIR
+from services.config_service import FILES_DIR, SERVER_DIR
 from datetime import datetime
 
 router = APIRouter(prefix="/api/psd")
@@ -19,6 +19,9 @@ router = APIRouter(prefix="/api/psd")
 # PSD文件存储目录
 PSD_DIR = os.path.join(FILES_DIR, "psd")
 os.makedirs(PSD_DIR, exist_ok=True)
+
+# Template文件夹路径（项目根目录下的template文件夹）
+TEMPLATE_DIR = os.path.join(os.path.dirname(SERVER_DIR), "template")
 
 # 模板数据库配置
 TEMPLATE_DB_URL = "sqlite:///./user_data/templates.db"
@@ -221,16 +224,16 @@ async def upload_psd(file: UploadFile = File(...)):
             print(f'⚠️ 创建PSD文件模板失败: {e}')
             # 不影响主流程，继续返回PSD上传结果
         
-        return {
+        return JSONResponse({
             'file_id': file_id,
-            'url': f'http://localhost:{DEFAULT_PORT}/api/psd/file/{file_id}',
+            'url': f'/api/psd/file/{file_id}',
             'width': width,
             'height': height,
             'layers': layers_info,
-            'thumbnail_url': thumbnail_url,
+            'thumbnail_url': f'/api/psd/thumbnail/{file_id}',
             'template_id': template_id,
             'template_created': template_created
-        }
+        })
         
     except Exception as e:
         print(f'❌ Error processing PSD: {e}')
@@ -245,7 +248,9 @@ async def get_psd_file(file_id: str):
     file_path = os.path.join(PSD_DIR, f'{file_id}.psd')
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="PSD file not found")
-    return FileResponse(file_path)
+    response = FileResponse(file_path)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 @router.get("/composite/{file_id}")
@@ -279,7 +284,7 @@ async def get_psd_metadata(file_id: str):
     
     with open(metadata_path, 'r', encoding='utf-8') as f:
         metadata = json.load(f)
-    return metadata
+    return JSONResponse(metadata)
 
 
 @router.get("/layer/{file_id}/{layer_index}")
@@ -294,7 +299,9 @@ async def get_layer_image(file_id: str, layer_index: int):
     layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{layer_index}.png')
     if not os.path.exists(layer_path):
         raise HTTPException(status_code=404, detail="Layer image not found")
-    return FileResponse(layer_path)
+    response = FileResponse(layer_path)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 @router.post("/update_layer/{file_id}/{layer_index}")
@@ -316,10 +323,10 @@ async def update_layer(file_id: str, layer_index: int, file: UploadFile = File(.
         layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{layer_index}.png')
         await run_in_threadpool(img.save, layer_path, format='PNG')
         
-        return {
+        return JSONResponse({
             'success': True,
-            'layer_url': f'http://localhost:{DEFAULT_PORT}/api/psd/layer/{file_id}/{layer_index}'
-        }
+            'layer_url': f'/api/psd/layer/{file_id}/{layer_index}'
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating layer: {str(e)}")
@@ -357,10 +364,10 @@ async def export_psd(file_id: str, format: str = "png"):
         else:
             await run_in_threadpool(merged_image.save, export_path, format='PNG')
         
-        return {
+        return JSONResponse({
             'export_id': f'{export_id}.{ext}',
-            'url': f'http://localhost:{DEFAULT_PORT}/api/file/{export_id}.{ext}'
-        }
+            'url': f'/api/file/{export_id}.{ext}'
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting PSD: {str(e)}")
@@ -474,7 +481,7 @@ def _composite_layer_with_transparency(layer) -> Optional[Image.Image]:
 
 def _extract_layers_info(psd: PSDImage, file_id: str) -> List[Dict[str, Any]]:
     """
-    提取所有图层（含群组內子层、文字层）的信息並保存圖層圖像。
+    提取所有图层（含群組內子層、文字层）的信息並保存圖層圖像。
     - 對所有非群組圖層輸出 image_url（含文字層轉為位圖）。
     - 保留父子層關係（parent_index）。
     """
@@ -574,7 +581,7 @@ def _extract_layers_info(psd: PSDImage, file_id: str) -> List[Dict[str, Any]]:
                         composed = composed.convert('RGBA')
                     
                     composed.save(layer_path, format='PNG')
-                    layer_info['image_url'] = f'http://localhost:{DEFAULT_PORT}/api/psd/layer/{file_id}/{idx}'
+                    layer_info['image_url'] = f'/api/psd/layer/{file_id}/{idx}'
                     print(f'✅ 成功生成圖層 {idx} ({getattr(layer, "name", "")}) 圖像: {composed.size}, 模式: {composed.mode}')
                 else:
                     layer_info['image_url'] = None
@@ -637,7 +644,7 @@ def _generate_thumbnail(psd: PSDImage, file_id: str) -> str:
         thumbnail_path = os.path.join(PSD_DIR, f'{file_id}_thumbnail.png')
         thumbnail.save(thumbnail_path, format='PNG')
         
-        return f'http://localhost:{DEFAULT_PORT}/api/psd/thumbnail/{file_id}'
+        return f'/api/psd/thumbnail/{file_id}'
         
     except Exception as e:
         print(f'Warning: Failed to generate thumbnail: {e}')
@@ -677,10 +684,10 @@ async def update_layer_order(file_id: str, layer_order: List[int]):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'message': 'Layer order updated successfully'
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating layer order: {str(e)}")
@@ -733,10 +740,10 @@ async def duplicate_layer(file_id: str, layer_index: int):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'new_layer': new_layer
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error duplicating layer: {str(e)}")
@@ -772,10 +779,10 @@ async def delete_layer(file_id: str, layer_index: int):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'message': 'Layer deleted successfully'
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting layer: {str(e)}")
@@ -818,7 +825,7 @@ async def update_layer_properties(
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-        return {"message": "Layer properties updated successfully"}
+        return JSONResponse({"message": "Layer properties updated successfully"})
     except HTTPException:
         raise
     except Exception as e:
@@ -867,7 +874,7 @@ async def get_psd_template_layers(template_id: str):
         with open(metadata_path, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
         
-        return {
+        return JSONResponse({
             "template_id": template_id,
             "template_name": template.name,
             "psd_file_id": psd_file_id,
@@ -875,7 +882,7 @@ async def get_psd_template_layers(template_id: str):
             "height": metadata["height"],
             "layers": metadata["layers"],
             "original_filename": metadata["original_filename"]
-        }
+        })
         
     except HTTPException:
         raise
@@ -925,7 +932,7 @@ async def apply_psd_template(template_id: str, canvas_id: str = None):
         with open(metadata_path, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
         
-        return {
+        return JSONResponse({
             "success": True,
             "message": f"PSD模板 '{template.name}' 已应用到画布",
             "template_id": template_id,
@@ -933,7 +940,7 @@ async def apply_psd_template(template_id: str, canvas_id: str = None):
             "canvas_id": canvas_id,
             "layers": metadata["layers"],
             "usage_count": template.usage_count
-        }
+        })
         
     except HTTPException:
         raise
@@ -941,3 +948,289 @@ async def apply_psd_template(template_id: str, canvas_id: str = None):
         raise HTTPException(status_code=500, detail=f"Error applying PSD template: {str(e)}")
     finally:
         db.close()
+
+
+@router.get("/templates/list")
+async def list_psd_templates():
+    """
+    列出template文件夹下的所有PSD模板（从数据库获取已解析的模板）
+    
+    Returns:
+        已解析的PSD模板列表（包含模板ID和基本信息）
+    """
+    db = TemplateSessionLocal()
+    try:
+        # 从数据库获取所有PSD文件类型的模板，且original_filename来自template文件夹
+        templates = db.query(TemplateItem).filter(
+            TemplateItem.type == "psd_file"
+        ).all()
+        
+        # 检查template文件夹，同步新的PSD文件
+        template_files = []
+        if os.path.exists(TEMPLATE_DIR):
+            for filename in os.listdir(TEMPLATE_DIR):
+                if filename.lower().endswith('.psd'):
+                    file_path = os.path.join(TEMPLATE_DIR, filename)
+                    if os.path.isfile(file_path):
+                        template_files.append(filename)
+        
+        # 返回模板列表，包含数据库中的模板信息
+        # 使用字典去重：同一个文件名只保留最新的模板（按updated_at）
+        template_dict = {}
+        for template in templates:
+            metadata = template.template_metadata or {}
+            original_filename = metadata.get("original_filename", template.name)
+            
+            # 只处理template文件夹中存在的文件对应的模板
+            if original_filename in template_files:
+                # 如果这个文件名还没有记录，或者当前模板更新，则更新记录
+                if original_filename not in template_dict:
+                    template_dict[original_filename] = {
+                        "template_id": template.id,
+                        "name": original_filename,
+                        "display_name": template.name,
+                        "description": template.description,
+                        "width": metadata.get("width", 0),
+                        "height": metadata.get("height", 0),
+                        "layers_count": metadata.get("layers_count", 0),
+                        "thumbnail_url": template.thumbnail_url,
+                        "is_parsed": True,
+                        "created_at": template.created_at.isoformat() if template.created_at else None,
+                        "updated_at": template.updated_at.isoformat() if template.updated_at else None
+                    }
+                else:
+                    # 如果已存在，比较更新时间，保留最新的
+                    existing_updated = template_dict[original_filename].get("updated_at")
+                    current_updated = template.updated_at.isoformat() if template.updated_at else None
+                    if current_updated and (not existing_updated or current_updated > existing_updated):
+                        template_dict[original_filename] = {
+                            "template_id": template.id,
+                            "name": original_filename,
+                            "display_name": template.name,
+                            "description": template.description,
+                            "width": metadata.get("width", 0),
+                            "height": metadata.get("height", 0),
+                            "layers_count": metadata.get("layers_count", 0),
+                            "thumbnail_url": template.thumbnail_url,
+                            "is_parsed": True,
+                            "created_at": template.created_at.isoformat() if template.created_at else None,
+                            "updated_at": current_updated
+                        }
+        
+        # 转换为列表
+        result = list(template_dict.values())
+        
+        # 查找未解析的PSD文件
+        parsed_filenames = {t["name"] for t in result}
+        for filename in template_files:
+            if filename not in parsed_filenames:
+                # 返回未解析的文件信息（前端可以触发解析）
+                file_path = os.path.join(TEMPLATE_DIR, filename)
+                stat = os.stat(file_path)
+                result.append({
+                    "template_id": None,
+                    "name": filename,
+                    "display_name": filename.replace('.psd', '').replace('.PSD', ''),
+                    "description": None,
+                    "width": 0,
+                    "height": 0,
+                    "layers_count": 0,
+                    "thumbnail_url": None,
+                    "is_parsed": False,
+                    "created_at": None,
+                    "size": stat.st_size,
+                    "mtime": stat.st_mtime
+                })
+        
+        # 按文件名排序
+        result.sort(key=lambda x: x["name"])
+        
+        return JSONResponse({"templates": result})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing PSD templates: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.get("/templates/{filename}")
+async def get_psd_template(filename: str):
+    """
+    获取template文件夹下的指定PSD文件（原始文件，用于fallback）
+    
+    Args:
+        filename: PSD文件名
+    
+    Returns:
+        PSD文件内容
+    """
+    try:
+        # 安全检查：防止路径遍历攻击
+        if '..' in filename or '/' in filename or '\\' in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        file_path = os.path.join(TEMPLATE_DIR, filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="PSD template file not found")
+        
+        if not filename.lower().endswith('.psd'):
+            raise HTTPException(status_code=400, detail="File is not a PSD file")
+        
+        response = FileResponse(file_path)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting PSD template: {str(e)}")
+
+
+@router.get("/templates/by-id/{template_id}")
+async def get_psd_template_by_id(template_id: str):
+    """
+    根据模板ID获取已解析的PSD模板数据（快速加载，无需重新解析）
+    
+    Args:
+        template_id: 模板ID
+    
+    Returns:
+        已解析的PSD数据（包含所有图层信息）
+    """
+    db = TemplateSessionLocal()
+    try:
+        template = db.query(TemplateItem).filter(TemplateItem.id == template_id).first()
+        
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        if template.type != "psd_file":
+            raise HTTPException(status_code=400, detail="Template is not a PSD file")
+        
+        metadata = template.template_metadata or {}
+        
+        # 检查是否有已解析的图层信息
+        layers_info = metadata.get("layers_info", [])
+        if not layers_info:
+            raise HTTPException(status_code=404, detail="Template not parsed yet")
+        
+        # 增加使用次数
+        template.usage_count += 1
+        template.updated_at = datetime.utcnow()
+        db.commit()
+        
+        # 构造PSD上传响应格式的数据
+        psd_file_id = metadata.get("psd_file_id")
+        
+        # 确保file_id有效（如果不存在，使用template_id作为fallback）
+        file_id = psd_file_id if psd_file_id else f"template-{template.id}"
+        
+        return JSONResponse({
+            "file_id": file_id,
+            "url": f"/api/psd/file/{psd_file_id}" if psd_file_id else None,
+            "width": metadata.get("width", 0),
+            "height": metadata.get("height", 0),
+            "layers": layers_info,
+            "thumbnail_url": template.thumbnail_url,
+            "original_filename": metadata.get("original_filename", template.name),
+            "template_id": template.id,
+            "template_created": True
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting PSD template: {str(e)}")
+    finally:
+        db.close()
+
+
+@router.post("/templates/parse/{filename}")
+async def parse_psd_template(filename: str):
+    """
+    解析template文件夹下的PSD文件并存储到数据库
+    
+    Args:
+        filename: PSD文件名
+    
+    Returns:
+        解析结果和模板ID
+    """
+    try:
+        # 安全检查
+        if '..' in filename or '/' in filename or '\\' in filename:
+            raise HTTPException(status_code=400, detail="Invalid filename")
+        
+        file_path = os.path.join(TEMPLATE_DIR, filename)
+        
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="PSD template file not found")
+        
+        if not filename.lower().endswith('.psd'):
+            raise HTTPException(status_code=400, detail="File is not a PSD file")
+        
+        db = TemplateSessionLocal()
+        try:
+            # 检查是否已经解析过（查询所有psd_file类型的模板，然后检查metadata）
+            all_psd_templates = db.query(TemplateItem).filter(
+                TemplateItem.type == "psd_file"
+            ).all()
+            existing_template = None
+            for template in all_psd_templates:
+                metadata = template.template_metadata or {}
+                if metadata.get("original_filename") == filename:
+                    existing_template = template
+                    break
+            
+            if existing_template:
+                return JSONResponse({
+                    "template_id": existing_template.id,
+                    "already_parsed": True,
+                    "message": "Template already parsed"
+                })
+            
+            # 读取并解析PSD文件
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            # 生成文件ID（使用文件名hash确保一致性）
+            import hashlib
+            file_hash = hashlib.md5(content).hexdigest()
+            file_id = f"template-{file_hash[:16]}"
+            
+            # 解析PSD文件
+            psd = PSDImage.open(BytesIO(content))
+            width, height = psd.width, psd.height
+            
+            # 提取图层信息
+            layers_info = await run_in_threadpool(_extract_layers_info, psd, file_id)
+            
+            # 生成缩略图
+            thumbnail_url = await run_in_threadpool(_generate_thumbnail, psd, file_id)
+            
+            # 创建模板
+            template_id = await _create_psd_file_template(
+                file_id=file_id,
+                filename=filename,
+                width=width,
+                height=height,
+                layers_count=len(layers_info),
+                thumbnail_url=thumbnail_url,
+                layers_info=layers_info
+            )
+            
+            return JSONResponse({
+                "template_id": template_id,
+                "already_parsed": False,
+                "message": "Template parsed successfully",
+                "layers_count": len(layers_info),
+                "width": width,
+                "height": height
+            })
+        finally:
+            db.close()
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error parsing PSD template: {str(e)}")

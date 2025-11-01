@@ -143,7 +143,7 @@ npm run dev
 ```
 
 ### 3. 使用界面
-1. 打開瀏覽器訪問 `http://localhost:3000`
+1. 打開瀏覽器訪問 `http://localhost:3004`
 2. 導航到PSD縮放工具頁面
 3. 上傳PSD文件
 4. 設置目標尺寸

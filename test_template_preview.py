@@ -35,7 +35,7 @@ def create_test_image():
 
 def test_template_upload():
     """测试模板上传功能"""
-    base_url = "http://localhost:3000"
+    base_url = "http://localhost:3004"
     
     # 创建测试图片
     test_image = create_test_image()
@@ -97,7 +97,7 @@ def test_template_upload():
 
 def test_file_service():
     """测试文件服务"""
-    base_url = "http://localhost:3000"
+    base_url = "http://localhost:3004"
     
     # 测试一个已知的文件路径
     test_url = f"{base_url}/api/templates/uploads/thumbnails/test.png"

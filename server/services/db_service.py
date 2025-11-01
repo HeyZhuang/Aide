@@ -106,7 +106,7 @@ class DatabaseService:
                 
             return messages
 
-    async def list_sessions(self, canvas_id: str) -> List[Dict[str, Any]]:
+    async def list_sessions(self, canvas_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """List all chat sessions"""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
@@ -126,7 +126,7 @@ class DatabaseService:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 
-    async def save_canvas_data(self, id: str, data: str, thumbnail: str = None):
+    async def save_canvas_data(self, id: str, data: str, thumbnail: Optional[str] = None):
         """Save canvas data"""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
@@ -181,7 +181,7 @@ class DatabaseService:
             await db.execute("UPDATE canvases SET name = ? WHERE id = ?", (name, id))
             await db.commit()
 
-    async def create_comfy_workflow(self, name: str, api_json: str, description: str, inputs: str, outputs: str = None):
+    async def create_comfy_workflow(self, name: str, api_json: str, description: str, inputs: str, outputs: Optional[str] = None):
         """Create a new comfy workflow"""
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""

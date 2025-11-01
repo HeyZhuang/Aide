@@ -1,5 +1,6 @@
 import os
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 import requests
 import httpx
 from models.tool_model import ToolInfoJson
@@ -9,7 +10,7 @@ from services.db_service import db_service
 from utils.http_client import HttpClient
 # services
 from models.config_model import ModelInfo
-from typing import List
+from typing import List, Optional
 from services.tool_service import TOOL_MAPPING
 from routers.template_router import router as template_router
 
@@ -92,7 +93,7 @@ async def get_models() -> list[ModelInfo]:
                     'url': provider_url,
                     'type': model_type
                 })
-    return res
+    return JSONResponse(res)
 
 
 @router.get("/list_tools")
@@ -128,17 +129,17 @@ async def list_tools() -> list[ToolInfoJson]:
     #                 'type': 'image'
     #             })
 
-    return res
+    return JSONResponse(res)
 
 
 @router.get("/list_chat_sessions")
-async def list_chat_sessions():
-    return await db_service.list_sessions()
+async def list_chat_sessions(canvas_id: Optional[str] = None):
+    return JSONResponse(await db_service.list_sessions(canvas_id))
 
 
 @router.get("/chat_session/{session_id}")
 async def get_chat_session(session_id: str):
-    return await db_service.get_chat_history(session_id)
+    return JSONResponse(await db_service.get_chat_history(session_id))
 
 # 包含模板路由
 router.include_router(template_router)

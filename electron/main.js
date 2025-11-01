@@ -125,7 +125,7 @@ const createWindow = (pyPort) => {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, '../assets/icons/jaaz.png'), // ✅ Use .png for dev
+    icon: path.join(__dirname, '../assets/icons/ai_logo.svg'), // ✅ Use .png for dev
     autoHideMenuBar: true, // Hide menu bar (can be toggled with Alt key)
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -162,8 +162,8 @@ const createWindow = (pyPort) => {
     const newWindow = new BrowserWindow({
       width: 800,
       height: 600,
-      title: 'Jaaz Preview',
-      icon: path.join(__dirname, '../assets/icons/jaaz.png'),
+      title: 'Aide Preview',
+      icon: path.join(__dirname, '../assets/icons/ai_logo.svg'),
       autoHideMenuBar: true,
       webPreferences: {
         nodeIntegration: false,
@@ -189,7 +189,7 @@ const createWindow = (pyPort) => {
 
   // In development, use Vite dev server
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:3000', {
+    mainWindow.loadURL('http://localhost:3004', {
       extraHeaders: 'pragma: no-cache\n',
     })
     mainWindow.webContents.openDevTools()
@@ -238,7 +238,7 @@ const startPythonApi = async () => {
 
   // Set BASE_API_URL based on environment
   env.BASE_API_URL =
-    process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://jaaz.app'
+    process.env.NODE_ENV === 'development' ? 'http://localhost:3004' : 'https://jaaz.app'
   console.log('BASE_API_URL:', env.BASE_API_URL)
 
   // Apply proxy settings and get environment variables
@@ -381,7 +381,7 @@ if (!gotTheLock) {
       // Wait a bit for the app to fully load before checking updates
       setTimeout(() => {
         autoUpdater.checkForUpdatesAndNotify()
-      }, 3000)
+      }, 3004)
     }
 
     // Start Python API in both development and production
