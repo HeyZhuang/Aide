@@ -218,5 +218,54 @@ export async function parsePSDTemplate(filename: string): Promise<{ template_id:
   if (!response.ok) {
     throw new Error(`Failed to parse PSD template: ${response.statusText}`)
   }
+    return await response.json()
+}
+
+// 智能图层排列相关API
+export interface ElementArrangement {
+  id: string
+  type: string
+  original_coords: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  new_coords: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  scale_factor: number
+  adjustment_reason: string
+  quality_check: string
+  warnings: string[]
+}
+
+export interface ArrangeLayersRequest {
+  selectedElements: any[]
+  canvasWidth: number
+  canvasHeight: number
+  targetWidth: number
+  targetHeight: number
+  apiKey?: string
+}
+
+export interface ArrangeLayersResponse {
+  success: boolean
+  arrangements: ElementArrangement[]
+}
+export async function arrangeCanvasElements(request: ArrangeLayersRequest): Promise<ArrangeLayersResponse> {
+  const response = await fetch('/api/psd/arrange-layers', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to arrange layers: ${response.statusText}`)
+  }
   return await response.json()
 }
