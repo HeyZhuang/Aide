@@ -77,7 +77,7 @@ const InstallProgressDialog = ({ open, onOpenChange, onInstallComplete }: Instal
         setTimeout(() => {
           onInstallComplete?.();
           onOpenChange(false);
-        }, 3000);
+        }, 3004);
       }
     };
 

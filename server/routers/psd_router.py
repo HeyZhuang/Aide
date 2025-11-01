@@ -221,16 +221,16 @@ async def upload_psd(file: UploadFile = File(...)):
             print(f'⚠️ 创建PSD文件模板失败: {e}')
             # 不影响主流程，继续返回PSD上传结果
         
-        return {
+        return JSONResponse({
             'file_id': file_id,
-            'url': f'http://localhost:{DEFAULT_PORT}/api/psd/file/{file_id}',
+            'url': f'/api/psd/file/{file_id}',
             'width': width,
             'height': height,
             'layers': layers_info,
-            'thumbnail_url': thumbnail_url,
+            'thumbnail_url': f'/api/psd/thumbnail/{file_id}',
             'template_id': template_id,
             'template_created': template_created
-        }
+        })
         
     except Exception as e:
         print(f'❌ Error processing PSD: {e}')
@@ -245,7 +245,9 @@ async def get_psd_file(file_id: str):
     file_path = os.path.join(PSD_DIR, f'{file_id}.psd')
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="PSD file not found")
-    return FileResponse(file_path)
+    response = FileResponse(file_path)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 @router.get("/composite/{file_id}")
@@ -279,7 +281,7 @@ async def get_psd_metadata(file_id: str):
     
     with open(metadata_path, 'r', encoding='utf-8') as f:
         metadata = json.load(f)
-    return metadata
+    return JSONResponse(metadata)
 
 
 @router.get("/layer/{file_id}/{layer_index}")
@@ -294,7 +296,9 @@ async def get_layer_image(file_id: str, layer_index: int):
     layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{layer_index}.png')
     if not os.path.exists(layer_path):
         raise HTTPException(status_code=404, detail="Layer image not found")
-    return FileResponse(layer_path)
+    response = FileResponse(layer_path)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 @router.post("/update_layer/{file_id}/{layer_index}")
@@ -316,10 +320,10 @@ async def update_layer(file_id: str, layer_index: int, file: UploadFile = File(.
         layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{layer_index}.png')
         await run_in_threadpool(img.save, layer_path, format='PNG')
         
-        return {
+        return JSONResponse({
             'success': True,
-            'layer_url': f'http://localhost:{DEFAULT_PORT}/api/psd/layer/{file_id}/{layer_index}'
-        }
+            'layer_url': f'/api/psd/layer/{file_id}/{layer_index}'
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating layer: {str(e)}")
@@ -357,10 +361,10 @@ async def export_psd(file_id: str, format: str = "png"):
         else:
             await run_in_threadpool(merged_image.save, export_path, format='PNG')
         
-        return {
+        return JSONResponse({
             'export_id': f'{export_id}.{ext}',
-            'url': f'http://localhost:{DEFAULT_PORT}/api/file/{export_id}.{ext}'
-        }
+            'url': f'/api/file/{export_id}.{ext}'
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting PSD: {str(e)}")
@@ -474,7 +478,7 @@ def _composite_layer_with_transparency(layer) -> Optional[Image.Image]:
 
 def _extract_layers_info(psd: PSDImage, file_id: str) -> List[Dict[str, Any]]:
     """
-    提取所有图层（含群组內子层、文字层）的信息並保存圖層圖像。
+    提取所有图层（含群組內子層、文字层）的信息並保存圖層圖像。
     - 對所有非群組圖層輸出 image_url（含文字層轉為位圖）。
     - 保留父子層關係（parent_index）。
     """
@@ -574,7 +578,7 @@ def _extract_layers_info(psd: PSDImage, file_id: str) -> List[Dict[str, Any]]:
                         composed = composed.convert('RGBA')
                     
                     composed.save(layer_path, format='PNG')
-                    layer_info['image_url'] = f'http://localhost:{DEFAULT_PORT}/api/psd/layer/{file_id}/{idx}'
+                    layer_info['image_url'] = f'/api/psd/layer/{file_id}/{idx}'
                     print(f'✅ 成功生成圖層 {idx} ({getattr(layer, "name", "")}) 圖像: {composed.size}, 模式: {composed.mode}')
                 else:
                     layer_info['image_url'] = None
@@ -637,7 +641,7 @@ def _generate_thumbnail(psd: PSDImage, file_id: str) -> str:
         thumbnail_path = os.path.join(PSD_DIR, f'{file_id}_thumbnail.png')
         thumbnail.save(thumbnail_path, format='PNG')
         
-        return f'http://localhost:{DEFAULT_PORT}/api/psd/thumbnail/{file_id}'
+        return f'/api/psd/thumbnail/{file_id}'
         
     except Exception as e:
         print(f'Warning: Failed to generate thumbnail: {e}')
@@ -677,10 +681,10 @@ async def update_layer_order(file_id: str, layer_order: List[int]):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'message': 'Layer order updated successfully'
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating layer order: {str(e)}")
@@ -733,10 +737,10 @@ async def duplicate_layer(file_id: str, layer_index: int):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'new_layer': new_layer
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error duplicating layer: {str(e)}")
@@ -772,10 +776,10 @@ async def delete_layer(file_id: str, layer_index: int):
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        return {
+        return JSONResponse({
             'success': True,
             'message': 'Layer deleted successfully'
-        }
+        })
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting layer: {str(e)}")
@@ -818,7 +822,7 @@ async def update_layer_properties(
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-        return {"message": "Layer properties updated successfully"}
+        return JSONResponse({"message": "Layer properties updated successfully"})
     except HTTPException:
         raise
     except Exception as e:
@@ -867,7 +871,7 @@ async def get_psd_template_layers(template_id: str):
         with open(metadata_path, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
         
-        return {
+        return JSONResponse({
             "template_id": template_id,
             "template_name": template.name,
             "psd_file_id": psd_file_id,
@@ -875,7 +879,7 @@ async def get_psd_template_layers(template_id: str):
             "height": metadata["height"],
             "layers": metadata["layers"],
             "original_filename": metadata["original_filename"]
-        }
+        })
         
     except HTTPException:
         raise
@@ -925,7 +929,7 @@ async def apply_psd_template(template_id: str, canvas_id: str = None):
         with open(metadata_path, 'r', encoding='utf-8') as f:
             metadata = json.load(f)
         
-        return {
+        return JSONResponse({
             "success": True,
             "message": f"PSD模板 '{template.name}' 已应用到画布",
             "template_id": template_id,
@@ -933,7 +937,7 @@ async def apply_psd_template(template_id: str, canvas_id: str = None):
             "canvas_id": canvas_id,
             "layers": metadata["layers"],
             "usage_count": template.usage_count
-        }
+        })
         
     except HTTPException:
         raise

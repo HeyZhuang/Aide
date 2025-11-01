@@ -1,8 +1,16 @@
-import os
 import sys
 import io
-# Ensure stdout and stderr use utf-8 encoding to prevent emoji logs from crashing python server
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+import os
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+import argparse
+from contextlib import asynccontextmanager
+from starlette.types import Scope
+from starlette.responses import Response
+import socketio # type: ignore
+
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
@@ -17,15 +25,7 @@ try:
     print('Successfully imported PSD routers')
 except ImportError as e:
     print(f'Skipping PSD routers import due to missing dependencies: {e}')
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import argparse
-from contextlib import asynccontextmanager
-from starlette.types import Scope
-from starlette.responses import Response
-import socketio # type: ignore
+
 print('Importing websocket_state')
 from services.websocket_state import sio
 print('Importing websocket_service')
@@ -58,7 +58,7 @@ app = FastAPI(lifespan=lifespan)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Vite dev server
+    allow_origins=["http://localhost:3005", "http://127.0.0.1:3005", "http://localhost:3004", "http://127.0.0.1:3004"],  # Vite dev server
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,30 +87,58 @@ app.include_router(tool_confirmation.router)
 react_build_dir = os.environ.get('UI_DIST_DIR', os.path.join(
     os.path.dirname(root_dir), "react", "dist"))
 
+# Mount the React public directory for static files
+react_public_dir = os.path.join(os.path.dirname(root_dir), "react", "public")
+psd_dir = os.path.join(react_public_dir, "psd")
 
-# 无缓存静态文件类
-class NoCacheStaticFiles(StaticFiles):
-    async def get_response(self, path: str, scope: Scope) -> Response:
-        response = await super().get_response(path, scope)
-        if response.status_code == 200:
-            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
-        return response
+# 挂载PSD目录
+if os.path.exists(psd_dir):
+    app.mount("/psd", StaticFiles(directory=psd_dir), name="psd")
 
-
+# 挂载assets目录 - 优先使用构建目录，如果不存在则使用public目录
+assets_dir = None
 static_site = os.path.join(react_build_dir, "assets")
+public_assets_dir = os.path.join(react_public_dir, "assets")
+
 if os.path.exists(static_site):
-    app.mount("/assets", NoCacheStaticFiles(directory=static_site), name="assets")
+    assets_dir = static_site
+elif os.path.exists(public_assets_dir):
+    assets_dir = public_assets_dir
+
+if assets_dir:
+    # 无缓存静态文件类
+    class NoCacheStaticFiles(StaticFiles):
+        async def get_response(self, path: str, scope: Scope) -> Response:
+            response = await super().get_response(path, scope)
+            if response.status_code == 200:
+                response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+                response.headers["Pragma"] = "no-cache"
+                response.headers["Expires"] = "0"
+            return response
+
+    app.mount("/assets", NoCacheStaticFiles(directory=assets_dir), name="assets")
 
 
 @app.get("/")
 async def serve_react_app():
-    response = FileResponse(os.path.join(react_build_dir, "index.html"))
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
-    return response
+    # 优先使用构建目录的index.html，如果不存在则使用public目录的index.html
+    index_file = None
+    build_index = os.path.join(react_build_dir, "index.html")
+    public_index = os.path.join(react_public_dir, "index.html")
+    
+    if os.path.exists(build_index):
+        index_file = build_index
+    elif os.path.exists(public_index):
+        index_file = public_index
+    
+    if index_file:
+        response = FileResponse(index_file)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+    else:
+        return {"message": "Frontend not found"}
 
 print('Creating socketio app')
 socket_app = socketio.ASGIApp(sio, other_asgi_app=app, socketio_path='/socket.io')

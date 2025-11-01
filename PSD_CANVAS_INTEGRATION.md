@@ -2,7 +2,7 @@
 
 ## 功能概述
 
-在 `http://localhost:3000/canvas/default` 路由下，我們已經實現了完整的 PSD 文件上傳和圖層編輯功能，支持文字圖層的字體編輯和圖像圖層的替換。
+在 `http://localhost:3004/canvas/default` 路由下，我們已經實現了完整的 PSD 文件上傳和圖層編輯功能，支持文字圖層的字體編輯和圖像圖層的替換。
 
 ## 主要功能
 
@@ -103,11 +103,11 @@
 ## 技術說明
 
 ### CORS 配置
-後端已配置 CORS 中間件，允許來自 `http://localhost:3000` 的跨域請求：
+後端已配置 CORS 中間件，允許來自 `http://localhost:3004` 的跨域請求：
 ```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3004", "http://127.0.0.1:3004"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

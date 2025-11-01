@@ -93,7 +93,9 @@ export async function saveCanvas(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
-  return await response.json()
+  if (!response.ok) {
+    throw new Error(`Failed to save canvas: ${response.status} ${response.statusText}`)
+  }
 }
 
 export async function renameCanvas(id: string, name: string): Promise<void> {

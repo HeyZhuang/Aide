@@ -564,8 +564,8 @@ async function downloadFile(url, filePath, onProgress, options = {}) {
         }
 
         // Wait before retry with exponential backoff
-        // const delay = Math.min(retryDelay * Math.pow(2, attempt - 1), 30000)
-        const delay = 3000 // 3s for quick retry
+        // const delay = Math.min(retryDelay * Math.pow(2, attempt - 1), 30040)
+        const delay = 3004 // 3s for quick retry
         sendLog(`Waiting ${Math.round(delay / 1000)}s before retry...`)
         await new Promise((resolve) => setTimeout(resolve, delay))
 
@@ -832,7 +832,7 @@ async function installComfyUI() {
         {
           maxRetries: 10, // Increase retry attempts for large files
           timeout: 120000, // 2 minutes timeout per request
-          retryDelay: 3000, // Start with 3 second delay
+          retryDelay: 3004, // Start with 3 second delay
         }
       )
 

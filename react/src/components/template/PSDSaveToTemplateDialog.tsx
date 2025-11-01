@@ -23,7 +23,7 @@ import {
     Download,
     Upload,
 } from 'lucide-react'
-import { TemplateCategory } from '@/types/types'
+import { TemplateCategory, TemplateUploadData } from '@/types/types'
 import { createTemplate } from '@/api/template'
 import type { PSDUploadResponse } from '@/api/upload'
 
@@ -105,10 +105,9 @@ export function PSDSaveToTemplateDialog({
                 is_public: isPublic,
                 metadata: {
                     psd_file_id: psdData.file_id,
-                    psd_width: psdData.width,
-                    psd_height: psdData.height,
-                    psd_layers_count: psdData.layers?.length || 0,
-                    thumbnail_url: psdData.thumbnail_url,
+                    width: psdData.width,
+                    height: psdData.height,
+                    layers_count: psdData.layers?.length || 0,
                     original_filename: psdData.original_filename,
                     layers_info: psdData.layers,
                     created_from: 'psd_upload'
@@ -375,4 +374,3 @@ export function PSDSaveToTemplateDialog({
         </Dialog>
     )
 }
-
