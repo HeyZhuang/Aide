@@ -833,21 +833,25 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         // 获取所有画布元素
         const elements = excalidrawAPI.getSceneElements()
         
-        // 过滤出PSD相关的图层元素
-        const psdElements = elements.filter(element => {
+        // 过滤出所有有效的图层元素（不仅仅是PSD相关的，包括所有图像、文本等元素）
+        const allElements = elements.filter(element => {
             if (element.isDeleted) return false
-            return element.customData?.psdFileId || 
+            // 包含所有有效的元素类型：图像、文本、以及其他有内容的元素
+            return element.type === 'image' || 
+                   element.type === 'text' || 
+                   element.customData?.psdFileId || 
                    element.customData?.psdLayerIndex !== undefined ||
                    element.customData?.psdLayerName ||
-                   element.customData?.templateId
+                   element.customData?.templateId ||
+                   element.customData?.libraryImage
         })
 
-        // 构建图层数据
-        const layerMap = new Map<number, any>()
+        // 构建图层数据 - 使用图层索引作为key（而不是元素ID），以便合并同一图层的多个表示
+        const layerMap = new Map<number | string, any>()
 
-        psdElements.forEach(element => {
+        // 第一步：处理画布中的元素
+        allElements.forEach((element, elementIndex) => {
             const layerIndex = element.customData?.psdLayerIndex
-            const layerName = element.customData?.psdLayerName || `Layer ${layerIndex || 'unknown'}`
             
             // 如果元素有 psdLayerIndex，尝试从 psdData 获取完整信息
             let layerData: any = null
@@ -855,17 +859,29 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 layerData = psdData.layers.find(l => l.index === layerIndex)
             }
 
-            // 确定图层类型
+            // 确定图层类型 - 优先使用PSD数据中的类型（更准确）
             let layerType: 'text' | 'layer' | 'group' = 'layer'
-            if (element.type === 'text') {
-                layerType = 'text'
-            } else if (layerData) {
+            if (layerData && layerData.type) {
+                // 优先使用PSD数据中的类型
                 layerType = layerData.type
+            } else if (element.type === 'text') {
+                layerType = 'text'
+            } else if (element.type === 'image') {
+                layerType = 'layer'
             } else {
-                // 根据元素类型推断
-                if (element.type === 'image') {
-                    layerType = 'layer'
-                }
+                layerType = 'layer'
+            }
+
+            // 获取图层名称：优先使用PSD图层名
+            let layerName = layerData?.name || 
+                           element.customData?.psdLayerName || 
+                           element.customData?.layerName ||
+                           element.customData?.imageName ||
+                           (element.type === 'text' ? (element as any).text?.substring(0, 20) || '文字图层' : null) ||
+                           `图层 ${elementIndex + 1}`
+            
+            if (!layerName || layerName === 'undefined') {
+                layerName = element.id ? `元素 ${element.id.substring(0, 8)}` : `图层 ${elementIndex + 1}`
             }
 
             // 获取缩略图 URL
@@ -876,52 +892,116 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 // 图像图层：优先使用 PSD 的 image_url，否则尝试从 Excalidraw 获取
                 if (layerData?.image_url) {
                     thumbnailUrl = layerData.image_url
-                } else if (element.type === 'image' && element.fileId) {
-                    // 尝试从 Excalidraw 文件获取缩略图
-                    try {
-                        const files = (excalidrawAPI as any).getFiles()
-                        const file = files?.[element.fileId]
-                        if (file?.dataURL) {
-                            thumbnailUrl = file.dataURL
+                } else if (element.type === 'image') {
+                    if (element.fileId) {
+                        try {
+                            const files = (excalidrawAPI as any).getFiles()
+                            const file = files?.[element.fileId]
+                            if (file?.dataURL) {
+                                thumbnailUrl = file.dataURL
+                            }
+                        } catch (e) {
+                            console.warn('获取文件缩略图失败:', e)
                         }
-                    } catch (e) {
-                        console.warn('获取文件缩略图失败:', e)
+                    }
+                    if (!thumbnailUrl && element.customData?.imageUrl) {
+                        thumbnailUrl = element.customData.imageUrl
                     }
                 }
-            } else if (layerType === 'text' || element.type === 'text') {
+            } else if (layerType === 'text') {
                 // 文字图层：获取文字内容预览
-                const textContent = (element as any).text || layerData?.text_content || layerData?.name || layerName
+                const textContent = layerData?.text_content || (element as any).text || layerData?.name || layerName
                 textPreview = textContent?.substring(0, 20) || '文字'
             }
 
             // 构建图层项
             const layerItem = {
-                index: layerIndex ?? elements.indexOf(element),
+                index: layerIndex ?? elementIndex,
                 name: layerName,
                 type: layerType,
-                visible: element.opacity > 0 && !element.isDeleted,
-                opacity: Math.round(element.opacity || 100),
+                visible: layerData?.visible ?? (element.opacity > 0 && !element.isDeleted),
+                opacity: layerData?.opacity ? Math.round(layerData.opacity / 255 * 100) : Math.round(element.opacity || 100),
                 elementId: element.id,
                 element: element,
-                // 保留原始PSD图层数据
                 psdLayerData: layerData,
-                // 缩略图相关
                 thumbnailUrl: thumbnailUrl,
                 textPreview: textPreview
             }
 
-            // 使用索引作为key，如果索引相同则合并（取最新）
-            const key = layerIndex ?? elements.indexOf(element)
-            if (!layerMap.has(key) || !layerData) {
+            // 使用图层索引作为key（如果PSD图层），否则使用元素ID
+            const key = layerIndex !== undefined ? layerIndex : element.id || `element-${elementIndex}`
+            if (!layerMap.has(key)) {
                 layerMap.set(key, layerItem)
             } else if (layerData) {
                 // 如果已有数据但新数据有完整的PSD信息，则更新
-                layerMap.set(key, { ...layerItem, psdLayerData: layerData })
+                const existing = layerMap.get(key)
+                if (!existing.psdLayerData || existing.type !== layerData.type) {
+                    layerMap.set(key, { ...layerItem, psdLayerData: layerData })
+                }
             }
         })
 
+        // 第二步：添加PSD数据中存在但画布中没有对应元素的图层（特别是文字和群组）
+        if (psdData && psdData.layers) {
+            psdData.layers.forEach((psdLayer: any) => {
+                // 只处理文字和群组图层（图像图层应该已经在画布中有对应元素）
+                if (psdLayer.type === 'text' || psdLayer.type === 'group') {
+                    const key = psdLayer.index
+                    
+                    // 如果这个图层还没有被添加，或者现有条目的类型不正确，添加它
+                    if (!layerMap.has(key)) {
+                        const layerItem = {
+                            index: psdLayer.index,
+                            name: psdLayer.name || `图层 ${psdLayer.index}`,
+                            type: psdLayer.type,
+                            visible: psdLayer.visible !== false,
+                            opacity: psdLayer.opacity ? Math.round(psdLayer.opacity / 255 * 100) : 100,
+                            elementId: null,
+                            element: null,
+                            psdLayerData: psdLayer,
+                            thumbnailUrl: psdLayer.type === 'text' ? null : (psdLayer.image_url || null),
+                            textPreview: psdLayer.type === 'text' ? (psdLayer.text_content?.substring(0, 20) || '文字') : null
+                        }
+                        layerMap.set(key, layerItem)
+                    } else {
+                        // 如果已存在但类型不对，更新类型
+                        const existing = layerMap.get(key)
+                        if (existing.type !== psdLayer.type && psdLayer.type) {
+                            existing.type = psdLayer.type
+                            existing.psdLayerData = psdLayer
+                            if (psdLayer.type === 'text') {
+                                existing.textPreview = psdLayer.text_content?.substring(0, 20) || '文字'
+                                existing.thumbnailUrl = null
+                            }
+                            layerMap.set(key, existing)
+                        }
+                    }
+                }
+            })
+        }
+
         // 转换为数组并按类型分组
         const layers = Array.from(layerMap.values())
+
+        // 调试信息：在开发环境中输出统计
+        if (process.env.NODE_ENV === 'development') {
+            const psdStats = psdData ? {
+                PSD总图层数: psdData.layers.length,
+                PSD图像图层: psdData.layers.filter((l: any) => l.type === 'layer').length,
+                PSD文字图层: psdData.layers.filter((l: any) => l.type === 'text').length,
+                PSD群组图层: psdData.layers.filter((l: any) => l.type === 'group').length
+            } : {}
+            
+            console.log('📊 图层列表统计:', {
+                总画布元素: elements.length,
+                有效元素: allElements.length,
+                最终图层数: layers.length,
+                图像图层: layers.filter(l => l.type === 'layer').length,
+                文字图层: layers.filter(l => l.type === 'text').length,
+                群组图层: layers.filter(l => l.type === 'group').length,
+                ...psdStats
+            })
+        }
 
         // 按类型分组
         const grouped = {
@@ -1048,17 +1128,33 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                 <div className="space-y-1">
                                                     {canvasLayerList.text.map((layer) => (
                                                         <div
-                                                            key={layer.elementId}
+                                                            key={layer.elementId || `text-${layer.index}`}
                                                             className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
-                                                                if (excalidrawAPI && layer.elementId) {
-                                                                    try {
-                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
-                                                                            fitToContent: true,
-                                                                            animate: true
-                                                                        })
-                                                                    } catch (e) {
-                                                                        console.warn('Failed to scroll to element:', e)
+                                                                if (excalidrawAPI) {
+                                                                    if (layer.elementId) {
+                                                                        try {
+                                                                            excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                                fitToContent: true,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to element:', e)
+                                                                        }
+                                                                    } else if (layer.psdLayerData) {
+                                                                        // 如果没有画布元素，使用PSD图层位置信息滚动
+                                                                        try {
+                                                                            const psdLayer = layer.psdLayerData
+                                                                            const appState = excalidrawAPI.getAppState()
+                                                                            const centerX = psdLayer.left + (psdLayer.width || 0) / 2
+                                                                            const centerY = psdLayer.top + (psdLayer.height || 0) / 2
+                                                                            excalidrawAPI.scrollToContent(undefined, {
+                                                                                fitToContent: false,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to PSD layer position:', e)
+                                                                        }
                                                                     }
                                                                 }
                                                             }}
@@ -1103,17 +1199,30 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                 <div className="space-y-1">
                                                     {canvasLayerList.layer.map((layer) => (
                                                         <div
-                                                            key={layer.elementId}
+                                                            key={layer.elementId || `layer-${layer.index}`}
                                                             className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
-                                                                if (excalidrawAPI && layer.elementId) {
-                                                                    try {
-                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
-                                                                            fitToContent: true,
-                                                                            animate: true
-                                                                        })
-                                                                    } catch (e) {
-                                                                        console.warn('Failed to scroll to element:', e)
+                                                                if (excalidrawAPI) {
+                                                                    if (layer.elementId) {
+                                                                        try {
+                                                                            excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                                fitToContent: true,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to element:', e)
+                                                                        }
+                                                                    } else if (layer.psdLayerData) {
+                                                                        // 如果没有画布元素，使用PSD图层位置信息滚动
+                                                                        try {
+                                                                            const psdLayer = layer.psdLayerData
+                                                                            excalidrawAPI.scrollToContent(undefined, {
+                                                                                fitToContent: true,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to PSD layer position:', e)
+                                                                        }
                                                                     }
                                                                 }
                                                             }}
@@ -1170,17 +1279,29 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                 <div className="space-y-1">
                                                     {canvasLayerList.group.map((layer) => (
                                                         <div
-                                                            key={layer.elementId}
+                                                            key={layer.elementId || `group-${layer.index}`}
                                                             className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
-                                                                if (excalidrawAPI && layer.elementId) {
-                                                                    try {
-                                                                        excalidrawAPI.scrollToContent(layer.elementId, {
-                                                                            fitToContent: true,
-                                                                            animate: true
-                                                                        })
-                                                                    } catch (e) {
-                                                                        console.warn('Failed to scroll to element:', e)
+                                                                if (excalidrawAPI) {
+                                                                    if (layer.elementId) {
+                                                                        try {
+                                                                            excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                                fitToContent: true,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to element:', e)
+                                                                        }
+                                                                    } else if (layer.psdLayerData) {
+                                                                        // 如果没有画布元素，使用PSD图层位置信息滚动
+                                                                        try {
+                                                                            excalidrawAPI.scrollToContent(undefined, {
+                                                                                fitToContent: true,
+                                                                                animate: true
+                                                                            })
+                                                                        } catch (e) {
+                                                                            console.warn('Failed to scroll to PSD layer position:', e)
+                                                                        }
                                                                     }
                                                                 }
                                                             }}
@@ -1216,17 +1337,29 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                     <div className="space-y-1">
                                         {canvasLayerList.all.map((layer) => (
                                             <div
-                                                key={layer.elementId}
+                                                key={layer.elementId || `${layer.type}-${layer.index}`}
                                                 className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-50 transition-colors cursor-pointer gap-2"
                                                 onClick={() => {
-                                                    if (excalidrawAPI && layer.elementId) {
-                                                        try {
-                                                            excalidrawAPI.scrollToContent(layer.elementId, {
-                                                                fitToContent: true,
-                                                                animate: true
-                                                            })
-                                                        } catch (e) {
-                                                            console.warn('Failed to scroll to element:', e)
+                                                    if (excalidrawAPI) {
+                                                        if (layer.elementId) {
+                                                            try {
+                                                                excalidrawAPI.scrollToContent(layer.elementId, {
+                                                                    fitToContent: true,
+                                                                    animate: true
+                                                                })
+                                                            } catch (e) {
+                                                                console.warn('Failed to scroll to element:', e)
+                                                            }
+                                                        } else if (layer.psdLayerData) {
+                                                            // 如果没有画布元素，使用PSD图层位置信息滚动
+                                                            try {
+                                                                excalidrawAPI.scrollToContent(undefined, {
+                                                                    fitToContent: true,
+                                                                    animate: true
+                                                                })
+                                                            } catch (e) {
+                                                                console.warn('Failed to scroll to PSD layer position:', e)
+                                                            }
                                                         }
                                                     }
                                                 }}
