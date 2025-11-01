@@ -20,4 +20,5 @@ user_data/
 .continue
 
 .env
-config.env
+config.envtemplate/
+*.psd
