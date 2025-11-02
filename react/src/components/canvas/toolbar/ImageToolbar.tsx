@@ -278,7 +278,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
 
   return (
     <>
-      <div className="flex items-center gap-1 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+      <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
         {/* 圆角半径 */}
         <div className="flex items-center gap-2 px-2">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

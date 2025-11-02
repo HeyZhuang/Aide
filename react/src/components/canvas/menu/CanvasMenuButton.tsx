@@ -44,7 +44,7 @@ const CanvasMenuButton = ({
           }}
         >
           {React.createElement(icons[type], {
-            className: 'size-4 text-white',
+            className: 'size-4 text-foreground',
           })}
         </Button>
       </TooltipTrigger>

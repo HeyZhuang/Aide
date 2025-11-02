@@ -554,3 +554,41 @@
     max-height: 80px;
   }
 }
+
+/* 左侧工具栏背景色跟随主题 */
+.excalidraw .App-menu_left {
+  background-color: var(--background) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+/* 顶部工具栏背景色跟随主题 */
+.excalidraw .App-menu_top {
+  background-color: var(--background) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* 右侧工具栏背景色跟随主题 */
+.excalidraw .App-menu_right {
+  background-color: var(--background) !important;
+  border-left: 1px solid var(--border) !important;
+}
+
+/* 底部工具栏背景色跟随主题 */
+.excalidraw .App-menu_bottom {
+  background-color: var(--background) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+/* 工具栏按钮颜色适配主题 */
+.excalidraw .ToolIcon__icon {
+  color: var(--foreground) !important;
+}
+
+.excalidraw .ToolIcon__icon:hover {
+  background-color: var(--accent) !important;
+}
+
+/* 工具栏分隔线适配主题 */
+.excalidraw .Separator {
+  background-color: var(--border) !important;
+}

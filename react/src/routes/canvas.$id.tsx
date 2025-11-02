@@ -36,7 +36,7 @@ function Canvas() {
   const searchSessionId = search?.sessionId || ''
 
   // 聊天窗口最小化状态 - 默认设置为true（收起状态）
-  const [isChatMinimized, setIsChatMinimized] = useState(false)
+  const [isChatMinimized, setIsChatMinimized] = useState(true)
 
   useEffect(() => {
     let mounted = true

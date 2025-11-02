@@ -600,7 +600,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
   return (
     <>
-      <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 bg-[#1e1e1e] backdrop-blur-lg rounded-lg p-1 shadow-lg border border-gray-700">
+      <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 backdrop-blur-lg rounded-lg p-1 shadow-lg border border-gray-700 bg-background">
         {/* 手型/选择工具切换按钮 - 默认显示选择工具 */}
         <CanvasMenuButton
           type={isHandToolActive ? 'hand' : 'selection'}
@@ -634,15 +634,15 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换上传菜单的显示状态
               setShowUploadMenu(!showUploadMenu);
             }}
-            className="h-14 w-14 p-0 rounded-full bg-[#1e1e1e] hover:bg-primary text-white border border-gray-700 hover:bg-primary"
+            className="h-14 w-14 p-0 rounded-full hover:bg-primary text-foreground border border-gray-700 hover:bg-primary bg-background"
           />
 
           {showUploadMenu && (
             <div className="absolute left-16 top-0 z-30 w-48 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
-              <div className="p-2 text-sm font-medium bg-zinc-800 text-white">添加内容</div>
+              <div className="p-2 text-sm font-medium bg-zinc-800 text-foreground">添加内容</div>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
                 onClick={() => {
                   // 触发文件选择器
                   fileInputRef.current?.click();
@@ -658,7 +658,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
                 onClick={() => {
                   // 上传PSD文件逻辑
                   // handlePSDUploaded();
@@ -676,7 +676,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
                   // 上传模板逻辑
@@ -715,12 +715,12 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
           {showShapeMenu && (
             <div className="absolute left-16 top-0 z-30 w-64 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
-              <div className="text-base font-medium mb-3 text-white">形状工具</div>
+              <div className="text-base font-medium mb-3 text-foreground">形状工具</div>
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant={activeTool === 'rectangle' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
                   onClick={() => {
                     handleToolChange('rectangle');
                     setShowShapeMenu(false);
@@ -737,7 +737,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'ellipse' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
                   onClick={() => {
                     handleToolChange('ellipse');
                     setShowShapeMenu(false);
@@ -754,7 +754,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'arrow' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
                   onClick={() => {
                     handleToolChange('arrow');
                     setShowShapeMenu(false);
@@ -771,7 +771,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'line' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
                   onClick={() => {
                     handleToolChange('line');
                     setShowShapeMenu(false);
@@ -1217,6 +1217,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
+
+
+
+
 
 
 

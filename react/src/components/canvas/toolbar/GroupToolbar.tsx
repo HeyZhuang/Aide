@@ -235,7 +235,7 @@ export function GroupToolbar() {
   ]
 
   return (
-    <div className="flex items-center gap-1 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+    <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
       {/* Group按钮 */}
       <Button
         variant="ghost"

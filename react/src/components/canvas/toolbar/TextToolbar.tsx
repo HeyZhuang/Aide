@@ -195,7 +195,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+    <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
       {/* 字体选择 */}
       <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
         <DropdownMenuTrigger asChild>
@@ -239,8 +239,8 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         setFontMenuOpen(false)
                       }}
                       className={`px-3 py-2 rounded cursor-pointer transition-colors ${selectedFont === font.name
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-white/10 text-white'
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-white/10 text-white'
                         }`}
                     >
                       {font.name}
@@ -333,8 +333,8 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                             >
                               <Star
                                 className={`h-3 w-3 ${font.is_favorite
-                                    ? 'text-yellow-500 fill-current'
-                                    : 'text-gray-400'
+                                  ? 'text-yellow-500 fill-current'
+                                  : 'text-gray-400'
                                   }`}
                               />
                             </Button>
