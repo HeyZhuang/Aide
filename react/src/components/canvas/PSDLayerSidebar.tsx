@@ -492,6 +492,19 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             if (excalidrawAPI && result.layers) {
                 console.log('开始添加PSD图层到画布，共', result.layers.length, '个图层')
 
+                // 首先去除画布中所有群组
+                const currentElementsBefore = excalidrawAPI.getSceneElements()
+                const elementsWithoutGroups = currentElementsBefore.map(element => ({
+                    ...element,
+                    groupIds: [] // 移除所有群组ID
+                }))
+                if (currentElementsBefore.some(el => el.groupIds && el.groupIds.length > 0)) {
+                    excalidrawAPI.updateScene({
+                        elements: elementsWithoutGroups,
+                    })
+                    console.log('✅ 已去除画布中所有群组')
+                }
+
                 // 获取画布状态
                 const appState = excalidrawAPI.getAppState()
                 const currentElements = excalidrawAPI.getSceneElements()
@@ -502,9 +515,17 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     y: -appState.scrollY + (appState.height || 0) / 2 / appState.zoom.value,
                 }
 
-                // 过滤有效图层
+                // 过滤有效图层：排除群组，只保留图片和文字图层
                 const validLayers = result.layers.filter(layer => {
-                    return layer.image_url &&
+                    // 排除群组类型
+                    if (layer.type === 'group') {
+                        console.log(`跳过群组图层: ${layer.name}`)
+                        return false
+                    }
+                    
+                    // 对于文字图层，即使没有image_url也允许
+                    const isTextLayer = layer.type === 'text'
+                    return (layer.image_url || isTextLayer) &&
                         layer.visible !== false &&
                         layer.width > 0 &&
                         layer.height > 0

@@ -148,9 +148,18 @@ async function handlePSDFileTemplate(
         const newElements: any[] = []
 
         // 为每个图层创建Excalidraw元素
+        // 排除群组，只保留图片和文字图层
         for (const layer of psdData.layers) {
-            if (!layer.visible || !layer.image_url) {
-                console.log(`跳过图层 ${layer.name}: visible=${layer.visible}, image_url=${layer.image_url}`)
+            // 排除群组类型
+            if (layer.type === 'group') {
+                console.log(`跳过群组图层: ${layer.name}`)
+                continue
+            }
+
+            // 对于文字图层，即使没有image_url也允许添加
+            const isTextLayer = layer.type === 'text'
+            if (!layer.visible || (!layer.image_url && !isTextLayer)) {
+                console.log(`跳过图层 ${layer.name}: visible=${layer.visible}, image_url=${layer.image_url}, type=${layer.type}`)
                 continue
             }
 

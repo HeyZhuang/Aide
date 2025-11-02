@@ -408,6 +408,25 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
         [excalidrawAPI]
     )
 
+    // 去除画布中所有群组，将群组内的元素展开
+    const removeAllGroups = useCallback(() => {
+        if (!excalidrawAPI) return
+
+        const currentElements = excalidrawAPI.getSceneElements()
+        const elementsWithoutGroups = currentElements.map(element => ({
+            ...element,
+            groupIds: [] // 移除所有群组ID
+        }))
+
+        if (elementsWithoutGroups.length !== currentElements.length || 
+            currentElements.some(el => el.groupIds && el.groupIds.length > 0)) {
+            excalidrawAPI.updateScene({
+                elements: elementsWithoutGroups,
+            })
+            console.log('✅ 已去除画布中所有群组')
+        }
+    }, [excalidrawAPI])
+
     // 自動添加所有圖層到畫布
     const handleAutoAddLayers = useCallback(
         async (psdData: PSDUploadResponse) => {
@@ -419,7 +438,10 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
             console.log('開始處理 PSD 數據:', psdData)
             console.log('總圖層數量:', psdData.layers.length)
 
-            // 首先进行全局清理
+            // 首先去除所有群组
+            removeAllGroups()
+
+            // 然后进行全局清理
             cleanupDuplicateLayers()
 
             // 更彻底的重复图层清理
@@ -481,7 +503,14 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
             })
 
             // 更严格的图层过滤条件：只包含有实际内容的图层
+            // 排除群组，只保留图片和文字图层
             const imageLayers = psdData.layers.filter(layer => {
+                // 排除群组类型
+                if (layer.type === 'group') {
+                    console.log(`跳过群组图层: ${layer.name}`)
+                    return false
+                }
+
                 const hasImageUrl = !!layer.image_url
                 const hasValidSize = (layer.width && layer.width > 0) && (layer.height && layer.height > 0)
                 const isVisible = layer.visible !== false
@@ -498,8 +527,10 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                     layer.name.toLowerCase().includes('color') ||
                     layer.name.toLowerCase().includes('纯色')
 
-                // 只包含有image_url且有有效尺寸的可见图层
-                const shouldInclude = hasImageUrl && hasValidSize && isVisible && hasName &&
+                // 只包含有image_url且有有效尺寸的可见图层（图片或文字）
+                // 允许文字图层（type === 'text'）即使没有image_url也包含
+                const isTextLayer = layer.type === 'text'
+                const shouldInclude = (hasImageUrl || isTextLayer) && hasValidSize && isVisible && hasName &&
                     !isBackgroundLayer && !isSolidColorLayer
 
                 console.log(`圖層 "${layer.name}" 過濾結果:`, {
@@ -599,7 +630,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                 toast.error('自動添加圖層失敗')
             }
         },
-        [excalidrawAPI, addLayerToCanvas]
+        [excalidrawAPI, addLayerToCanvas, removeAllGroups, cleanupDuplicateLayers]
     )
 
     const handleFileSelect = useCallback(
