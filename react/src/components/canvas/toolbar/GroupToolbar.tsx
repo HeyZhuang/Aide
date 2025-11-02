@@ -13,7 +13,8 @@ import {
   AlignStartHorizontal,
   AlignCenterHorizontal,
   AlignEndHorizontal,
-  Edit3
+  Edit3,
+  Sparkles
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -22,11 +23,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
+import { LayerArrangementDialog } from '@/components/canvas/LayerArrangementDialog'
+import { arrangeCanvasElements, ElementArrangement } from '@/api/upload'
+import { OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types'
+import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 
 export function GroupToolbar() {
   const { excalidrawAPI } = useCanvas()
+  const { t } = useTranslation()
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showResizeMenu, setShowResizeMenu] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isArranging, setIsArranging] = useState(false)
 
   const handleGroup = useCallback(() => {
     if (!excalidrawAPI) return
@@ -162,6 +171,225 @@ export function GroupToolbar() {
     })
   }, [excalidrawAPI])
 
+  // 智能排列函数（调用 Gemini API）
+  const handleArrangeLayers = useCallback(async (targetWidth: number, targetHeight: number) => {
+    if (!excalidrawAPI) return
+
+    // 获取选中的元素
+    const selectedElementIds = excalidrawAPI.getAppState().selectedElementIds
+    const allElements = excalidrawAPI.getSceneElements()
+    const selectedElements = allElements.filter(el => selectedElementIds[el.id])
+
+    // 至少需要2个元素才能进行智能排列
+    if (selectedElements.length < 2) {
+      toast.error('至少需要选择2个元素才能进行智能排列')
+      return
+    }
+
+    try {
+      setIsArranging(true)
+      
+      // 获取当前画布尺寸
+      const sceneState = excalidrawAPI.getSceneElements()
+      const appState = excalidrawAPI.getAppState()
+      
+      // 计算当前画布的实际尺寸
+      let canvasWidth = appState.width || 800
+      let canvasHeight = appState.height || 600
+      
+      // 如果有元素，基于元素计算画布边界
+      if (sceneState.length > 0) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        sceneState.forEach(element => {
+          minX = Math.min(minX, element.x)
+          minY = Math.min(minY, element.y)
+          maxX = Math.max(maxX, element.x + element.width)
+          maxY = Math.max(maxY, element.y + element.height)
+        })
+        canvasWidth = maxX - minX
+        canvasHeight = maxY - minY
+      }
+
+      // 准备请求数据
+      const requestData = {
+        selectedElements: selectedElements.map(element => ({
+          id: element.id,
+          type: element.type,
+          x: element.x,
+          y: element.y,
+          width: Math.abs(element.width),
+          height: Math.abs(element.height),
+          angle: element.angle || 0,
+          strokeColor: element.strokeColor,
+          backgroundColor: element.backgroundColor,
+          fillStyle: element.fillStyle,
+          strokeWidth: element.strokeWidth,
+        })).filter(element => 
+          element.width > 0 && 
+          element.height > 0 &&
+          isFinite(element.x) &&
+          isFinite(element.y) &&
+          isFinite(element.width) &&
+          isFinite(element.height)
+        ),
+        canvasWidth: Math.abs(canvasWidth),
+        canvasHeight: Math.abs(canvasHeight),
+        targetWidth: Math.abs(targetWidth),
+        targetHeight: Math.abs(targetHeight),
+      }
+
+      // 调用API进行图层排列
+      const response = await arrangeCanvasElements(requestData)
+      
+      if (response.success) {
+        // 获取当前所有画布元素
+        const currentElements = excalidrawAPI.getSceneElements()
+        
+        // 获取当前选中元素的ID集合
+        const selectedElementIds = new Set<string>()
+        selectedElements.forEach(element => {
+          selectedElementIds.add(String(element.id))
+          if (element.customData?.originalElementId) {
+            selectedElementIds.add(String(element.customData.originalElementId))
+          }
+        })
+        
+        // 清理之前通过智能缩放创建的图层
+        const elementsToKeep = currentElements.filter(element => {
+          const elementId = String(element.id)
+          const isArrangedElement = element.customData?.isArranged === true
+          
+          if (selectedElementIds.has(elementId)) {
+            return true
+          }
+          
+          if (!isArrangedElement) {
+            return true
+          }
+          
+          return false
+        })
+        
+        const cleanedCount = currentElements.length - elementsToKeep.length
+        if (cleanedCount > 0) {
+          excalidrawAPI.updateScene({
+            elements: elementsToKeep,
+          })
+        }
+        
+        // 计算新图层的位置偏移
+        let maxOriginalX = -Infinity
+        elementsToKeep.forEach(element => {
+          const rightEdge = element.x + element.width
+          maxOriginalX = Math.max(maxOriginalX, rightEdge)
+        })
+        
+        if (maxOriginalX === -Infinity) {
+          maxOriginalX = 0
+        }
+        
+        const spacing = 100
+        const offsetX = maxOriginalX + spacing
+        
+        let minNewY = Infinity
+        response.arrangements.forEach((arr: ElementArrangement) => {
+          minNewY = Math.min(minNewY, arr.new_coords.y)
+        })
+        
+        let minOriginalY = Infinity
+        selectedElements.forEach(element => {
+          minOriginalY = Math.min(minOriginalY, element.y)
+        })
+        
+        const offsetY = minOriginalY - minNewY
+        
+        // 创建新的排列后的元素
+        const newElements: OrderedExcalidrawElement[] = []
+        
+        response.arrangements.forEach((arrangement: ElementArrangement) => {
+          let originalElement = selectedElements.find(
+            elem => String(elem.id) === String(arrangement.id)
+          )
+          
+          if (!originalElement) {
+            const arrangementIdStr = String(arrangement.id).trim()
+            originalElement = selectedElements.find(elem => {
+              const elemIdStr = String(elem.id).trim()
+              return elemIdStr === arrangementIdStr ||
+                     elemIdStr.includes(arrangementIdStr) ||
+                     arrangementIdStr.includes(elemIdStr) ||
+                     elemIdStr.endsWith(arrangementIdStr) ||
+                     arrangementIdStr.endsWith(elemIdStr)
+            })
+          }
+          
+          if (originalElement && arrangement.new_coords && 
+              typeof arrangement.new_coords.width === 'number' && 
+              typeof arrangement.new_coords.height === 'number' &&
+              arrangement.new_coords.width > 0 &&
+              arrangement.new_coords.height > 0) {
+            const newId = `${originalElement.id}_arranged_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
+            
+            const newElement: OrderedExcalidrawElement = {
+              ...originalElement,
+              id: newId,
+              x: arrangement.new_coords.x + offsetX,
+              y: arrangement.new_coords.y + offsetY,
+              width: arrangement.new_coords.width,
+              height: arrangement.new_coords.height,
+              updated: Date.now(),
+              versionNonce: Math.floor(Math.random() * 1000000),
+              customData: {
+                ...(originalElement.customData || {}),
+                isArranged: true,
+                originalElementId: originalElement.id,
+                arrangementTimestamp: Date.now()
+              }
+            }
+            
+            newElements.push(newElement)
+          }
+        })
+        
+        if (newElements.length > 0) {
+          const cleanedElements = excalidrawAPI.getSceneElements()
+          
+          excalidrawAPI.updateScene({
+            elements: [...cleanedElements, ...newElements],
+          })
+          
+          excalidrawAPI.updateScene({
+            appState: {
+              selectedElementIds: newElements.reduce((acc, element) => {
+                acc[element.id] = true as const
+                return acc
+              }, {} as Record<string, true>)
+            }
+          })
+          
+          excalidrawAPI.refresh()
+          
+          toast.success(t('canvas:messages.layerArrangement.arrangementSuccess'))
+        } else {
+          toast.error(t('canvas:messages.layerArrangement.arrangementFailed'))
+        }
+      } else {
+        toast.error(t('canvas:messages.layerArrangement.arrangementFailed'))
+      }
+    } catch (error) {
+      console.error('图层排列失败:', error);
+      if (error instanceof Error && error.message.includes('overloaded')) {
+        toast.error(t('canvas:messages.layerArrangement.modelOverloaded'));
+      } else {
+        toast.error(t('canvas:messages.layerArrangement.arrangementError'));
+      }
+    } finally {
+      setIsArranging(false)
+      setIsDialogOpen(false)
+    }
+  }, [excalidrawAPI, t])
+
+  // 简单缩放函数（用于单个元素或不需要智能排列的情况）
   const handleResize = useCallback((width: number, height: number) => {
     if (!excalidrawAPI) return
 
@@ -172,49 +400,29 @@ export function GroupToolbar() {
 
     if (selectedElements.length === 0) return
 
-    // 计算当前选中元素的边界框
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-    selectedElements.forEach(element => {
-      minX = Math.min(minX, element.x)
-      minY = Math.min(minY, element.y)
-      maxX = Math.max(maxX, element.x + element.width)
-      maxY = Math.max(maxY, element.y + element.height)
-    })
+    // 如果选择2个或更多元素，使用智能排列
+    if (selectedElements.length >= 2) {
+      handleArrangeLayers(width, height)
+      return
+    }
 
-    const currentWidth = maxX - minX
-    const currentHeight = maxY - minY
+    // 单个元素使用简单缩放
+    const element = selectedElements[0]
 
-    // 计算缩放比例
-    const scaleX = width / currentWidth
-    const scaleY = height / currentHeight
+    const newElement = {
+      ...element,
+      width: width,
+      height: height,
+      updated: Date.now(),
+      versionNonce: Math.floor(Math.random() * 1000000),
+    }
 
-    // 根据缩放比例调整元素
-    const updatedElements = selectedElements.map(element => {
-      const newElement = { ...element }
-
-      // 相对于边界框左上角的位置比例
-      const ratioX = (element.x - minX) / currentWidth
-      const ratioY = (element.y - minY) / currentHeight
-      const ratioWidth = element.width / currentWidth
-      const ratioHeight = element.height / currentHeight
-
-      // 根据新尺寸调整元素位置和大小
-      newElement.x = minX + ratioX * width
-      newElement.y = minY + ratioY * height
-      newElement.width = ratioWidth * width
-      newElement.height = ratioHeight * height
-
-      return newElement
-    })
-
-    // 更新场景
     excalidrawAPI.updateScene({
       elements: allElements.map(el => {
-        const updatedElement = updatedElements.find(uEl => uEl.id === el.id)
-        return updatedElement ? updatedElement : el
+        return el.id === element.id ? newElement : el
       })
     })
-  }, [excalidrawAPI])
+  }, [excalidrawAPI, handleArrangeLayers])
 
   // 预设尺寸
   const presetSizes = [
@@ -310,6 +518,23 @@ export function GroupToolbar() {
           align="start"
         >
           <div className="space-y-3">
+            {/* 智能排列选项 */}
+            <DropdownMenuItem
+              onClick={() => {
+                setIsDialogOpen(true)
+                setShowResizeMenu(false)
+              }}
+              className="hover:bg-white/10 flex items-center gap-2 text-xs bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30"
+            >
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div className="flex-1">
+                <div className="font-medium">智能排列</div>
+                <div className="text-gray-400 text-[10px]">使用AI智能调整</div>
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="bg-gray-700" />
+
             <div className="text-xs font-medium text-gray-400 uppercase">预设尺寸</div>
             {presetSizes.map((preset) => (
               <DropdownMenuItem
@@ -379,6 +604,20 @@ export function GroupToolbar() {
           </div>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* 智能排列对话框 */}
+      <LayerArrangementDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onArrange={handleArrangeLayers}
+        isArranging={isArranging}
+        selectedCount={(() => {
+          if (!excalidrawAPI) return 0
+          const selectedElementIds = excalidrawAPI.getAppState().selectedElementIds
+          const allElements = excalidrawAPI.getSceneElements()
+          return allElements.filter(el => selectedElementIds[el.id]).length
+        })()}
+      />
     </div>
   )
 }
