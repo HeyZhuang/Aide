@@ -40,10 +40,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Create socket manager instance if not exists
         if (!socketManagerRef.current) {
+          // 使用环境变量配置服务器地址，如果没有则使用当前窗口的 origin
+          const backendUrl = import.meta.env.VITE_BACKEND_URL || 
+                            (process.env.NODE_ENV === 'development'
+                              ? 'http://localhost:57988'
+                              : window.location.origin.replace(/:\d+$/, ':57988'))
           socketManagerRef.current = new SocketIOManager({
-            serverUrl: process.env.NODE_ENV === 'development'
-              ? 'http://localhost:57988'
-              : window.location.origin,
+            serverUrl: backendUrl,
             autoConnect: false
           })
         }

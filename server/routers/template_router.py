@@ -156,7 +156,7 @@ def generate_thumbnail(image_path: str, size: tuple = (200, 200)) -> str:
 Base.metadata.create_all(bind=engine)
 
 # 路由
-router = APIRouter(prefix="/templates", tags=["templates"])
+
 
 # 分类管理
 @router.get("/categories")

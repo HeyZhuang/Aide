@@ -1,0 +1,20 @@
+[Unit]
+Description=PSD Canvas Jaaz Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/cckz/psd-canvas-jaaz/server
+Environment="PATH=/home/ubuntu/cckz/psd-canvas-jaaz/server/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="UI_DIST_DIR=/home/ubuntu/cckz/psd-canvas-jaaz/react/dist"
+ExecStart=/home/ubuntu/cckz/psd-canvas-jaaz/server/venv/bin/python /home/ubuntu/cckz/psd-canvas-jaaz/server/main.py --port 57988
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+

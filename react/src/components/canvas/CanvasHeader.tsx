@@ -25,12 +25,15 @@ const CanvasHeader: React.FC<CanvasHeaderProps> = ({
   return (
     <TopMenu
       middle={
-        <Input
-          className="text-sm text-muted-foreground text-center bg-transparent border-none shadow-none w-fit h-7 hover:bg-primary-foreground transition-all"
-          value={canvasName}
-          onChange={(e) => onNameChange(e.target.value)}
-          onBlur={onNameSave}
-        />
+        <div className="px-4 py-1.5 rounded-lg bg-white/40 backdrop-blur-sm border border-white/50 shadow-sm">
+          <Input
+            className="text-sm font-medium text-foreground text-center bg-transparent border-none shadow-none w-fit min-w-[200px] h-8 px-3 rounded-lg hover:bg-white/30 focus:bg-white/40 focus:ring-2 focus:ring-primary/20 transition-all duration-200 placeholder:text-muted-foreground/60"
+            value={canvasName}
+            onChange={(e) => onNameChange(e.target.value)}
+            onBlur={onNameSave}
+            placeholder="画布名称"
+          />
+        </div>
       }
       right={
         <div className="flex items-center gap-2">

@@ -5,6 +5,7 @@ from services.db_service import db_service
 import asyncio
 import json
 from fastapi.responses import JSONResponse
+from starlette.requests import ClientDisconnect
 
 router = APIRouter(prefix="/api/canvas")
 
@@ -14,13 +15,17 @@ async def list_canvases():
 
 @router.post("/create")
 async def create_canvas(request: Request):
-    data = await request.json()
-    id = data.get('canvas_id')
-    name = data.get('name')
+    try:
+        data = await request.json()
+        id = data.get('canvas_id')
+        name = data.get('name')
 
-    asyncio.create_task(handle_chat(data))
-    await db_service.create_canvas(id, name)
-    return JSONResponse({"id": id})
+        asyncio.create_task(handle_chat(data))
+        await db_service.create_canvas(id, name)
+        return JSONResponse({"id": id})
+    except ClientDisconnect:
+        # 客户端断开连接，静默处理
+        return JSONResponse({"status": "client_disconnected"})
 
 @router.get("/{id}")
 async def get_canvas(id: str):
@@ -28,17 +33,25 @@ async def get_canvas(id: str):
 
 @router.post("/{id}/save")
 async def save_canvas(id: str, request: Request):
-    payload = await request.json()
-    data_str = json.dumps(payload['data'])
-    await db_service.save_canvas_data(id, data_str, payload['thumbnail'])
-    return JSONResponse({"id": id})
+    try:
+        payload = await request.json()
+        data_str = json.dumps(payload['data'])
+        await db_service.save_canvas_data(id, data_str, payload['thumbnail'])
+        return JSONResponse({"id": id})
+    except ClientDisconnect:
+        # 客户端断开连接，静默处理
+        return JSONResponse({"id": id, "status": "client_disconnected"})
 
 @router.post("/{id}/rename")
 async def rename_canvas(id: str, request: Request):
-    data = await request.json()
-    name = data.get('name')
-    await db_service.rename_canvas(id, name)
-    return JSONResponse({"id": id})
+    try:
+        data = await request.json()
+        name = data.get('name')
+        await db_service.rename_canvas(id, name)
+        return JSONResponse({"id": id})
+    except ClientDisconnect:
+        # 客户端断开连接，静默处理
+        return JSONResponse({"id": id, "status": "client_disconnected"})
 
 @router.delete("/{id}/delete")
 async def delete_canvas(id: str):

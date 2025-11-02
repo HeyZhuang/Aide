@@ -64,8 +64,15 @@ export function LayerArrangementDialog({
     onArrange(width, height)
   }
 
+  // 允许在排列过程中关闭弹窗（虽然通常弹窗会在开始排列时立即关闭）
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {/* 毛玻璃遮罩层 */}
       <DialogContent 
         className={cn(
@@ -219,7 +226,6 @@ export function LayerArrangementDialog({
           <Button 
             variant="outline" 
             onClick={onClose}
-            disabled={isArranging}
             className="backdrop-blur-sm bg-background/50 hover:bg-background/80"
           >
             取消

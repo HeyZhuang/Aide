@@ -1051,75 +1051,91 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     // 仅参照布局UI：顶部两类（Layers/Assets）+ 对应内容
     return (
         <div
-            className="bg-white text-foreground border border-border rounded-lg shadow-sm h-full w-full flex flex-col overflow-hidden"
-            style={{ height: "80vh" }}
+            className="text-foreground h-full w-full flex flex-col overflow-hidden"
         >
             {/* 顶部两个类型（统一指示条与选中态） */}
-            <div className="relative grid grid-cols-2 border-b border-border">
+            <div className="relative grid grid-cols-2 border-b border-white/20 bg-gradient-to-b from-white/40 to-white/20 backdrop-blur-sm">
                 {(['layers', 'assets'] as const).map(top => (
-                    <div key={top} className="flex items-center justify-center py-2">
+                    <div key={top} className="flex items-center justify-center py-3">
                         <button
-                            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${uiTopTab === top ? 'font-semibold shadow-sm' : 'opacity-70 hover:opacity-100'}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${
+                                uiTopTab === top 
+                                    ? 'font-semibold text-foreground scale-105' 
+                                    : 'opacity-60 hover:opacity-100 hover:bg-white/30'
+                            }`}
                             onClick={() => setUiTopTab(top)}
+                            style={{
+                                background: uiTopTab === top ? 'rgba(255, 255, 255, 0.4)' : 'transparent',
+                            }}
                         >
-                            {top === 'layers' ? <Layers className="h-4 w-4" /> : <span className="inline-block w-4 h-4">▦</span>}
-                            <span className="text-base">{top === 'layers' ? 'Layers' : 'Assets'}</span>
+                            {top === 'layers' ? (
+                                <Layers className={`h-4 w-4 transition-all ${uiTopTab === top ? 'text-primary scale-110' : ''}`} />
+                            ) : (
+                                <span className={`inline-block w-4 h-4 transition-all ${uiTopTab === top ? 'text-primary scale-110' : ''}`}>▦</span>
+                            )}
+                            <span className="text-sm font-medium">{top === 'layers' ? 'Layers' : 'Assets'}</span>
                         </button>
                     </div>
                 ))}
-                {/* 顶部滑动下划线 */}
+                {/* 顶部滑动下划线 - 更精美的设计 */}
                 <div
-                    className="absolute bottom-0 left-0 h-0.5 w-1/2 bg-foreground transition-transform duration-300 ease-out"
-                    style={{ transform: uiTopTab === 'layers' ? 'translateX(0%)' : 'translateX(100%)' }}
+                    className="absolute bottom-0 left-0 h-[2px] w-1/2 bg-gradient-to-r from-primary via-primary/80 to-primary transition-transform duration-300 ease-out rounded-full"
+                    style={{ 
+                        transform: uiTopTab === 'layers' ? 'translateX(0%)' : 'translateX(100%)',
+                        boxShadow: '0 0 8px rgba(var(--primary), 0.5)',
+                    }}
                 />
             </div>
 
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-3 border-b border-border space-y-2">
+                <div className="flex-1 flex flex-col overflow-hidden bg-gradient-to-b from-white/20 to-transparent">
+                    <div className="p-4 border-b border-white/10 space-y-3 bg-white/30 backdrop-blur-sm">
                         <Input
                             placeholder="搜索图层..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-8 text-xs"
+                            className="h-9 text-xs bg-white/60 border-white/40 backdrop-blur-sm focus:bg-white/80 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200 rounded-lg"
+                            style={{
+                                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                            }}
                         />
-                        <div className="flex gap-1">
+                        <div className="flex gap-1.5">
                             <button
-                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${
                                     filterType === 'all' 
-                                        ? 'bg-primary text-primary-foreground font-medium' 
-                                        : 'bg-gray-100 hover:bg-gray-200'
+                                        ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                                        : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
                                 }`}
                                 onClick={() => setFilterType('all')}
                             >
                                 全部
                             </button>
                             <button
-                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${
                                     filterType === 'text' 
-                                        ? 'bg-primary text-primary-foreground font-medium' 
-                                        : 'bg-gray-100 hover:bg-gray-200'
+                                        ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                                        : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
                                 }`}
                                 onClick={() => setFilterType('text')}
                             >
                                 文字
                             </button>
                             <button
-                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${
                                     filterType === 'layer' 
-                                        ? 'bg-primary text-primary-foreground font-medium' 
-                                        : 'bg-gray-100 hover:bg-gray-200'
+                                        ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                                        : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
                                 }`}
                                 onClick={() => setFilterType('layer')}
                             >
                                 图像
                             </button>
                             <button
-                                className={`px-2 py-1 text-xs rounded transition-colors ${
+                                className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${
                                     filterType === 'group' 
-                                        ? 'bg-primary text-primary-foreground font-medium' 
-                                        : 'bg-gray-100 hover:bg-gray-200'
+                                        ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                                        : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
                                 }`}
                                 onClick={() => setFilterType('group')}
                             >

@@ -186,6 +186,17 @@ export function GroupToolbar() {
       return
     }
 
+    // 立即关闭弹窗，允许用户继续操作
+    setIsDialogOpen(false)
+    
+    // 显示加载中的Toast通知，允许用户在后台继续操作
+    const toastId = toast.loading(
+      `正在智能排列 ${selectedElements.length} 个图层，您可以在后台继续操作...`,
+      {
+        duration: Infinity, // 不自动关闭
+      }
+    )
+
     try {
       setIsArranging(true)
       
@@ -369,23 +380,35 @@ export function GroupToolbar() {
           
           excalidrawAPI.refresh()
           
-          toast.success(t('canvas:messages.layerArrangement.arrangementSuccess'))
+          // 更新Toast为成功状态
+          toast.success(
+            `智能排列完成！已创建 ${newElements.length} 个新图层`,
+            { id: toastId }
+          )
         } else {
-          toast.error(t('canvas:messages.layerArrangement.arrangementFailed'))
+          // 更新Toast为失败状态
+          toast.error(
+            t('canvas:messages.layerArrangement.arrangementFailed'),
+            { id: toastId }
+          )
         }
       } else {
-        toast.error(t('canvas:messages.layerArrangement.arrangementFailed'))
+        // 更新Toast为失败状态
+        toast.error(
+          t('canvas:messages.layerArrangement.arrangementFailed'),
+          { id: toastId }
+        )
       }
     } catch (error) {
       console.error('图层排列失败:', error);
+      // 更新Toast为错误状态
+      let errorMessage = t('canvas:messages.layerArrangement.arrangementError')
       if (error instanceof Error && error.message.includes('overloaded')) {
-        toast.error(t('canvas:messages.layerArrangement.modelOverloaded'));
-      } else {
-        toast.error(t('canvas:messages.layerArrangement.arrangementError'));
+        errorMessage = t('canvas:messages.layerArrangement.modelOverloaded')
       }
+      toast.error(errorMessage, { id: toastId })
     } finally {
       setIsArranging(false)
-      setIsDialogOpen(false)
     }
   }, [excalidrawAPI, t])
 

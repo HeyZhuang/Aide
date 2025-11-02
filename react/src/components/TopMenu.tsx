@@ -28,23 +28,35 @@ export default function TopMenu({
 
   return (
     <motion.div
-      className="sticky top-0 z-0 flex w-full h-8 bg-background px-4 justify-between items-center select-none border-b border-border"
+      className="sticky top-0 z-50 flex w-full h-12 px-6 justify-between items-center select-none glass-nav"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      style={{
+        background: 'var(--glass-nav-bg, rgba(255, 255, 255, 0.85))',
+        backdropFilter: 'blur(24px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+        borderBottom: 'var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05))',
+        boxShadow: 'var(--glass-nav-shadow, 0 2px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9))',
+      }}
     >
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-6">
         {left}
         <motion.div
-          className="flex items-center gap-2 cursor-pointer group"
+          className="flex items-center gap-3 cursor-pointer group px-3 py-1.5 rounded-lg transition-all duration-200 hover:bg-white/40"
           onClick={() => navigate({ to: '/' })}
         >
           {window.location.pathname !== '/' && (
-            <ChevronLeft className="size-5 group-hover:-translate-x-0.5 transition-transform duration-300" />
+            <ChevronLeft className="size-5 text-foreground/70 group-hover:-translate-x-1 group-hover:text-foreground transition-all duration-300" />
           )}
-          <img src={LOGO_URL} alt="logo" className="size-5" draggable={false} />
-          <motion.div className="flex relative overflow-hidden items-start h-7 text-xl font-bold">
-            <motion.span className="flex items-center" layout>
+          <div className="relative">
+            <img src={LOGO_URL} alt="logo" className="size-6 draggable={false} drop-shadow-sm" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
+          </div>
+          <motion.div className="flex relative overflow-hidden items-center h-7">
+            <motion.span 
+              className="flex items-center text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
+              layout
+            >
               {window.location.pathname === '/' ? 'Aide' : t('canvas:back')}
             </motion.span>
           </motion.div>
@@ -52,15 +64,22 @@ export default function TopMenu({
         <Button
           variant={window.location.pathname === '/assets' ? 'default' : 'ghost'}
           size="sm"
-          className={cn('flex items-center font-bold rounded-none')}
+          className={cn(
+            'flex items-center font-semibold rounded-lg transition-all duration-200',
+            window.location.pathname === '/assets' 
+              ? 'shadow-md hover:shadow-lg' 
+              : 'hover:bg-white/50 backdrop-blur-sm'
+          )}
           onClick={() => navigate({ to: '/assets' })}
         >
-          <ImageIcon className="size-4" />
+          <ImageIcon className="size-4 mr-1.5" />
           {t('canvas:assets', 'Library')}
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">{middle}</div>
+      <div className="flex items-center gap-3">
+        {middle}
+      </div>
 
       <div className="flex items-center gap-2">
         {right}
@@ -68,10 +87,12 @@ export default function TopMenu({
         <Button
           size={'sm'}
           variant="ghost"
+          className="rounded-lg hover:bg-white/50 backdrop-blur-sm transition-all duration-200 hover:scale-105"
           onClick={() => setShowSettingsDialog(true)}
         >
-          <SettingsIcon size={30} />
+          <SettingsIcon size={20} />
         </Button>
+        <div className="w-px h-6 bg-border/50" />
         <LanguageSwitcher />
         <ThemeButton />
         <UserMenu />

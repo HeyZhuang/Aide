@@ -1,0 +1,21 @@
+{
+  "public": "dist",
+  "rewrites": [
+    {
+      "source": "/api/**",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/**",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
+}
+

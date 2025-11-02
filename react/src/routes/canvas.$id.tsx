@@ -146,7 +146,17 @@ function Canvas() {
           </div>
 
           {/* PSD Layer Sidebar - Positioned separately */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[20vw] h-[80vh] bg-accent/50 z-10">
+          <div 
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-[22vw] h-[85vh] z-10 rounded-2xl overflow-hidden"
+            style={{
+              background: 'var(--sidebar-glass-bg, rgba(255, 255, 255, 0.85))',
+              backdropFilter: 'blur(24px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+              border: 'var(--sidebar-glass-border, 1px solid rgba(255, 255, 255, 0.5))',
+              boxShadow: 'var(--sidebar-glass-shadow, 0 12px 48px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9))',
+              transition: 'all 0.3s ease',
+            }}
+          >
             <PSDLayerSidebar
               psdData={psdData}
               isVisible={isLayerSidebarVisible}

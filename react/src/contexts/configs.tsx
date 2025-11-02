@@ -39,32 +39,36 @@ export const ConfigsProvider = ({
     if (!modelList) return
     const { llm: llmModels = [], tools: toolList = [] } = modelList
 
-    setTextModels(llmModels || [])
-    setAllTools(toolList || [])
+    // 确保 llmModels 和 toolList 都是数组
+    const safeLlmModels = Array.isArray(llmModels) ? llmModels : []
+    const safeToolList = Array.isArray(toolList) ? toolList : []
+
+    setTextModels(safeLlmModels)
+    setAllTools(safeToolList)
 
     // 设置选择的文本模型
     const textModel = localStorage.getItem('text_model')
     if (
       textModel &&
-      llmModels.find((m) => m.provider + ':' + m.model === textModel)
+      safeLlmModels.find((m) => m.provider + ':' + m.model === textModel)
     ) {
       setTextModel(
-        llmModels.find((m) => m.provider + ':' + m.model === textModel)
+        safeLlmModels.find((m) => m.provider + ':' + m.model === textModel)
       )
     } else {
-      setTextModel(llmModels.find((m) => m.type === 'text'))
+      setTextModel(safeLlmModels.find((m) => m.type === 'text'))
     }
 
     // 设置选中的工具模型
     const disabledToolsJson = localStorage.getItem('disabled_tool_ids')
     let currentSelectedTools: ToolInfo[] = []
     // by default, all tools are selected
-    currentSelectedTools = toolList
+    currentSelectedTools = safeToolList
     if (disabledToolsJson) {
       try {
         const disabledToolIds: string[] = JSON.parse(disabledToolsJson)
         // filter out disabled tools
-        currentSelectedTools = toolList.filter(
+        currentSelectedTools = safeToolList.filter(
           (t) => !disabledToolIds.includes(t.id)
         )
       } catch (error) {
@@ -75,7 +79,7 @@ export const ConfigsProvider = ({
     setSelectedTools(currentSelectedTools)
 
     // 如果文本模型或工具模型为空，则显示登录对话框
-    if (llmModels.length === 0 || toolList.length === 0) {
+    if (safeLlmModels.length === 0 || safeToolList.length === 0) {
       setShowLoginDialog(true)
     }
   }, [
