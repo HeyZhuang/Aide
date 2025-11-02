@@ -85,8 +85,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
   const [isFocused, setIsFocused] = useState(false)
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('auto')
   const [quantity, setQuantity] = useState<number>(1)
-  const [showQuantitySlider, setShowQuantitySlider] = useState(false)
-  const quantitySliderRef = useRef<HTMLDivElement>(null)
+  // 使用 DropdownMenu 渲染数量选择器到 portal，避免父容器裁剪问题
   const MAX_QUANTITY = 30
 
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -328,6 +327,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     setShowLoginDialog,
     balance,
     RechargeContent,
+    psdFiles,
   ])
 
   // Drop Area
@@ -414,25 +414,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     }
   }, [uploadImageMutation])
 
-  // Close quantity slider when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        quantitySliderRef.current &&
-        !quantitySliderRef.current.contains(event.target as Node)
-      ) {
-        setShowQuantitySlider(false)
-      }
-    }
-
-    if (showQuantitySlider) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showQuantitySlider])
+  // （已移除）旧的数量滑块外部点击关闭逻辑，因为数量选择现在使用 DropdownMenu（portal）实现
 
   return (
     <motion.div
@@ -648,64 +630,41 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           </DropdownMenu>
 
           {/* Quantity Selector */}
-          <div className="relative" ref={quantitySliderRef}>
-            <Button
-              variant="outline"
-              className="flex items-center gap-1"
-              onClick={() => setShowQuantitySlider(!showQuantitySlider)}
-              size={'sm'}
-            >
-              <Hash className="size-4" />
-              <span className="text-sm">{quantity}</span>
-              <ChevronDown className="size-3 opacity-50" />
-            </Button>
-
-            {/* Quantity Slider */}
-            <AnimatePresence>
-              {showQuantitySlider && (
-                <motion.div
-                  className="absolute bottom-full mb-2 left-0  bg-background border border-border rounded-lg p-4 shadow-lg min-w-48 z-[1000]"
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  transition={{ duration: 0.15, ease: 'easeOut' }}
-                >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">
-                        {t('chat:textarea.quantity', 'Image Quantity')}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {quantity}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">1</span>
-                      <input
-                        type="range"
-                        min="1"
-                        max={MAX_QUANTITY}
-                        value={quantity}
-                        onChange={(e) => setQuantity(Number(e.target.value))}
-                        className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer
-                                  [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                                  [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary
-                                  [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm
-                                  [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
-                                  [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {MAX_QUANTITY}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Arrow pointing down */}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-border"></div>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-background translate-y-[-1px]"></div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          {/* Quantity Selector 使用 DropdownMenu（portal）避免被裁剪 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-1" size={'sm'}>
+                <Hash className="size-4" />
+                <span className="text-sm">{quantity}</span>
+                <ChevronDown className="size-3 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{t('chat:textarea.quantity', 'Image Quantity')}</span>
+                  <span className="text-sm text-muted-foreground">{quantity}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">1</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max={MAX_QUANTITY}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary
+                              [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-sm
+                              [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full
+                              [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:border-0"
+                  />
+                  <span className="text-xs text-muted-foreground">{MAX_QUANTITY}</span>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {pending ? (
