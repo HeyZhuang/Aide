@@ -12,7 +12,7 @@ import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { FontSelector } from '../FontSelector'
 import { FontItem } from '@/api/font'
 import { toast } from 'sonner'
-import { uploadPSD, uploadImage, type PSDUploadResponse, updateLayerProperties, type PSDLayer } from '@/api/upload'
+import { uploadPSD, type PSDUploadResponse } from '@/api/upload'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -315,6 +315,145 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     } catch (error) {
       console.error('更新文字属性失败:', error)
       toast.error('更新文字属性失败')
+    }
+  }
+
+  // 自动添加PSD图层到画布的函数
+  const handleAutoAddLayers = async (psdData: PSDUploadResponse) => {
+    if (!excalidrawAPI) {
+      console.error('excalidrawAPI 不可用')
+      toast.error('画布API不可用')
+      return
+    }
+
+    try {
+      console.log('开始处理 PSD 数据:', psdData)
+
+      // 过滤出可见的图层（排除群组）
+      const visibleLayers = psdData.layers.filter(layer =>
+        layer.visible !== false && layer.type !== 'group'
+      )
+
+      if (visibleLayers.length === 0) {
+        toast.warning('没有可添加的图层')
+        return
+      }
+
+      // 计算画布中心位置
+      const appState = excalidrawAPI.getAppState()
+      const canvasWidth = appState.width || 800
+      const canvasHeight = appState.height || 600
+      const canvasCenterX = canvasWidth / 2
+      const canvasCenterY = canvasHeight / 2
+
+      // 计算PSD内容的中心位置
+      let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity
+      visibleLayers.forEach(layer => {
+        minLeft = Math.min(minLeft, layer.left)
+        minTop = Math.min(minTop, layer.top)
+        maxRight = Math.max(maxRight, layer.left + layer.width)
+        maxBottom = Math.max(maxBottom, layer.top + layer.height)
+      })
+
+      const psdCenterX = (minLeft + maxRight) / 2
+      const psdCenterY = (minTop + maxBottom) / 2
+
+      // 计算偏移量使PSD内容居中
+      const offsetX = canvasCenterX - psdCenterX
+      const offsetY = canvasCenterY - psdCenterY
+
+      // 获取当前画布元素
+      const currentElements = excalidrawAPI.getSceneElements()
+
+      // 添加每个图层到画布
+      for (const layer of visibleLayers) {
+        if (!layer.image_url) continue
+
+        try {
+          // 获取图片数据
+          const response = await fetch(layer.image_url)
+          if (!response.ok) continue
+
+          const blob = await response.blob()
+          const file = new File([blob], `${layer.name}.png`, { type: 'image/png' })
+
+          // 转换为Base64
+          const dataURL = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+
+          // 生成文件ID
+          const fileId = `psd-layer-${layer.index}-${Date.now()}`
+
+          // 创建文件数据
+          const fileData = {
+            mimeType: 'image/png' as const,
+            id: fileId,
+            dataURL: dataURL,
+            created: Date.now()
+          }
+
+          // 添加文件到Excalidraw
+          excalidrawAPI.addFiles([fileData])
+
+          // 创建图片元素
+          const imageElement = {
+            type: 'image' as const,
+            id: `psd-layer-element-${layer.index}-${Date.now()}`,
+            x: layer.left + offsetX,
+            y: layer.top + offsetY,
+            width: layer.width,
+            height: layer.height,
+            angle: 0,
+            strokeColor: '#000000',
+            backgroundColor: 'transparent',
+            fillStyle: 'solid' as const,
+            strokeWidth: 1,
+            strokeStyle: 'solid' as const,
+            roughness: 1,
+            opacity: Math.round((layer.opacity || 255) / 255 * 100),
+            groupIds: [],
+            frameId: null,
+            roundness: null,
+            seed: Math.floor(Math.random() * 1000000),
+            version: 1,
+            versionNonce: Math.floor(Math.random() * 1000000),
+            isDeleted: false,
+            boundElements: null,
+            updated: Date.now(),
+            link: null,
+            locked: false,
+            fileId: fileId,
+            scale: [1, 1] as [number, number],
+            status: 'saved' as const,
+            index: null,
+            crop: null,
+            customData: {
+              psdLayerIndex: layer.index,
+              psdFileId: psdData.file_id,
+              layerName: layer.name
+            }
+          }
+
+          // 更新场景
+          excalidrawAPI.updateScene({
+            elements: [...currentElements, imageElement],
+          })
+
+          // 等待一小段时间避免过快请求
+          await new Promise(resolve => setTimeout(resolve, 50))
+        } catch (error) {
+          console.error(`添加图层 "${layer.name}" 失败:`, error)
+        }
+      }
+
+      toast.success(`PSD文件处理完成，已添加 ${visibleLayers.length} 个图层到画布`)
+    } catch (error) {
+      console.error('处理PSD文件失败:', error)
+      toast.error('处理PSD文件失败: ' + (error instanceof Error ? error.message : '未知错误'))
     }
   }
 
@@ -638,8 +777,8 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           />
 
           {showUploadMenu && (
-            <div className="absolute left-16 top-0 z-30 w-48 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
-              <div className="p-2 text-sm font-medium bg-zinc-800 text-foreground">添加内容</div>
+            <div className="absolute left-16 top-0 z-30 w-48 bg-background border border-border rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
+              <div className="p-2 text-sm font-medium bg-background text-foreground">添加内容</div>
               <Button
                 variant="ghost"
                 className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
@@ -661,8 +800,35 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
                 onClick={() => {
                   // 上传PSD文件逻辑
-                  // handlePSDUploaded();
-                  setShowUploadMenu(false);
+                  // 创建一个隐藏的文件输入元素来选择PSD文件
+                  const psdInput = document.createElement('input');
+                  psdInput.type = 'file';
+                  psdInput.accept = '.psd';
+                  psdInput.onchange = async (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file && file.name.toLowerCase().endsWith('.psd')) {
+                      try {
+                        // 使用现有的uploadPSD函数上传文件
+                        const result = await uploadPSD(file);
+                        console.log('PSD上传成功:', result);
+
+                        // 隐藏上传菜单
+                        setShowUploadMenu(false);
+
+                        // 自动添加所有图层到画布
+                        await handleAutoAddLayers(result);
+
+                        // 显示成功消息
+                        toast.success(`PSD文件"${file.name}"上传成功，已添加图层到画布`);
+                      } catch (error) {
+                        console.error('PSD上传失败:', error);
+                        toast.error('PSD文件上传失败: ' + (error instanceof Error ? error.message : '未知错误'));
+                      }
+                    } else {
+                      toast.error('请选择有效的PSD文件');
+                    }
+                  };
+                  psdInput.click();
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2">
@@ -714,7 +880,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           />
 
           {showShapeMenu && (
-            <div className="absolute left-16 top-0 z-30 w-64 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
+            <div className="absolute left-16 top-0 z-30 w-64 bg-background border border-border rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
               <div className="text-base font-medium mb-3 text-foreground">形状工具</div>
               <div className="grid grid-cols-2 gap-3">
                 <Button
@@ -820,375 +986,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           className="h-9 w-9 p-0"
         />
         {/* PSD 上傳按鈕 */}
-        <div className="w-6 h-[1px] bg-gray-600 my-1"></div>
+        {/* <div className="w-6 h-[1px] bg-gray-600 my-1"></div>
         <PSDCanvasUploader
           canvasId={canvasId}
           onPSDUploaded={handlePSDUploaded}
-        />
+        /> */}
       </div>
 
-      {/* 图层列表侧边栏 */}
-      {/*{showLayerList && psdData && (*/}
-      {/*  <div className="absolute left-20 top-1/2 -translate-y-1/2 z-30 w-80 max-h-[80vh] bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg overflow-hidden">*/}
-      {/*    /!* 图层列表头部 *!/*/}
-      {/*    <div className="flex items-center justify-between p-3 border-b">*/}
-      {/*      <div className="flex items-center gap-2">*/}
-      {/*        <Layers className="h-4 w-4" />*/}
-      {/*        <span className="text-sm font-medium">图层列表</span>*/}
-      {/*        <Badge variant="secondary" className="text-xs">*/}
-      {/*          {filteredLayers.length}*/}
-      {/*        </Badge>*/}
-      {/*      </div>*/}
-      {/*      <Button*/}
-      {/*        variant="ghost"*/}
-      {/*        size="sm"*/}
-      {/*        onClick={() => setShowLayerList(false)}*/}
-      {/*        className="h-6 w-6 p-0"*/}
-      {/*      >*/}
-      {/*        <X className="h-3 w-3" />*/}
-      {/*      </Button>*/}
-      {/*    </div>*/}
 
-      {/*    /!* 搜索和过滤 *!/*/}
-      {/*    <div className="p-3 space-y-2 border-b">*/}
-      {/*      <Input*/}
-      {/*        placeholder="搜索图层..."*/}
-      {/*        value={searchTerm}*/}
-      {/*        onChange={(e) => setSearchTerm(e.target.value)}*/}
-      {/*        className="h-7 text-xs"*/}
-      {/*      />*/}
-      {/*      <select*/}
-      {/*        value={filterType}*/}
-      {/*        onChange={(e) => setFilterType(e.target.value as any)}*/}
-      {/*        className="w-full h-7 text-xs border rounded px-2"*/}
-      {/*      >*/}
-      {/*        <option value="all">所有图层</option>*/}
-      {/*        <option value="text">文字图层</option>*/}
-      {/*        <option value="layer">图像图层</option>*/}
-      {/*        <option value="group">群组图层</option>*/}
-      {/*      </select>*/}
-      {/*    </div>*/}
-
-      {/*    /!* 图层列表 *!/*/}
-      {/*    /!*<div className="flex-1 overflow-y-auto max-h-60">*!/*/}
-      {/*    /!*  <div className="p-2 space-y-1">*!/*/}
-      {/*    /!*    {filteredLayers.map((layer) => {*!/*/}
-      {/*    /!*      const canvasState = getLayerCanvasState(layer.index)*!/*/}
-      {/*    /!*      const isVisible = canvasState.exists ? canvasState.visible : layer.visible*!/*/}
-      {/*    /!*      const currentOpacity = canvasState.exists ? canvasState.opacity : Math.round((layer.opacity || 255) / 255 * 100)*!/*/}
-
-      {/*    /!*      return (*!/*/}
-      {/*    /!*        <div key={layer.index} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded">*!/*/}
-      {/*    /!*          /!* 图层图标 *!/*!/*/}
-      {/*    /!*          <div className="flex-shrink-0">*!/*/}
-      {/*    /!*            {getLayerIcon(layer)}*!/*/}
-      {/*    /!*          </div>*!/*/}
-
-      {/*    /!*          /!* 图层信息 *!/*!/*/}
-      {/*    /!*          <div className="flex-1 min-w-0">*!/*/}
-      {/*    /!*            <div className="flex items-center gap-1">*!/*/}
-      {/*    /!*              <span className="text-xs font-medium truncate">*!/*/}
-      {/*    /!*                {layer.name}*!/*/}
-      {/*    /!*              </span>*!/*/}
-      {/*    /!*              <Badge variant="secondary" className="text-xs px-1 py-0">*!/*/}
-      {/*    /!*                {getLayerTypeLabel(layer)}*!/*/}
-      {/*    /!*              </Badge>*!/*/}
-      {/*    /!*              {canvasState.exists && (*!/*/}
-      {/*    /!*                <Badge variant="outline" className="text-xs px-1 py-0 text-green-600">*!/*/}
-      {/*    /!*                  画布中*!/*/}
-      {/*    /!*                </Badge>*!/*/}
-      {/*    /!*              )}*!/*/}
-      {/*    /!*            </div>*!/*/}
-      {/*    /!*            <div className="text-xs text-muted-foreground">*!/*/}
-      {/*    /!*              {currentOpacity}%*!/*/}
-      {/*    /!*              {canvasState.exists && (*!/*/}
-      {/*    /!*                <span className="ml-1 text-green-600">• 实时</span>*!/*/}
-      {/*    /!*              )}*!/*/}
-      {/*    /!*            </div>*!/*/}
-      {/*    /!*          </div>*!/*/}
-
-      {/*    /!*          /!* 控制按钮 *!/*!/*/}
-      {/*    /!*          <div className="flex items-center gap-1">*!/*/}
-      {/*    /!*            <Button*!/*/}
-      {/*    /!*              variant="ghost"*!/*/}
-      {/*    /!*              size="sm"*!/*/}
-      {/*    /!*              className="h-6 w-6 p-0"*!/*/}
-      {/*    /!*              onClick={() => handleLayerVisibilityToggle(layer.index)}*!/*/}
-      {/*    /!*              title={isVisible ? '隐藏图层' : '显示图层'}*!/*/}
-      {/*    /!*            >*!/*/}
-      {/*    /!*              {isVisible ? (*!/*/}
-      {/*    /!*                <Eye className="h-3 w-3" />*!/*/}
-      {/*    /!*              ) : (*!/*/}
-      {/*    /!*                <EyeOff className="h-3 w-3 opacity-50" />*!/*/}
-      {/*    /!*              )}*!/*/}
-      {/*    /!*            </Button>*!/*/}
-
-      {/*    /!*            {layer.type === 'text' && (*!/*/}
-      {/*    /!*              <Button*!/*/}
-      {/*    /!*                variant="ghost"*!/*/}
-      {/*    /!*                size="sm"*!/*/}
-      {/*    /!*                className="h-6 w-6 p-0"*!/*/}
-      {/*    /!*                onClick={() => setSelectedLayer(selectedLayer?.index === layer.index ? null : layer)}*!/*/}
-      {/*    /!*                title="编辑文字"*!/*/}
-      {/*    /!*              >*!/*/}
-      {/*    /!*                <Edit3 className="h-3 w-3" />*!/*/}
-      {/*    /!*              </Button>*!/*/}
-      {/*    /!*            )}*!/*/}
-      {/*    /!*          </div>*!/*/}
-      {/*    /!*        </div>*!/*/}
-      {/*    /!*      )*!/*/}
-      {/*    /!*    })}*!/*/}
-      {/*    /!*  </div>*!/*/}
-      {/*    /!*</div>*!/*/}
-
-      {/*    /!* 文字编辑面板 *!/*/}
-      {/*    {selectedLayer && selectedLayer.type === 'text' && (*/}
-      {/*      <div className="p-3 border-t bg-muted/30">*/}
-      {/*        <div className="text-xs font-medium text-blue-600 mb-2">文字编辑</div>*/}
-      {/*        <div className="space-y-2">*/}
-      {/*          <Input*/}
-      {/*            value={(() => {*/}
-      {/*              const canvasState = getLayerCanvasState(selectedLayer.index)*/}
-      {/*              if (canvasState.exists && canvasState.element) {*/}
-      {/*                return (canvasState.element as any).text || selectedLayer.text_content || selectedLayer.name || ''*/}
-      {/*              }*/}
-      {/*              return selectedLayer.text_content || selectedLayer.name || ''*/}
-      {/*            })()}*/}
-      {/*            onChange={(e) => handleTextPropertyUpdate(selectedLayer.index, 'text_content', e.target.value)}*/}
-      {/*            placeholder="输入文字内容"*/}
-      {/*            className="text-xs h-7"*/}
-      {/*          />*/}
-      {/*          <div className="flex gap-1">*/}
-      {/*            <Button*/}
-      {/*              variant={(() => {*/}
-      {/*                const canvasState = getLayerCanvasState(selectedLayer.index)*/}
-      {/*                const fontWeight = canvasState.exists && canvasState.element*/}
-      {/*                  ? ((canvasState.element as any).fontWeight >= 600 ? 'bold' : 'normal')*/}
-      {/*                  : selectedLayer.font_weight*/}
-      {/*                return fontWeight === 'bold' ? 'default' : 'outline'*/}
-      {/*              })()}*/}
-      {/*              size="sm"*/}
-      {/*              className="h-6 px-2"*/}
-      {/*              onClick={() => handleTextPropertyUpdate(selectedLayer.index, 'font_weight',*/}
-      {/*                (() => {*/}
-      {/*                  const canvasState = getLayerCanvasState(selectedLayer.index)*/}
-      {/*                  const currentWeight = canvasState.exists && canvasState.element*/}
-      {/*                    ? ((canvasState.element as any).fontWeight >= 600 ? 'bold' : 'normal')*/}
-      {/*                    : selectedLayer.font_weight*/}
-      {/*                  return currentWeight === 'bold' ? 'normal' : 'bold'*/}
-      {/*                })()*/}
-      {/*              )}*/}
-      {/*            >*/}
-      {/*              <span className="text-xs font-bold">B</span>*/}
-      {/*            </Button>*/}
-      {/*            <Button*/}
-      {/*              variant={(() => {*/}
-      {/*                const canvasState = getLayerCanvasState(selectedLayer.index)*/}
-      {/*                const fontStyle = canvasState.exists && canvasState.element*/}
-      {/*                  ? (canvasState.element as any).fontStyle*/}
-      {/*                  : selectedLayer.font_style*/}
-      {/*                return fontStyle === 'italic' ? 'default' : 'outline'*/}
-      {/*              })()}*/}
-      {/*              size="sm"*/}
-      {/*              className="h-6 px-2"*/}
-      {/*              onClick={() => handleTextPropertyUpdate(selectedLayer.index, 'font_style',*/}
-      {/*                (() => {*/}
-      {/*                  const canvasState = getLayerCanvasState(selectedLayer.index)*/}
-      {/*                  const currentStyle = canvasState.exists && canvasState.element*/}
-      {/*                    ? (canvasState.element as any).fontStyle*/}
-      {/*                    : selectedLayer.font_style*/}
-      {/*                  return currentStyle === 'italic' ? 'normal' : 'italic'*/}
-      {/*                })()*/}
-      {/*              )}*/}
-      {/*            >*/}
-      {/*              <span className="text-xs italic">I</span>*/}
-      {/*            </Button>*/}
-      {/*          </div>*/}
-      {/*        </div>*/}
-      {/*      </div>*/}
-      {/*    )}*/}
-      {/*  </div>*/}
-      {/*)}*/}
-
-      {/* Resize缩放工具侧边栏 */}
-      {/*{showResizeTool && psdData && (*/}
-      {/*  <div className="absolute left-20 top-1/2 -translate-y-1/2 z-30 w-80 max-h-[80vh] bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg overflow-hidden">*/}
-      {/*    /!* Resize工具头部 *!/*/}
-      {/*    <div className="flex items-center justify-between p-3 border-b">*/}
-      {/*      <div className="flex items-center gap-2">*/}
-      {/*        <Settings className="h-4 w-4" />*/}
-      {/*        <span className="text-sm font-medium">智能缩放</span>*/}
-      {/*        <Badge variant="secondary" className="text-xs">*/}
-      {/*          AI*/}
-      {/*        </Badge>*/}
-      {/*      </div>*/}
-      {/*      <Button*/}
-      {/*        variant="ghost"*/}
-      {/*        size="sm"*/}
-      {/*        onClick={() => setShowResizeTool(false)}*/}
-      {/*        className="h-6 w-6 p-0"*/}
-      {/*      >*/}
-      {/*        <X className="h-3 w-3" />*/}
-      {/*      </Button>*/}
-      {/*    </div>*/}
-
-      {/*    <div className="p-3 space-y-4 overflow-y-auto max-h-[60vh]">*/}
-      {/*      /!* PSD文件信息 *!/*/}
-      {/*      <Card>*/}
-      {/*        <CardHeader className="pb-2">*/}
-      {/*          <CardTitle className="text-sm">当前PSD文件</CardTitle>*/}
-      {/*        </CardHeader>*/}
-      {/*        <CardContent className="pt-0">*/}
-      {/*          <div className="space-y-1 text-xs">*/}
-      {/*            <div><strong>文件ID:</strong> {psdData.file_id}</div>*/}
-      {/*            <div><strong>原始尺寸:</strong> {psdData.width} × {psdData.height}</div>*/}
-      {/*            <div><strong>图层数量:</strong> {psdData.layers?.length || 0}</div>*/}
-      {/*          </div>*/}
-      {/*        </CardContent>*/}
-      {/*      </Card>*/}
-
-      {/*      /!* 目标尺寸设置 *!/*/}
-      {/*      <Card>*/}
-      {/*        <CardHeader className="pb-2">*/}
-      {/*          <CardTitle className="text-sm">目标尺寸设置</CardTitle>*/}
-      {/*        </CardHeader>*/}
-      {/*        <CardContent className="pt-0 space-y-3">*/}
-      {/*          <div className="grid grid-cols-2 gap-2">*/}
-      {/*            <div className="space-y-1">*/}
-      {/*              <Label htmlFor="target-width" className="text-xs">目标宽度</Label>*/}
-      {/*              <Input*/}
-      {/*                id="target-width"*/}
-      {/*                type="number"*/}
-      {/*                value={targetWidth}*/}
-      {/*                onChange={(e) => setTargetWidth(Number(e.target.value))}*/}
-      {/*                disabled={isProcessing}*/}
-      {/*                min="1"*/}
-      {/*                max="4000"*/}
-      {/*                className="h-7 text-xs"*/}
-      {/*              />*/}
-      {/*            </div>*/}
-      {/*            <div className="space-y-1">*/}
-      {/*              <Label htmlFor="target-height" className="text-xs">目标高度</Label>*/}
-      {/*              <Input*/}
-      {/*                id="target-height"*/}
-      {/*                type="number"*/}
-      {/*                value={targetHeight}*/}
-      {/*                onChange={(e) => setTargetHeight(Number(e.target.value))}*/}
-      {/*                disabled={isProcessing}*/}
-      {/*                min="1"*/}
-      {/*                max="4000"*/}
-      {/*                className="h-7 text-xs"*/}
-      {/*              />*/}
-      {/*            </div>*/}
-      {/*          </div>*/}
-
-      {/*          /!* API密钥设置 *!/*/}
-      {/*          <div className="space-y-1">*/}
-      {/*            <Label htmlFor="api-key" className="text-xs">Gemini API密钥 (可选)</Label>*/}
-      {/*            <Input*/}
-      {/*              id="api-key"*/}
-      {/*              type="password"*/}
-      {/*              value={apiKey}*/}
-      {/*              onChange={(e) => setApiKey(e.target.value)}*/}
-      {/*              disabled={isProcessing}*/}
-      {/*              placeholder="如果不提供，将使用环境变量中的密钥"*/}
-      {/*              className="h-7 text-xs"*/}
-      {/*            />*/}
-      {/*          </div>*/}
-      {/*        </CardContent>*/}
-      {/*      </Card>*/}
-
-      {/*      /!* 错误提示 *!/*/}
-      {/*      {error && (*/}
-      {/*        <Alert variant="destructive">*/}
-      {/*          <AlertCircle className="h-3 w-3" />*/}
-      {/*          <AlertDescription className="text-xs">{error}</AlertDescription>*/}
-      {/*        </Alert>*/}
-      {/*      )}*/}
-
-      {/*      /!* 进度条 *!/*/}
-      {/*      {isProcessing && (*/}
-      {/*        <div className="space-y-2">*/}
-      {/*          <div className="flex justify-between text-xs">*/}
-      {/*            <span>{currentStep}</span>*/}
-      {/*            <span>{progress}%</span>*/}
-      {/*          </div>*/}
-      {/*          <Progress value={progress} className="w-full h-2" />*/}
-      {/*        </div>*/}
-      {/*      )}*/}
-
-      {/*      /!* 操作按钮 *!/*/}
-      {/*      <div className="flex gap-2">*/}
-      {/*        <Button*/}
-      {/*          onClick={handleResize}*/}
-      {/*          disabled={!psdData || isProcessing}*/}
-      {/*          className="flex-1 h-8 text-xs"*/}
-      {/*        >*/}
-      {/*          {isProcessing ? (*/}
-      {/*            <Loader2 className="h-3 w-3 mr-1 animate-spin" />*/}
-      {/*          ) : (*/}
-      {/*            <Settings className="h-3 w-3 mr-1" />*/}
-      {/*          )}*/}
-      {/*          开始智能缩放*/}
-      {/*        </Button>*/}
-      {/*      </div>*/}
-
-      {/*      /!* 缩放结果 *!/*/}
-      {/*      {result && (*/}
-      {/*        <Card>*/}
-      {/*          <CardHeader className="pb-2">*/}
-      {/*            <CardTitle className="text-sm">缩放完成</CardTitle>*/}
-      {/*          </CardHeader>*/}
-      {/*          <CardContent className="pt-0 space-y-3">*/}
-      {/*            <div className="grid grid-cols-2 gap-2">*/}
-      {/*              <div>*/}
-      {/*                <Label className="text-xs">原始尺寸</Label>*/}
-      {/*                <div className="text-sm font-semibold">*/}
-      {/*                  {result.original_size.width} × {result.original_size.height}*/}
-      {/*                </div>*/}
-      {/*              </div>*/}
-      {/*              <div>*/}
-      {/*                <Label className="text-xs">目标尺寸</Label>*/}
-      {/*                <div className="text-sm font-semibold">*/}
-      {/*                  {result.target_size.width} × {result.target_size.height}*/}
-      {/*                </div>*/}
-      {/*              </div>*/}
-      {/*            </div>*/}
-
-      {/*            <Button onClick={downloadResult} className="w-full h-8 text-xs">*/}
-      {/*              <Download className="h-3 w-3 mr-1" />*/}
-      {/*              下载缩放结果*/}
-      {/*            </Button>*/}
-      {/*          </CardContent>*/}
-      {/*        </Card>*/}
-      {/*      )}*/}
-      {/*    </div>*/}
-      {/*  </div>*/}
-      {/*)}*/}
-
-      {/* 模板管理器 */}
-      {/*<TemplateManager*/}
-      {/*  isOpen={showTemplateManager}*/}
-      {/*  onClose={() => setShowTemplateManager(false)}*/}
-      {/*  onApplyTemplate={async (template) => {*/}
-      {/*    try {*/}
-      {/*      // 直接在Excalidraw画布上显示模板*/}
-      {/*      if (excalidrawAPI) {*/}
-      {/*        await applyTemplateToExcalidraw(excalidrawAPI, template)*/}
-      {/*      }*/}
-
-      {/*      toast.success('模板已应用到画布')*/}
-      {/*      setShowTemplateManager(false)*/}
-      {/*    } catch (error) {*/}
-      {/*      console.error('Failed to apply template:', error)*/}
-      {/*      toast.error('应用模板失败')*/}
-      {/*    }*/}
-      {/*  }}*/}
-      {/*  currentCanvasId={canvasId}*/}
-      {/*  onSuccess={() => {*/}
-      {/*    setShowTemplateManager(false)*/}
-      {/*  }}*/}
-      {/*/>*/}
 
       {/* 字体选择器 */}
       <FontSelector
@@ -1217,6 +1022,24 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

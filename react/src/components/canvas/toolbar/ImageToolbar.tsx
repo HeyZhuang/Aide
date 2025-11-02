@@ -328,8 +328,8 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
             <Layers className="h-5 w-5" />
           </Button>
           {layersOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg p-2 z-50">
-              <div className="text-xs text-gray-400 px-2 py-1 mb-1">图层</div>
+            <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg p-2 z-50">
+              <div className="text-xs text-foreground px-2 py-1 mb-1">图层</div>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"

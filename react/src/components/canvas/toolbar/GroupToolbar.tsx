@@ -269,7 +269,7 @@ export function GroupToolbar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-[#2a2a2a] text-white border-gray-700 w-48"
+          className="bg-background text-foreground border-border w-48"
           align="start"
         >
           {alignments.map((alignment, index) => (
@@ -283,12 +283,12 @@ export function GroupToolbar() {
               >
                 <alignment.icon className="h-4 w-4" />
                 <span className="text-xs">{alignment.label}</span>
-                <span className="ml-auto text-xs text-gray-400">
+                <span className="ml-auto text-xs text-foreground">
                   {alignment.value === 'left' && '⌘ H'}
                   {alignment.value === 'vertical-center' && '⌘ V'}
                 </span>
               </DropdownMenuItem>
-              {index === 2 && <DropdownMenuSeparator className="bg-gray-700" />}
+              {index === 2 && <DropdownMenuSeparator className="bg-border" />}
             </div>
           ))}
         </DropdownMenuContent>
@@ -306,11 +306,11 @@ export function GroupToolbar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-[#2a2a2a] text-white border-gray-700 w-56 p-3"
+          className="bg-background text-foreground border-border w-56 p-3"
           align="start"
         >
           <div className="space-y-3">
-            <div className="text-xs font-medium text-gray-400 uppercase">预设尺寸</div>
+            <div className="text-xs font-medium text-foreground uppercase">预设尺寸</div>
             {presetSizes.map((preset) => (
               <DropdownMenuItem
                 key={preset.name}
@@ -323,22 +323,22 @@ export function GroupToolbar() {
                 <div className="flex-1">
                   <div className="font-medium">{preset.name}</div>
                 </div>
-                <div className="text-gray-400">
+                <div className="text-foreground">
                   {preset.width} × {preset.height}
                 </div>
               </DropdownMenuItem>
             ))}
 
-            <DropdownMenuSeparator className="bg-gray-700" />
+            <DropdownMenuSeparator className="bg-border" />
 
             {/* 自定义尺寸 */}
-            <div className="text-xs font-medium text-gray-400 uppercase mb-2">自定义尺寸</div>
+            <div className="text-xs font-medium text-foreground uppercase mb-2">自定义尺寸</div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <Input
                   type="number"
                   placeholder="W"
-                  className="h-7 bg-[#1e1e1e] border-gray-700 text-white text-xs"
+                  className="h-7 bg-background border-border text-foreground text-xs"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -354,12 +354,12 @@ export function GroupToolbar() {
                   }}
                 />
               </div>
-              <span className="text-xs text-gray-400">×</span>
+              <span className="text-xs">×</span>
               <div className="flex-1">
                 <Input
                   type="number"
                   placeholder="H"
-                  className="h-7 bg-[#1e1e1e] border-gray-700 text-white text-xs"
+                  className="h-7 bg-background border-border text-foreground text-xs"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -375,6 +375,24 @@ export function GroupToolbar() {
                   }}
                 />
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs border-border text-foreground hover:bg-white/10"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const widthInput = e.currentTarget.parentElement?.previousElementSibling?.previousElementSibling?.firstChild as HTMLInputElement
+                  const heightInput = e.currentTarget.parentElement?.previousElementSibling?.nextElementSibling?.firstChild as HTMLInputElement
+                  const width = parseInt(widthInput?.value || '0')
+                  const height = parseInt(heightInput?.value || '0')
+                  if (!isNaN(width) && !isNaN(height) && width > 0 && height > 0) {
+                    handleResize(width, height)
+                    setShowResizeMenu(false)
+                  }
+                }}
+              >
+                应用
+              </Button>
             </div>
           </div>
         </DropdownMenuContent>
