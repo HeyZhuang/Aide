@@ -2,7 +2,7 @@ import MaterialManager from '@/components/material/MaterialManager'
 import TopMenu from '@/components/TopMenu'
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { createFileRoute } from '@tanstack/react-router'
-
+import ChatInterface from '@/components/chat/Chat.tsx'
 export const Route = createFileRoute('/assets')({
   component: Home,
 })
@@ -22,7 +22,7 @@ function Home() {
 
         {/* <ResizableHandle /> */}
 
-        {/* <ResizablePanel defaultSize={25} minSize={25}>
+        <ResizablePanel defaultSize={25} minSize={25}>
             <div className="flex-1 flex-grow bg-accent/50 w-full">
               <ChatInterface
                 canvasId={canvasId}
@@ -31,7 +31,7 @@ function Home() {
                 sessionId={sessionId}
               />
             </div>
-          </ResizablePanel> */}
+          </ResizablePanel>
       </ResizablePanelGroup>
     </div>
   )

@@ -23,6 +23,7 @@ import {
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { VideoElement } from './VideoElement'
+import { CanvasTopToolbar } from './toolbar/CanvasTopToolbar'
 
 import '@/assets/style/canvas.css'
 
@@ -134,7 +135,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
       saveCanvas(canvasId, { data, thumbnail })
     },
-    1000
+    300
   )
 
   // 同时调用立即函数和去抖函数的组合处理程序
@@ -729,6 +730,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         height: imageElement.height,
       })
 
+
       // Ensure image is not locked and can be manipulated
       const unlockedImageElement = {
         ...imageElement,
@@ -950,7 +952,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   return (
     <div
-      className="excalidraw-wrapper"
+      className="excalidraw-wrapper relative w-full h-full"
       style={{ width: '100%', height: '100%' }}
       onDragOverCapture={handleDragOver}
       onDropCapture={handleDrop}
@@ -959,6 +961,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         theme={customTheme as Theme}
         langCode={i18n.language}
         excalidrawAPI={(api) => {
+          console.log('👇 Excalidraw API 实例:', api)
           setExcalidrawAPI(api)
         }}
         onChange={handleChange}
@@ -991,9 +994,14 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
           }
         }}
       />
+      <CanvasTopToolbar />
     </div>
   )
 }
 
 export { CanvasExcali }
 export default CanvasExcali
+
+
+
+

@@ -1,13 +1,19 @@
+/* 
+ * Excalidraw 画布样式定制文件
+ * 该文件用于覆盖 Excalidraw 默认样式，实现自定义的 UI 布局
+ */
+
+/* 隐藏形状选择部分 */
 .excalidraw .shapes-section {
   display: none !important;
 }
 
-/* Conditionally hide left toolbar panel when embeddable is selected */
+/* 当选中可嵌入元素时，条件性隐藏左侧工具栏面板 */
 .excalidraw.hide-left-panel .App-menu__left {
   display: none !important;
 }
 
-/* Video overlay styles */
+/* 视频覆盖层样式 */
 .video-overlay {
   position: absolute;
   top: 0;
@@ -23,43 +29,67 @@
   pointer-events: auto;
 }
 
+/* 隐藏顶部左侧菜单中的特定堆叠元素 */
 .excalidraw .Stack.Stack_vertical.App-menu_top__left>div {
   display: none !important;
 }
 
+/* 隐藏工具图标上的快捷键显示 */
 .ToolIcon__keybinding {
   display: none !important;
 }
 
-/* Enable embeddable tool for video integration */
-/* .excalidraw .dropdown-menu .dropdown-menu-item[data-testid='toolbar-embeddable'] {
-  display: none !important;
-} */
-
+/* 隐藏激光工具后的分隔线 */
 .excalidraw .dropdown-menu .dropdown-menu-item[data-testid='toolbar-laser']+div {
   display: none !important;
 }
 
+/* 隐藏右上角的层 UI 包装器 */
 .excalidraw .layer-ui__wrapper__top-right {
   display: none !important;
 }
 
+/* 隐藏顶部固定侧边栏 */
 .excalidraw .FixedSideContainer.FixedSideContainer_side_top.App-top-bar {
   display: none !important;
 }
 
+/* 隐藏底部菜单 */
 .excalidraw .layer-ui__wrapper__footer.App-menu.App-menu_bottom {
   display: none !important;
 }
 
+/* 隐藏底部栏 */
 .excalidraw .App-bottom-bar {
   display: none !important;
 }
 
+/* 隐藏所有默认工具栏 */
+.excalidraw .App-toolbar {
+  display: none !important;
+}
+
+/* 隐藏顶部菜单 */
+.excalidraw .App-menu_top {
+  display: none !important;
+}
+
+/* 隐藏左侧菜单 */
+.excalidraw .App-menu_left {
+  display: none !important;
+}
+
+/* 隐藏右侧菜单 */
+.excalidraw .App-menu_right {
+  display: none !important;
+}
+
+/* 滚动回到内容按钮的位置调整 */
 .scroll-back-to-content {
   bottom: 80px !important;
 }
 
+/* 提高弹出框的 z-index */
 .excalidraw .popover {
   z-index: 60 !important;
 }
@@ -75,6 +105,7 @@
   z-index: inherit !important;
 }
 
+/* 弹出菜单样式定制 */
 .excalidraw .popover .context-menu {
   border-radius: 10px !important;
   border-color: color-mix(in oklab, var(--primary) 10%, transparent) !important;
@@ -117,11 +148,16 @@
   filter: none !important;
 }
 
+/* 隐藏顶部菜单栏 */
 .excalidraw-wrapper .excalidraw.theme--dark .App-menu_top,
 .excalidraw-wrapper .excalidraw.theme--dark .App-menu_bottom,
 .excalidraw-wrapper .excalidraw.theme--dark .App-menu_left,
 .excalidraw-wrapper .excalidraw.theme--dark .App-menu_right {
   filter: none !important;
+}
+
+.excalidraw-wrapper .excalidraw.theme--dark .App-menu_top {
+  display: none !important;
 }
 
 .excalidraw-wrapper .excalidraw.theme--dark .layer-ui__wrapper {
@@ -252,4 +288,184 @@
 
 .dark .font-selector-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* 小型底部聊天窗口样式 - 居中放置在页面正下方 */
+.bottom-chat-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  max-height: 300px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+/* 聊天窗口最小化状态 */
+.bottom-chat-container.minimized {
+  width: 160px;
+  height: 40px;
+  max-height: 40px;
+  padding: 0;
+}
+
+/* 聊天窗口头部 */
+.bottom-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+/* 最小化时的聊天窗口头部 */
+.bottom-chat-container.minimized .bottom-chat-header {
+  padding: 8px 12px;
+  border-bottom: none;
+}
+
+.bottom-chat-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 最小化时的标题 */
+.bottom-chat-container.minimized .bottom-chat-header h3 {
+  font-size: 14px;
+}
+
+.bottom-chat-collapse-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.bottom-chat-collapse-btn:hover {
+  background-color: var(--muted);
+}
+
+/* 聊天窗口内容区域 */
+.bottom-chat-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 聊天消息区域 */
+.bottom-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  max-height: 180px;
+}
+
+/* 聊天输入区域 */
+.bottom-chat-input {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background-color: var(--background);
+}
+
+/* 美化滚动条 */
+.bottom-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bottom-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bottom-chat-messages::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 3px;
+}
+
+.bottom-chat-messages::-webkit-scrollbar-thumb:hover {
+  background-color: var(--foreground);
+}
+
+/* 消息气泡样式 */
+.message-bubble {
+  max-width: 80%;
+  padding: 8px 12px;
+  border-radius: 18px;
+  margin-bottom: 8px;
+}
+
+.message-bubble.user {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  margin-left: auto;
+}
+
+.message-bubble.assistant {
+  background-color: var(--muted);
+  color: var(--foreground);
+  margin-right: auto;
+}
+
+/* 工具调用标签样式 */
+.tool-call-tag {
+  background-color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+/* 调整画布容器高度以适应小型底部聊天窗口 */
+.canvas-container-with-bottom-chat {
+  height: calc(100vh - var(--header-height, 60px));
+}
+
+/* 确保画布内容区域适应新的布局 */
+.excalidraw-container.with-bottom-chat {
+  height: 100%;
+  margin-bottom: 0;
+}
+
+/* 底部对话框中的下拉菜单样式优化 */
+.bottom-chat-container .dropdown-menu-content {
+  z-index: 1000 !important;
+}
+
+/* 底部对话框按钮容器 */
+.bottom-chat-input .flex.items-center.gap-1 {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+/* 底部对话框滚动条样式 */
+.bottom-chat-input .flex.items-center.gap-1::-webkit-scrollbar {
+  height: 4px;
+}
+
+.bottom-chat-input .flex.items-center.gap-1::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bottom-chat-input .flex.items-center.gap-1::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 2px;
+}
+
+.bottom-chat-input .flex.items-center.gap-1::-webkit-scrollbar-thumb:hover {
+  background-color: var(--foreground);
 }

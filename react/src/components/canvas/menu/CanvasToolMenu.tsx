@@ -318,7 +318,115 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     }
   }
 
-  // Resize功能相关函数
+  // 添加缩放后的图片到画布
+  const addResizedImageToCanvas = async (imageUrl: string, width: number, height: number) => {
+    if (!excalidrawAPI) {
+      console.error('excalidrawAPI 不可用')
+      toast.error('画布API不可用')
+      return
+    }
+
+    try {
+      console.log('正在添加缩放后的图片到画布:', imageUrl)
+
+      // 获取图片
+      const response = await fetch(imageUrl)
+      if (!response.ok) {
+        throw new Error(`获取图片失败: ${response.status}`)
+      }
+
+      const blob = await response.blob()
+      const file = new File([blob], `resized_${Date.now()}.png`, { type: 'image/png' })
+
+      // 转换为 Base64
+      const dataURL = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // 生成唯一的文件ID
+      const fileId = `resized-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+      // 创建 Excalidraw 文件数据
+      const fileData = {
+        mimeType: 'image/png' as const,
+        id: fileId as any,
+        dataURL: dataURL as any,
+        created: Date.now()
+      }
+
+      // 添加到 Excalidraw 文件系统
+      excalidrawAPI.addFiles([fileData])
+      console.log('文件已添加到 Excalidraw:', fileId)
+
+      // 等待文件完全加载
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // 获取当前画布元素
+      const currentElements = excalidrawAPI.getSceneElements()
+
+      // 计算画布中心位置
+      const appState = excalidrawAPI.getAppState()
+      const canvasWidth = appState.width || 800
+      const canvasHeight = appState.height || 600
+      const centerX = (canvasWidth - width) / 2
+      const centerY = (canvasHeight - height) / 2
+
+      // 创建图片元素
+      const imageElement = {
+        type: 'image' as const,
+        id: `resized-${Date.now()}`,
+        x: centerX > 0 ? centerX : 100,
+        y: centerY > 0 ? centerY : 100,
+        width: width,
+        height: height,
+        angle: 0,
+        strokeColor: '#000000',
+        backgroundColor: 'transparent',
+        fillStyle: 'solid' as const,
+        strokeWidth: 0,
+        strokeStyle: 'solid' as const,
+        roughness: 1,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        roundness: null,
+        seed: Math.floor(Math.random() * 1000000),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 1000000),
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false,
+        fileId: fileId as any,
+        scale: [1, 1] as [number, number],
+        status: 'saved' as const,
+        index: null,
+        crop: null,
+        customData: {
+          isResizedPSD: true,
+          originalPSDFileId: psdData?.file_id,
+          resizedAt: Date.now()
+        }
+      } as any
+
+      // 更新场景，添加新图片元素
+      excalidrawAPI.updateScene({
+        elements: [...currentElements, imageElement],
+      })
+
+      console.log('缩放后的图片已添加到画布')
+
+    } catch (error) {
+      console.error('添加图片到画布失败:', error)
+      toast.error('添加图片到画布失败: ' + (error instanceof Error ? error.message : '未知错误'))
+    }
+  }
+
+  // Resize功能相关函数 - 使用服务端直接处理（无需下载大文件）
   const handleResize = async () => {
     if (!psdData) {
       setError('没有可用的PSD数据')
@@ -329,41 +437,126 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     setProgress(0)
     setCurrentStep('正在处理PSD文件...')
     setError('')
+    setResult(null)
 
     try {
-      const response = await fetch(psdData.url)
-      const blob = await response.blob()
-      const psdFile = new File([blob], `psd_${psdData.file_id}.psd`, { type: 'application/octet-stream' })
+      setProgress(10)
+      setCurrentStep('正在准备缩放请求...')
 
+      // 使用新的服务端处理API，直接传递file_id，无需下载大文件
       const formData = new FormData()
-      formData.append('psd_file', psdFile)
+      formData.append('file_id', psdData.file_id)
       formData.append('target_width', targetWidth.toString())
       formData.append('target_height', targetHeight.toString())
       if (apiKey) {
         formData.append('api_key', apiKey)
       }
 
-      setProgress(50)
-      setCurrentStep('正在调用Gemini API...')
+      setProgress(30)
+      setCurrentStep('正在调用Gemini API分析图层（这可能需要1-2分钟）...')
 
-      const resizeResponse = await fetch('/api/psd/resize/auto-resize', {
-        method: 'POST',
-        body: formData,
+      console.log('开始智能缩放:', {
+        file_id: psdData.file_id,
+        target_width: targetWidth,
+        target_height: targetHeight,
+        original_size: { width: psdData.width, height: psdData.height }
       })
 
-      if (!resizeResponse.ok) {
-        const errorData = await resizeResponse.json()
-        throw new Error(errorData.detail || '缩放失败')
+      // 增加超时时间到5分钟（300秒），并添加更好的错误处理
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => {
+        controller.abort()
+        console.warn('请求超时，已取消')
+      }, 300000) // 300秒超时
+
+      try {
+        // 检查API端点是否可访问
+        const resizeResponse = await fetch('/api/psd/resize/resize-by-id', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!resizeResponse.ok) {
+          let errorMessage = '缩放失败'
+          try {
+            const errorData = await resizeResponse.json()
+            errorMessage = errorData.detail || errorData.error || errorMessage
+
+            // 检查是否是后端服务器未运行
+            if (resizeResponse.status === 502 || resizeResponse.status === 503) {
+              errorMessage = '后端服务器未运行或无法访问。请确保后端服务器已启动。'
+            }
+          } catch {
+            errorMessage = `HTTP ${resizeResponse.status}: ${resizeResponse.statusText}`
+          }
+          throw new Error(errorMessage)
+        }
+
+        setProgress(90)
+        setCurrentStep('正在处理结果...')
+
+        const resultData = await resizeResponse.json()
+
+        setProgress(95)
+        setCurrentStep('正在添加图片到画布...')
+
+        // 自动添加缩放后的图片到画布
+        if (resultData.output_url && excalidrawAPI) {
+          await addResizedImageToCanvas(
+            resultData.output_url,
+            resultData.target_size.width,
+            resultData.target_size.height
+          )
+        }
+
+        setProgress(100)
+        setCurrentStep('缩放完成')
+        setResult(resultData)
+
+        console.log('缩放完成:', resultData)
+        toast.success('智能缩放完成！图片已添加到画布')
+
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId)
+
+        if (fetchError.name === 'AbortError') {
+          throw new Error('处理超时（超过5分钟）。可能原因：\n1. Gemini API响应慢\n2. 图层数量过多\n3. 网络连接问题\n4. 后端服务器未运行\n\n请稍后重试或减少图层数量。')
+        }
+
+        // 处理网络错误
+        if (fetchError.message === 'Failed to fetch') {
+          throw new Error('无法连接到后端服务器。请确保：\n1. 后端服务器已启动\n2. API路径正确\n3. 网络连接正常')
+        }
+
+        throw fetchError
       }
 
-      setProgress(100)
-      setCurrentStep('缩放完成')
-
-      const resultData = await resizeResponse.json()
-      setResult(resultData)
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : '缩放失败')
+      console.error('PSD缩放错误:', err)
+
+      let errorMessage = err instanceof Error ? err.message : '缩放失败'
+
+      // 检查是否是配额错误
+      if (errorMessage.includes('429') ||
+        errorMessage.includes('RESOURCE_EXHAUSTED') ||
+        errorMessage.includes('quota') ||
+        errorMessage.includes('配额')) {
+        errorMessage = `🚫 Gemini API 配额已用尽\n\n` +
+          `免费配额限制：\n` +
+          `• 每分钟：15 次请求\n` +
+          `• 每天：1,500 次请求\n\n` +
+          `解决方案：\n` +
+          `1. ⏰ 等待几分钟后重试\n` +
+          `2. 📊 访问配额管理页面查看使用情况\n` +
+          `3. 💳 考虑升级到付费计划\n\n` +
+          `📎 配额管理：https://ai.dev/usage?tab=rate-limit`
+      }
+
+      setError(errorMessage)
+      toast.error('智能缩放失败')
     } finally {
       setIsProcessing(false)
     }
@@ -407,7 +600,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
   return (
     <>
-      <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 bg-primary-foreground/75 backdrop-blur-lg rounded-lg p-1 shadow-[0_5px_10px_rgba(0,0,0,0.08)] border border-primary/10">
+      <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 bg-[#1e1e1e] backdrop-blur-lg rounded-lg p-1 shadow-lg border border-gray-700">
         {/* 手型/选择工具切换按钮 - 默认显示选择工具 */}
         <CanvasMenuButton
           type={isHandToolActive ? 'hand' : 'selection'}
@@ -441,15 +634,15 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换上传菜单的显示状态
               setShowUploadMenu(!showUploadMenu);
             }}
-            className="h-14 w-14 p-0 rounded-full bg-primary hover:bg-primary/90 text-white"
+            className="h-14 w-14 p-0 rounded-full bg-[#1e1e1e] hover:bg-primary text-white border border-gray-700 hover:bg-primary"
           />
 
           {showUploadMenu && (
-            <div className="absolute left-16 top-0 z-30 w-48 bg-background border rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
-              <div className="p-2 text-sm font-medium bg-muted">添加内容</div>
+            <div className="absolute left-16 top-0 z-30 w-48 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
+              <div className="p-2 text-sm font-medium bg-zinc-800 text-white">添加内容</div>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-auto"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
                 onClick={() => {
                   // 触发文件选择器
                   fileInputRef.current?.click();
@@ -465,7 +658,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-auto"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
                 onClick={() => {
                   // 上传PSD文件逻辑
                   // handlePSDUploaded();
@@ -483,7 +676,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-auto"
+                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-white"
                 onClick={(e) => {
                   e.stopPropagation();
                   // 上传模板逻辑
@@ -521,13 +714,13 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           />
 
           {showShapeMenu && (
-            <div className="absolute left-16 top-0 z-30 w-64 bg-background border rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
-              <div className="text-base font-medium mb-3">形状工具</div>
+            <div className="absolute left-16 top-0 z-30 w-64 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
+              <div className="text-base font-medium mb-3 text-white">形状工具</div>
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant={activeTool === 'rectangle' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
                   onClick={() => {
                     handleToolChange('rectangle');
                     setShowShapeMenu(false);
@@ -544,7 +737,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'ellipse' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
                   onClick={() => {
                     handleToolChange('ellipse');
                     setShowShapeMenu(false);
@@ -561,7 +754,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'arrow' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
                   onClick={() => {
                     handleToolChange('arrow');
                     setShowShapeMenu(false);
@@ -578,7 +771,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'line' ? 'default' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto"
+                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-white"
                   onClick={() => {
                     handleToolChange('line');
                     setShowShapeMenu(false);
@@ -627,10 +820,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           className="h-9 w-9 p-0"
         />
         {/* PSD 上傳按鈕 */}
-        <Separator
-          orientation="horizontal"
-          className="w-6! bg-primary/5"
-        />
+        <div className="w-6 h-[1px] bg-gray-600 my-1"></div>
         <PSDCanvasUploader
           canvasId={canvasId}
           onPSDUploaded={handlePSDUploaded}
@@ -1027,3 +1217,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
