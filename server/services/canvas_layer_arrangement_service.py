@@ -375,6 +375,11 @@ class CanvasLayerArrangementService:
         """
         logger.info("=== CanvasLayerArrangementService.arrange_canvas_elements 被调用 ===")
         logger.info(msg=f"接收到的参数 - 元素数量: {len(selected_elements)}, 画布尺寸: {canvas_width}x{canvas_height}, 目标尺寸: {target_width}x{target_height}")
+        
+        # 保存目标尺寸用于验证
+        self._target_width = target_width
+        self._target_height = target_height
+        
         try:
             logger.info(f"开始处理画布元素排列，元素数量: {len(selected_elements)}")
             logger.info(f"画布尺寸: {canvas_width}x{canvas_height}")
@@ -409,13 +414,55 @@ class CanvasLayerArrangementService:
             logger.info(f"转换后的排列方案数量: {len(converted_arrangements)}")
             if converted_arrangements:
                 logger.info(f"第一个排列方案示例: {converted_arrangements[0]}")
+                # 输出所有元素的ID列表
+                all_ids = [arr.get('id', 'unknown') for arr in converted_arrangements]
+                logger.info(f"✅ 所有转换后的元素ID列表 ({len(all_ids)}个): {all_ids}")
+                
+                # 检查每个元素的新尺寸（现在应该都在范围内了，因为已自动缩放）
+                oversized_elements = []
+                resized_elements = []
+                for arr in converted_arrangements:
+                    new_coords = arr.get('new_coords', {})
+                    width = new_coords.get('width', 0)
+                    height = new_coords.get('height', 0)
+                    warnings = arr.get('warnings', [])
+                    
+                    # 检查是否有缩放警告
+                    has_resize_warning = any('已自动按比例缩放' in w for w in warnings)
+                    if has_resize_warning:
+                        resized_elements.append(arr.get('id'))
+                    
+                    # 检查是否仍然超出（理论上不应该发生了，但保留作为安全检查）
+                    if width > target_width or height > target_height:
+                        oversized_elements.append({
+                            'id': arr.get('id'),
+                            'width': width,
+                            'height': height,
+                            'target': f"{target_width}x{target_height}"
+                        })
+                
+                if resized_elements:
+                    logger.info(f"✅ 已自动缩放 {len(resized_elements)} 个超出目标画布的元素: {resized_elements}")
+                
+                if oversized_elements:
+                    logger.warning(f"⚠️ 警告: 仍有 {len(oversized_elements)} 个元素超出目标画布（缩放可能失败）:")
+                    for elem in oversized_elements:
+                        logger.warning(f"  - {elem['id']}: {elem['width']}x{elem['height']} > {elem['target']}")
+                elif not resized_elements:
+                    logger.info("✅ 所有元素的新尺寸均在目标画布范围内，无需缩放。")
             else:
                 logger.error("转换后的排列方案为空，可能是 ID 匹配失败或格式转换问题")
                 raise ValueError("无法转换排列方案格式，请检查 Gemini API 返回的数据格式")
             
             # 验证转换后的数据格式
             if len(converted_arrangements) < len(selected_elements):
-                logger.warning(f"转换后的排列方案数量 ({len(converted_arrangements)}) 少于原始元素数量 ({len(selected_elements)})")
+                missing_count = len(selected_elements) - len(converted_arrangements)
+                logger.warning(f"⚠️ 转换后的排列方案数量 ({len(converted_arrangements)}) 少于原始元素数量 ({len(selected_elements)})，缺少 {missing_count} 个元素")
+                original_ids = [str(elem.get('id', '')) for elem in selected_elements]
+                converted_ids = [str(arr.get('id', '')) for arr in converted_arrangements]
+                missing_ids = set(original_ids) - set(converted_ids)
+                if missing_ids:
+                    logger.warning(f"缺失的元素ID: {list(missing_ids)}")
             
             return converted_arrangements
             
@@ -507,18 +554,91 @@ class CanvasLayerArrangementService:
                     logger.warning(f"无法识别的坐标格式: {new_coords_data}")
                     continue
                 
+                # 验证新坐标是否在目标画布范围内，并进行自动缩放调整
+                if hasattr(self, '_target_width') and hasattr(self, '_target_height'):
+                    target_width = self._target_width
+                    target_height = self._target_height
+                    
+                    current_width = new_coords.get('width', 0)
+                    current_height = new_coords.get('height', 0)
+                    current_x = new_coords.get('x', 0)
+                    current_y = new_coords.get('y', 0)
+                    
+                    needs_resize = False
+                    scale_factor = 1.0
+                    
+                    # 只有当宽度或高度大于0时才进行缩放计算，避免除以零
+                    if current_width > 0 and current_height > 0:
+                        # 检查是否需要缩放以适应目标画布
+                        if current_width > target_width or current_height > target_height:
+                            # 计算缩放因子：选择较小的缩放比例，以确保元素完全适应目标画布，并保持宽高比
+                            scale_w = target_width / current_width
+                            scale_h = target_height / current_height
+                            scale_factor = min(scale_w, scale_h)
+                            
+                            # 应用缩放
+                            new_coords['width'] = current_width * scale_factor
+                            new_coords['height'] = current_height * scale_factor
+                            needs_resize = True
+                            
+                            logger.info(f"📏 元素 {arr_id} 尺寸超出目标画布 ({current_width:.2f}x{current_height:.2f})，已按比例缩放至 {new_coords['width']:.2f}x{new_coords['height']:.2f} (缩放因子: {scale_factor:.3f})")
+                        
+                        # 检查边界并调整位置
+                        right_edge = current_x + new_coords['width']
+                        bottom_edge = current_y + new_coords['height']
+                        
+                        # 调整X坐标：如果右边界超出，向左移动
+                        if right_edge > target_width:
+                            new_coords['x'] = max(0, target_width - new_coords['width'])
+                            logger.info(f"📍 元素 {arr_id} 右边界超出，X坐标已调整: {current_x:.2f} -> {new_coords['x']:.2f}")
+                        
+                        # 调整Y坐标：如果下边界超出，向上移动
+                        if bottom_edge > target_height:
+                            new_coords['y'] = max(0, target_height - new_coords['height'])
+                            logger.info(f"📍 元素 {arr_id} 下边界超出，Y坐标已调整: {current_y:.2f} -> {new_coords['y']:.2f}")
+                        
+                        # 确保坐标不为负数
+                        if new_coords.get('x', 0) < 0:
+                            new_coords['x'] = 0
+                            logger.info(f"📍 元素 {arr_id} X坐标小于0，已调整为0")
+                        
+                        if new_coords.get('y', 0) < 0:
+                            new_coords['y'] = 0
+                            logger.info(f"📍 元素 {arr_id} Y坐标小于0，已调整为0")
+                        
+                        # 更新warnings信息
+                        if needs_resize:
+                            warnings = arr.get('warnings', [])
+                            warnings.append(f"元素尺寸超出目标画布 ({current_width:.2f}x{current_height:.2f})，已自动按比例缩放至 {new_coords['width']:.2f}x{new_coords['height']:.2f}")
+                            arr['warnings'] = warnings
+                    else:
+                        logger.warning(f"⚠️ 元素 {arr_id} 的新尺寸无效 (width: {current_width}, height: {current_height})，无法进行缩放。")
+                        warnings = arr.get('warnings', [])
+                        warnings.append(f"元素的新尺寸无效 (width: {current_width}, height: {current_height})，无法进行缩放")
+                        arr['warnings'] = warnings
+                
                 # 构建转换后的排列方案
+                # 使用更新后的warnings（如果被修改过）
+                final_warnings = arr.get('warnings', [])
+                
+                # 确定最终的scale_factor
+                final_scale_factor = arr.get('scale_factor', 1.0)
+                if needs_resize and scale_factor != 1.0:
+                    # 如果进行了缩放，使用计算出的缩放因子
+                    final_scale_factor = scale_factor
+                
                 converted_arr = {
                     'id': str(original_element.get('id')),  # 确保 id 是字符串
                     'type': arr.get('type', original_element.get('type', 'unknown')),
                     'original_coords': original_coords,
                     'new_coords': new_coords,
-                    'scale_factor': arr.get('scale_factor', 1.0),
+                    'scale_factor': final_scale_factor,
                     'adjustment_reason': arr.get('adjustment_reason', ''),
                     'quality_check': arr.get('quality_check', ''),
-                    'warnings': arr.get('warnings', [])
+                    'warnings': final_warnings
                 }
                 
+                logger.debug(f"✅ 成功转换元素 {arr_id}: new_coords={new_coords}")
                 converted.append(converted_arr)
                 
             except Exception as e:

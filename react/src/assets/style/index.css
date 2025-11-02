@@ -159,6 +159,30 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* 修复 rc-textarea 文本截断问题 */
+  .rc-textarea {
+    line-height: 1.6 !important;
+    min-height: 72px !important;
+    overflow: visible !important;
+  }
+
+  .rc-textarea textarea {
+    line-height: 1.6 !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 72px !important;
+  }
+
+  /* 确保文本不会被裁剪 */
+  .rc-textarea .rc-textarea-measure {
+    line-height: 1.6 !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+  }
 }
 
 @layer base {

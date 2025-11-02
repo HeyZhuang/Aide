@@ -1,5 +1,4 @@
 import { sendMessages } from '@/api/chat'
-import Blur from '@/components/common/Blur'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { eventBus, TEvents } from '@/lib/event'
 import ChatMagicGenerator from './ChatMagicGenerator'
@@ -353,13 +352,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }}
               title={isMinimized ? '展开' : '收起'}
             >
-
               <Share2 className="h-4 w-4 mr-1" />
-            </Button>
-          )} */}
+            </button>
+          </div>
 
           <Blur className='absolute top-0 left-0 right-0 h-full -z-1' />
-        </header>
+        </div>
 
         <ScrollArea className='h-[calc(100vh-45px)]' viewportRef={scrollRef}>
           {messages.length > 0 ? (
@@ -483,7 +481,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           )}
         </ScrollArea>
 
-        <div className='p-2 gap-2 sticky bottom-0'>
+        <div className='p-4 gap-3 sticky bottom-0 bg-gradient-to-t from-background/98 via-background/95 to-background/90 backdrop-blur-md border-t border-border/20'>
           <ChatTextarea
             sessionId={sessionId!}
             pending={!!pending}

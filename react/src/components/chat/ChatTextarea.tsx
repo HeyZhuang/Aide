@@ -420,18 +420,20 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     <motion.div
       ref={dropAreaRef}
       className={cn(
-        'w-full flex flex-col items-center border border-primary/20 rounded-2xl p-3 hover:border-primary/40 transition-all duration-300 cursor-text gap-5 bg-background/80 backdrop-blur-xl relative',
-        isFocused && 'border-primary/40',
+        'w-full flex flex-col items-stretch border rounded-2xl p-4 transition-all duration-200 cursor-text gap-3 bg-background/95 backdrop-blur-xl relative overflow-visible',
+        isFocused
+          ? 'border-primary/50 shadow-lg shadow-primary/5'
+          : 'border-border/50 hover:border-primary/30',
         className
       )}
       style={{
         boxShadow: isFocused
-          ? '0 0 0 4px color-mix(in oklab, var(--primary) 10%, transparent)'
-          : 'none',
+          ? '0 0 0 3px color-mix(in oklab, var(--primary) 8%, transparent), 0 4px 12px -2px color-mix(in oklab, var(--primary) 5%, transparent)'
+          : '0 1px 3px 0 color-mix(in oklab, var(--foreground) 2%, transparent)',
       }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: 'linear' }}
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
       onClick={() => textareaRef.current?.focus()}
     >
       <AnimatePresence>
@@ -455,7 +457,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       <AnimatePresence>
         {images.length > 0 && (
           <motion.div
-            className="flex items-center gap-2 w-full"
+            className="flex items-center gap-2 w-full flex-wrap"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -464,28 +466,28 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             {images.map((image) => (
               <motion.div
                 key={image.file_id}
-                className="relative size-10"
-                initial={{ opacity: 0, scale: 0.95 }}
+                className="relative size-12 rounded-lg overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow"
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
               >
                 <img
-                  key={image.file_id}
                   src={`/api/file/${image.file_id}`}
                   alt="Uploaded image"
-                  className="w-full h-full object-cover rounded-md"
+                  className="w-full h-full object-cover"
                   draggable={false}
                 />
                 <Button
-                  variant="secondary"
+                  variant="destructive"
                   size="icon"
-                  className="absolute -top-1 -right-1 size-4"
-                  onClick={() =>
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full shadow-md hover:scale-110 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation()
                     setImages((prev) =>
                       prev.filter((i) => i.file_id !== image.file_id)
                     )
-                  }
+                  }}
                 >
                   <XIcon className="size-3" />
                 </Button>
@@ -498,7 +500,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       <AnimatePresence>
         {psdFiles.length > 0 && (
           <motion.div
-            className="flex items-center gap-2 w-full"
+            className="flex items-center gap-2 w-full flex-wrap"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -507,23 +509,25 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             {psdFiles.map((psd) => (
               <motion.div
                 key={psd.file_id}
-                className="relative size-10"
-                initial={{ opacity: 0, scale: 0.95 }}
+                className="relative size-12 rounded-lg overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-shadow group"
+                initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
               >
                 <img
                   src={psd.thumbnail_url}
                   alt="PSD thumbnail"
-                  className="w-full h-full object-cover rounded-md"
+                  className="w-full h-full object-cover"
                   draggable={false}
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <Button
-                  variant="secondary"
+                  variant="destructive"
                   size="icon"
-                  className="absolute -top-1 -right-1 size-4"
-                  onClick={() => {
+                  className="absolute -top-1.5 -right-1.5 size-5 rounded-full shadow-md hover:scale-110 transition-transform"
+                  onClick={(e) => {
+                    e.stopPropagation()
                     setPsdFiles((prev) => prev.filter((p) => p.file_id !== psd.file_id))
                     if (selectedPsd?.file_id === psd.file_id) {
                       setSelectedPsd(null)
@@ -535,8 +539,11 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="absolute -bottom-1 -right-1 size-4"
-                  onClick={() => setSelectedPsd(psd)}
+                  className="absolute -bottom-1.5 -right-1.5 size-5 rounded-full shadow-md hover:scale-110 transition-transform bg-background/90 backdrop-blur-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedPsd(psd)
+                  }}
                   title="编辑图层"
                 >
                   <Layers className="size-3" />
@@ -549,10 +556,13 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 
       <Textarea
         ref={textareaRef}
-        className="w-full h-full border-none outline-none resize-none"
+        className="w-full border-none outline-none resize-none text-base leading-6 min-h-[24px] py-1.5 px-0 placeholder:text-muted-foreground/60 text-foreground focus:placeholder:text-muted-foreground/40"
         placeholder={t('chat:textarea.placeholder')}
         value={prompt}
-        autoSize
+        autoSize={{
+          minRows: 1,
+          maxRows: 8,
+        }}
         onChange={(e) => setPrompt(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -562,10 +572,16 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             handleSendPrompt()
           }
         }}
+        style={{
+          fontFamily: 'inherit',
+          fontSize: 'inherit',
+          lineHeight: '1.5',
+          color: 'inherit',
+        }}
       />
 
-      <div className="flex items-center justify-between gap-2 w-full">
-        <div className="flex items-center gap-1 max-w-[calc(100%-50px)] flex-nowrap overflow-x-auto">
+      <div className="flex items-center justify-between gap-3 w-full min-w-0 pt-1 border-t border-border/30">
+        <div className="flex items-center gap-2 flex-1 min-w-0 flex-wrap">
           <input
             ref={imageInputRef}
             type="file"
@@ -586,6 +602,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             size="sm"
             onClick={() => imageInputRef.current?.click()}
             title="上传图片"
+            className="shrink-0 hover:bg-accent/80 transition-colors"
           >
             <PlusIcon className="size-4" />
           </Button>
@@ -594,22 +611,25 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             size="sm"
             onClick={() => psdInputRef.current?.click()}
             title="上传PSD文件"
+            className="shrink-0 hover:bg-accent/80 transition-colors"
           >
             <Layers className="size-4" />
           </Button>
 
-          <ModelSelectorV3 />
+          <div className="shrink-0">
+            <ModelSelectorV3 />
+          </div>
 
           {/* Aspect Ratio Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 shrink-0"
                 size={'sm'}
               >
                 <RectangleVertical className="size-4" />
-                <span className="text-sm">{selectedAspectRatio}</span>
+                <span className="text-sm whitespace-nowrap">{selectedAspectRatio}</span>
                 <ChevronDown className="size-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -633,13 +653,13 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           {/* Quantity Selector 使用 DropdownMenu（portal）避免被裁剪 */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-1" size={'sm'}>
+              <Button variant="outline" className="flex items-center gap-1 shrink-0" size={'sm'}>
                 <Hash className="size-4" />
-                <span className="text-sm">{quantity}</span>
+                <span className="text-sm whitespace-nowrap">{quantity}</span>
                 <ChevronDown className="size-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4">
+            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4 z-[1000]">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{t('chat:textarea.quantity', 'Image Quantity')}</span>
