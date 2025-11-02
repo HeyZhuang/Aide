@@ -278,7 +278,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
 
   return (
     <>
-      <div className="flex items-center gap-1 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+      <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
         {/* 圆角半径 */}
         <div className="flex items-center gap-2 px-2">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -328,8 +328,8 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
             <Layers className="h-5 w-5" />
           </Button>
           {layersOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-[#2a2a2a] border border-gray-700 rounded-lg shadow-lg p-2 z-50">
-              <div className="text-xs text-gray-400 px-2 py-1 mb-1">图层</div>
+            <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg p-2 z-50">
+              <div className="text-xs text-foreground px-2 py-1 mb-1">图层</div>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { useCanvas } from '@/contexts/canvas'
-import { 
+import {
   Palette,
   PaintBucket,
   Minus
@@ -24,7 +24,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
   const [strokeWidth, setStrokeWidth] = useState(1)
   const [opacity, setOpacity] = useState(100)
   const [strokeStyle, setStrokeStyle] = useState<StrokeStyle>('solid')
-  
+
   // 使用 ref 存储当前选中元素的 ID，避免依赖整个对象
   const selectedElementIdRef = useRef<string>(selectedElement.id)
 
@@ -63,26 +63,26 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
   // 更新元素方法
   const updateElement = useCallback((updates: Partial<ExcalidrawElement>) => {
     if (!excalidrawAPI) return
-    
+
     const elements = excalidrawAPI.getSceneElements()
     const elementIndex = elements.findIndex(el => el.id === selectedElementIdRef.current)
-    
+
     if (elementIndex === -1) return
-    
+
     const updatedElement = {
       ...elements[elementIndex],
       ...updates,
       versionNonce: elements[elementIndex].versionNonce + 1
     }
-    
-    excalidrawAPI.updateScene({ 
+
+    excalidrawAPI.updateScene({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      elements: [...elements.slice(0, elementIndex), updatedElement, ...elements.slice(elementIndex + 1)] as any 
+      elements: [...elements.slice(0, elementIndex), updatedElement, ...elements.slice(elementIndex + 1)] as any
     })
   }, [excalidrawAPI])
 
   return (
-    <div className="flex items-center gap-2 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+    <div className="flex items-center gap-2 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
       {/* 描边颜色 */}
       <div className="relative group">
         <input
@@ -97,7 +97,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         />
         <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors">
           <Palette className="h-4 w-4 pointer-events-none" />
-          <div 
+          <div
             className="w-6 h-6 rounded border border-gray-600 shadow-inner pointer-events-none"
             style={{ backgroundColor: strokeColor }}
           />
@@ -120,7 +120,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         />
         <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors">
           <PaintBucket className="h-4 w-4 pointer-events-none" />
-          <div 
+          <div
             className="w-6 h-6 rounded border border-gray-600 shadow-inner pointer-events-none"
             style={{ backgroundColor: backgroundColor === 'transparent' ? '#ffffff' : backgroundColor }}
           />

@@ -34,8 +34,8 @@ const CanvasMenuButton = ({
           variant="ghost"
           size="icon"
           className={cn(
-            'p-2 rounded-md cursor-pointer hover:bg-primary/5',
-            isActive && 'bg-primary/10',
+            'p-2 rounded-md cursor-pointer hover:bg-white/20',
+            isActive && 'bg-white/25',
             className
           )}
           onMouseDown={(e) => {
@@ -44,11 +44,11 @@ const CanvasMenuButton = ({
           }}
         >
           {React.createElement(icons[type], {
-            className: 'size-4',
+            className: 'size-4 text-foreground',
           })}
         </Button>
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent className="text-white bg-black/80 border-white/20">
         {t(`canvas:tool.${type}`)} ({toolShortcuts[type]})
       </TooltipContent>
     </Tooltip>

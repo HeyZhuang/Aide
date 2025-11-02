@@ -195,7 +195,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-[#1e1e1e] text-white px-2 py-1.5 rounded-lg shadow-lg border border-gray-700">
+    <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
       {/* 字体选择 */}
       <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
         <DropdownMenuTrigger asChild>
@@ -209,20 +209,20 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-[#2a2a2a] text-white border-gray-700 w-[400px] p-0"
+          className="bg-background text-foreground border-border w-[400px] p-0"
           align="start"
         >
           <Tabs defaultValue="system" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 bg-[#1e1e1e]">
+            <TabsList className="w-full grid grid-cols-2 bg-background">
               <TabsTrigger
                 value="system"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-300"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground"
               >
                 System Fonts
               </TabsTrigger>
               <TabsTrigger
                 value="upload"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-300"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground"
               >
                 Upload Font
               </TabsTrigger>
@@ -239,8 +239,8 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         setFontMenuOpen(false)
                       }}
                       className={`px-3 py-2 rounded cursor-pointer transition-colors ${selectedFont === font.name
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-white/10 text-white'
+                        ? 'bg-blue-600 text-white'
+                        : 'hover:bg-white/10 text-foreground'
                         }`}
                     >
                       {font.name}
@@ -252,8 +252,8 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
 
             <TabsContent value="upload" className="m-0">
               <div className="p-2">
-                <div className="flex items-center justify-between px-2 py-2 border-b border-gray-700">
-                  <span className="text-xs text-gray-400">自定义字体</span>
+                <div className="flex items-center justify-between px-2 py-2 border-b border-border">
+                  <span className="text-xs text-foreground">自定义字体</span>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
@@ -283,16 +283,16 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                 <ScrollArea className="h-[300px]">
                   {loadingFonts ? (
                     <div className="flex items-center justify-center h-32">
-                      <RefreshCw className="h-5 w-5 animate-spin text-gray-400" />
+                      <RefreshCw className="h-5 w-5 animate-spin text-foreground" />
                     </div>
                   ) : customFonts.length === 0 ? (
                     <div className="p-6 text-center">
-                      <Type className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-                      <p className="text-sm text-gray-400 mb-3">暂无自定义字体</p>
+                      <Type className="h-8 w-8 mx-auto mb-2 text-foreground" />
+                      <p className="text-sm text-foreground mb-3">暂无自定义字体</p>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-gray-600 text-gray-300 hover:bg-white/10"
+                        className="border-border text-foreground hover:bg-white/10"
                         onClick={() => {
                           setShowUploadDialog(true)
                           setFontMenuOpen(false)
@@ -308,7 +308,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         <div
                           key={font.id}
                           onClick={() => handleCustomFontSelect(font)}
-                          className="px-3 py-2.5 rounded cursor-pointer transition-colors hover:bg-white/10 text-white group"
+                          className="px-3 py-2.5 rounded cursor-pointer transition-colors hover:bg-white/10 text-foreground group"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
@@ -318,12 +318,12 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                                 </span>
                                 <Badge
                                   variant="outline"
-                                  className="text-xs border-gray-600 text-gray-400"
+                                  className="text-xs border-border text-foreground"
                                 >
                                   {font.font_format.toUpperCase()}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-gray-400 truncate">{font.font_family}</p>
+                              <p className="text-xs text-foreground"> {font.font_family}</p>
                             </div>
                             <Button
                               variant="ghost"
@@ -333,8 +333,8 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                             >
                               <Star
                                 className={`h-3 w-3 ${font.is_favorite
-                                    ? 'text-yellow-500 fill-current'
-                                    : 'text-gray-400'
+                                  ? 'text-yellow-500 fill-current'
+                                  : 'text-foreground'
                                   }`}
                               />
                             </Button>

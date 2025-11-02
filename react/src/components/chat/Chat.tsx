@@ -1,4 +1,7 @@
+
+
 import { sendMessages } from '@/api/chat'
+import Blur from '@/components/common/Blur'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { eventBus, TEvents } from '@/lib/event'
 import ChatMagicGenerator from './ChatMagicGenerator'
@@ -61,7 +64,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   sessionList,
   setSessionList,
   sessionId: searchSessionId,
-  isMinimized = false,
+  isMinimized = true,
   onToggleMinimize,
 }) => {
   const { t } = useTranslation()
@@ -353,154 +356,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }}
               title={isMinimized ? '展开' : '收起'}
             >
-              <Share2 className="h-4 w-4 mr-1" />
+              {isMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            <button
+              className='bottom-chat-collapse-btn'
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowShareDialog(true);
+              }}
+              title='分享'
+            >
+              <Share2 size={16} />
             </button>
           </div>
-
-          <Blur className='absolute top-0 left-0 right-0 h-full -z-1' />
-        </div>
-
-        <ScrollArea className='h-[calc(100vh-45px)]' viewportRef={scrollRef}>
-          {messages.length > 0 ? (
-            <div className='flex flex-col flex-1 px-4 pb-50 pt-15'>
-              {/* Messages */}
-              {messages.map((message, idx) => (
-                <div key={`${idx}`} className='flex flex-col gap-4 mb-2'>
-                  {/* Regular message content */}
-                  {typeof message.content == 'string' &&
-                    (message.role !== 'tool' ? (
-                      <MessageRegular
-                        message={message}
-                        content={message.content}
-                      />
-                    ) : message.tool_call_id &&
-                      mergedToolCallIds.current.includes(
-                        message.tool_call_id
-                      ) ? (
-                      <></>
-                    ) : (
-                      <ToolCallContent
-                        expandingToolCalls={expandingToolCalls}
-                        message={message}
-                      />
-                    ))}
-
-                  {/* 混合内容消息的文本部分 - 显示在聊天框内 */}
-                  {Array.isArray(message.content) && (
-                    <>
-                      <MixedContentImages
-                        contents={message.content}
-                      />
-                      <MixedContentText
-                        message={message}
-                        contents={message.content}
-                      />
-                    </>
-                  )}
-
-                  {message.role === 'assistant' &&
-                    message.tool_calls &&
-                    message.tool_calls.at(-1)?.function.name != 'finish' &&
-                    message.tool_calls.map((toolCall, i) => {
-                      return (
-                        <ToolCallTag
-                          key={toolCall.id}
-                          toolCall={toolCall}
-                          isExpanded={expandingToolCalls.includes(toolCall.id)}
-                          onToggleExpand={() => {
-                            if (expandingToolCalls.includes(toolCall.id)) {
-                              setExpandingToolCalls((prev) =>
-                                prev.filter((id) => id !== toolCall.id)
-                              )
-                            } else {
-                              setExpandingToolCalls((prev) => [
-                                ...prev,
-                                toolCall.id,
-                              ])
-                            }
-                          }}
-                          requiresConfirmation={pendingToolConfirmations.includes(
-                            toolCall.id
-                          )}
-                          onConfirm={() => {
-                            // 发送确认事件到后端
-                            fetch('/api/tool_confirmation', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                session_id: sessionId,
-                                tool_call_id: toolCall.id,
-                                confirmed: true,
-                              }),
-                            })
-                          }}
-                          onCancel={() => {
-                            // 发送取消事件到后端
-                            fetch('/api/tool_confirmation', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                session_id: sessionId,
-                                tool_call_id: toolCall.id,
-                                confirmed: false,
-                              }),
-                            })
-                          }}
-                        />
-                      )
-                    })}
-                </div>
-              ))}
-              {pending && <ChatSpinner pending={pending} />}
-              {pending && sessionId && (
-                <ToolcallProgressUpdate sessionId={sessionId} />
-              )}
-            </div>
-          ) : (
-            <motion.div className='flex flex-col h-full p-4 items-start justify-start pt-16 select-none'>
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className='text-muted-foreground text-3xl'
-              >
-                <ShinyText text='Hello, Aide!' />
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className='text-muted-foreground text-2xl'
-              >
-                <ShinyText text='How can I help you today?' />
-              </motion.span>
-            </motion.div>
-          )}
-        </ScrollArea>
-
-        <div className='p-4 gap-3 sticky bottom-0 bg-gradient-to-t from-background/98 via-background/95 to-background/90 backdrop-blur-md border-t border-border/20'>
-          <ChatTextarea
-            sessionId={sessionId!}
-            pending={!!pending}
-            messages={messages}
-            onSendMessages={onSendMessages}
-            onCancelChat={handleCancelChat}
-          />
-
-          {/* 魔法生成组件 */}
-          <ChatMagicGenerator
-            sessionId={sessionId || ''}
-            canvasId={canvasId}
-            messages={messages}
-            setMessages={setMessages}
-            setPending={setPending}
-            scrollToBottom={scrollToBottom}
-          />
-
         </div>
 
         {/* Chat content - only show when not minimized */}
@@ -614,7 +482,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     transition={{ duration: 0.5 }}
                     className='text-muted-foreground text-base'
                   >
-                    <ShinyText text='Hello, Jaaz!' />
+                    <ShinyText text='Hello, Aide!' />
                   </motion.span>
                   <motion.span
                     initial={{ opacity: 0, y: 10 }}
