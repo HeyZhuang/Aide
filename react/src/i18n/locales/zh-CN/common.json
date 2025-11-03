@@ -22,21 +22,61 @@
     "warning": "警告",
     "info": "信息"
   },
+  "sidebar": {
+    "layers": "图层",
+    "assets": "资产",
+    "search_layers": "搜索图层...",
+    "all": "全部",
+    "text": "文字",
+    "image": "图像",
+    "group": "群组",
+    "text_layers": "文字图层",
+    "image_layers": "图像图层",
+    "group_layers": "群组图层",
+    "no_layers_in_canvas": "画布中暂无图层",
+    "upload_psd_or_add_layers": "上传PSD文件或添加图层到画布",
+    "templates": "模板",
+    "library": "素材库",
+    "fonts": "字体",
+    "platform": "平台",
+    "my_uploads": "我的上传",
+    "retry": "重试",
+    "loading": "加载中..."
+  },
+  "templates": {
+    "no_preview": "暂无预览图",
+    "needs_parsing": "需解析",
+    "parsed": "已解析",
+    "layers": "图层",
+    "click_to_parse": "点击解析",
+    "no_templates": "暂无PSD模板",
+    "template_files_should_be_in_template_folder": "模板文件应放在 template 文件夹中"
+  },
+  "image_library": {
+    "upload_image": "上传图片",
+    "drag_to_replace_or_add": "拖拽到画布中的图片上进行替换，或拖到空白处添加新图片",
+    "no_platform_images": "暂无平台图片",
+    "no_uploaded_images": "暂无上传的图片，请点击上方按钮上传",
+    "delete_image": "删除图片"
+  },
+  "fonts": {
+    "search_fonts": "搜索字体"
+  },
   "messages": {
     "success": "操作成功完成",
-    "error": "发生了错误",
+    "error": "发生错误",
     "loading": "正在加载，请稍候...",
     "noData": "暂无数据",
-    "confirmDelete": "确定要删除此项吗？",
+    "confirmDelete": "确定要删除此项目吗？",
     "saved": "保存成功",
     "deleted": "删除成功"
   },
   "notifications": {
     "title": "通知",
     "clear": "清空",
-    "markAllAsRead": "全部已读",
+    "markAllAsRead": "全部标记为已读",
     "allRead": "全部已读",
-    "newImageGenerated": "新图片生成"
+    "newImageGenerated": "新图片已生成"
   },
   "navigation": {
     "home": "首页",
@@ -44,44 +84,38 @@
     "settings": "设置",
     "back": "返回"
   },
-  "dialog": {
-    "confirmTitle": "确认操作",
-    "confirmDescription": "此操作无法撤销",
-    "cancel": "取消",
-    "confirm": "确认"
-  },
   "update": {
     "title": "🎉 新版本可用",
-    "description": "发现新版本 v{{version}}，是否立即安装更新？",
-    "installNote": "点击“安装更新”将重启应用并安装。",
+    "description": "新版本 v{{version}} 已可用。您想立即安装吗？",
+    "installNote": "点击\"安装更新\"以重启应用并安装新版本。",
     "laterButton": "稍后提醒",
     "installButton": "安装更新",
-    "installing": "正在安装..."
+    "installing": "安装中..."
   },
   "auth": {
     "login": "登录",
-    "logout": "退出登录",
-    "loginToJaaz": "登录到 Jaaz",
+    "logout": "登出",
+    "loginToJaaz": "登录 Jaaz",
     "myAccount": "我的账户",
-    "loginDescription": "登录后可以使用云端 AI 模型",
+    "loginDescription": "登录以使用云AI模型",
     "startLogin": "开始登录",
     "preparingLogin": "准备登录中...",
     "cancel": "取消",
     "loginSuccessMessage": "登录成功！",
     "authExpiredMessage": "授权已过期，请重新登录",
     "authErrorMessage": "检查授权状态时发生错误",
-    "waitingForBrowser": "等待浏览器中完成登录...",
+    "waitingForBrowser": "等待浏览器登录完成...",
     "pollErrorMessage": "检查登录状态失败，请重试",
-    "preparingLoginMessage": "正在准备登录...",
+    "preparingLoginMessage": "准备登录中...",
     "browserLoginMessage": "请在浏览器中完成登录",
     "loginRequestFailed": "登录请求失败，请重试",
-    "logoutSuccessMessage": "已成功登出",
+    "logoutSuccessMessage": "成功登出",
     "notLoggedIn": "未登录",
     "balance": "余额",
     "recharge": "充值"
   },
   "socket": {
     "connectionError": "连接错误 ({{current}}/{{max}}): {{error}}",
-    "maxRetriesReached": "连接失败，请重启应用重试"
+    "maxRetriesReached": "连接失败，请重启应用"
   }
 }
