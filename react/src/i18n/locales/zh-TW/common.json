@@ -81,6 +81,33 @@
         "balance": "餘額",
         "recharge": "儲值"
     },
+    "resize": {
+        "title": "智能縮放",
+        "ai_description": "使用AI智能調整",
+        "description": "已選擇 {{selectedCount}} 個元素，請設置目標畫布尺寸進行智能排列",
+        "custom_size": "自定義尺寸",
+        "width": "寬度",
+        "height": "高度",
+        "current_size": "當前尺寸",
+        "aspect_ratio": "寬高比",
+        "preset_sizes": "預設尺寸",
+        "recommended": "推薦",
+        "apply": "應用",
+        "cancel": "取消",
+        "arranging": "排列中...",
+        "start_arranging": "開始排列",
+        "errors": {
+            "invalid_dimensions": "請輸入有效的尺寸（寬度和高度必須大於0）"
+        },
+        "preset": {
+            "social_recommended": "社交媒體推薦",
+            "horizontal_recommended": "橫版推薦",
+            "instagram_square": "Instagram 方形",
+            "instagram_story": "Instagram 故事",
+            "facebook_post": "Facebook 帖子",
+            "twitter_post": "Twitter 帖子"
+        }
+    },
     "socket": {
         "connectionError": "連線錯誤 ({{current}}/{{max}}): {{error}}",
         "maxRetriesReached": "連線失敗，請重啟應用程式重試"

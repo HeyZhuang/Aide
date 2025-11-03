@@ -7,19 +7,30 @@
   import ChatInterface from '@/components/chat/Chat'
   import { PSDLayerSidebar } from '@/components/canvas/PSDLayerSidebar'
   import { CanvasProvider } from '@/contexts/canvas'
+  import { CanvasOverlay } from '@/components/canvas/CanvasOverlay'
+  import { useCanvas } from '@/contexts/canvas'
   import { CanvasData, Session } from '@/types/types'
   import { createFileRoute, useParams, useSearch } from '@tanstack/react-router'
-  import { Loader2 } from 'lucide-react'
-  import { useEffect, useState } from 'react'
-  import { PSDUploadResponse } from '@/api/upload'
-  import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
+import { Loader2, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { PSDUploadResponse } from '@/api/upload'
+import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
 
   export const Route = createFileRoute('/canvas/$id')({
     component: Canvas,
   })
 
   function Canvas() {
+    return (
+      <CanvasProvider>
+        <CanvasContent />
+      </CanvasProvider>
+    )
+  }
+
+  function CanvasContent() {
     const { id } = useParams({ from: '/canvas/$id' })
+    const canvasStore = useCanvas()
     const [canvas, setCanvas] = useState<{ data: CanvasData | null; name: string; sessions: Session[] } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<Error | null>(null)
@@ -116,7 +127,6 @@
     }
 
     return (
-      <CanvasProvider>
         <div className='flex flex-col w-screen h-screen'>
           <CanvasHeader
             canvasName={canvasName}
@@ -141,30 +151,82 @@
                   <CanvasExcali canvasId={id} initialData={getInitialData()} />
                   <CanvasMenu canvasId={id} />
                   <CanvasPopbarWrapper />
+                  <CanvasOverlay 
+                    isLoading={canvasStore.overlayLoading}
+                    message={canvasStore.overlayMessage}
+                    type={canvasStore.overlayType}
+                  />
                 </div>
               )}
             </div>
 
-            {/* PSD Layer Sidebar - Positioned separately */}
+            {/* 面板切换按钮 - 当面板隐藏时显示 */}
+            {!isLayerSidebarVisible && (
+              <button
+                onClick={() => setIsLayerSidebarVisible(true)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-3 rounded-l-2xl backdrop-blur-xl transition-all duration-300 hover:scale-110 group"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.75)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRight: 'none',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+                }}
+                aria-label="显示图层面板"
+              >
+                <PanelRightOpen className="w-5 h-5 text-gray-700 group-hover:text-gray-900 transition-colors" />
+              </button>
+            )}
+
+            {/* PSD Layer Sidebar - 苹果毛玻璃风格，从顶部导航栏下方到底部 */}
             <div 
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-[22vw] h-[85vh] z-10 rounded-2xl overflow-hidden"
+              className={`absolute right-0 top-0 w-[24vw] z-10 overflow-visible transition-all duration-500 ease-out ${
+                isLayerSidebarVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+              }`}
               style={{
-                background: 'var(--sidebar-glass-bg, rgba(255, 255, 255, 0.85))',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: 'var(--sidebar-glass-border, 1px solid rgba(255, 255, 255, 0.5))',
-                boxShadow: 'var(--sidebar-glass-shadow, 0 12px 48px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9))',
-                transition: 'all 0.3s ease',
+                height: '100%',
+                background: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(40px) saturate(180%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+                borderLeft: '1px solid rgba(255, 255, 255, 0.18)',
+                boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.08), inset 1px 0 0 rgba(255, 255, 255, 0.5)',
               }}
             >
-              <PSDLayerSidebar
-                psdData={psdData}
-                isVisible={isLayerSidebarVisible}
-                onClose={() => {
-                  setIsLayerSidebarVisible(false)
+              {/* 面板关闭按钮 - 优化位置：放在面板左侧边缘中间，作为拖拽手柄样式 */}
+              <button
+                onClick={() => setIsLayerSidebarVisible(false)}
+                className="absolute -left-8 top-1/2 -translate-y-1/2 z-30 w-8 h-16 flex items-center justify-center rounded-l-lg backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:bg-white/80 group"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.75)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRight: 'none',
+                  borderTopLeftRadius: '0.5rem',
+                  borderBottomLeftRadius: '0.5rem',
+                  boxShadow: '-2px 0 12px rgba(0, 0, 0, 0.1), inset 1px 0 0 rgba(255, 255, 255, 0.6)',
                 }}
-                onUpdate={handlePSDUpdate}
-              />
+                aria-label="隐藏图层面板"
+                title="隐藏面板"
+              >
+                <div className="flex flex-col items-center gap-0.5">
+                  <div className="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-gray-800 transition-colors"></div>
+                  <PanelRightClose className="w-4 h-4 text-gray-700 group-hover:text-gray-900 transition-colors" />
+                  <div className="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-gray-800 transition-colors"></div>
+                </div>
+              </button>
+
+              <div className="h-full w-full overflow-hidden">
+                <PSDLayerSidebar
+                  psdData={psdData}
+                  isVisible={isLayerSidebarVisible}
+                  onClose={() => {
+                    setIsLayerSidebarVisible(false)
+                  }}
+                  onUpdate={handlePSDUpdate}
+                />
+              </div>
             </div>
           </div>
 
@@ -180,6 +242,5 @@
             />
           </div>
         </div>
-      </CanvasProvider>
     )
   }

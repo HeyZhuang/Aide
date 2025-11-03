@@ -22,7 +22,24 @@
         "nothingSelected": "未選擇任何素材",
         "exportingAssets": "匯出素材中...",
         "failedToExportImages": "匯出圖片失敗",
-        "gptImagePermissionRequired": "您必須啟用 gpt-image-1 模型權限才能使用此功能！"
+        "gptImagePermissionRequired": "您必須啟用 gpt-image-1 模型權限才能使用此功能！",
+        "layerArrangement": {
+            "minElementsRequired": "至少需要選擇2個元素才能進行智能排列",
+            "arranging": "正在智能排列 {{count}} 個圖層...",
+            "arrangementCompleted": "智能排列完成！已建立 {{count}} 個新圖層",
+            "arrangementFailed": "智能排列失敗，請重試",
+            "arrangementError": "智能排列過程中出現錯誤",
+            "modelOverloaded": "模型過載，請稍後再試"
+        },
+        "templateLoading": {
+            "loadingTemplate": "正在載入模板 \"{{name}}\"...",
+            "parsingPSD": "正在解析PSD檔案 \"{{name}}\"...",
+            "loadingParsed": "正在載入已解析的模板...",
+            "fallbackLoading": "正在使用傳統方式載入...",
+            "addingLayers": "正在新增 {{count}} 個圖層到畫布...",
+            "templateApplied": "模板 \"{{name}}\" 已套用到畫布",
+            "noDisplayableLayers": "此PSD檔案沒有可顯示的圖層"
+        }
     },
     "deleteDialog": {
         "title": "刪除畫布",

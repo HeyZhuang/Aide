@@ -60,7 +60,16 @@ const staticMiddleware = express.static(distDir, {
   index: false, // 不自动返回 index.html
   setHeaders: (res, path) => {
     if (path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      // HTML 文件不缓存，确保总是获取最新版本
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    } else if (path.match(/\.(js|css)$/)) {
+      // JS/CSS 文件（带hash）可以长期缓存，因为hash变化时文件名也会变
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      // 其他静态资源缓存1年
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
     }
   },
 });
@@ -76,6 +85,10 @@ app.use((req, res, next) => {
 // SPA 路由回退 - 使用 use 而不是 get
 app.use((req, res) => {
   if (!req.path.startsWith('/api') && !req.path.startsWith('/assets') && !req.path.startsWith('/socket.io')) {
+    // 确保 index.html 不被缓存
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(join(distDir, 'index.html'));
   }
 });

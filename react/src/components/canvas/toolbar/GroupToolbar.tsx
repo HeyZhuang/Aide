@@ -26,11 +26,10 @@ import {
 import { LayerArrangementDialog } from '@/components/canvas/LayerArrangementDialog'
 import { arrangeCanvasElements, ElementArrangement } from '@/api/upload'
 import { OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types'
-import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 
 export function GroupToolbar() {
-  const { excalidrawAPI } = useCanvas()
+  const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
   const { t } = useTranslation()
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showResizeMenu, setShowResizeMenu] = useState(false)
@@ -182,20 +181,16 @@ export function GroupToolbar() {
 
     // 至少需要2个元素才能进行智能排列
     if (selectedElements.length < 2) {
-      toast.error('至少需要选择2个元素才能进行智能排列')
+      setOverlay(true, t('canvas:messages.layerArrangement.minElementsRequired'), 'error')
+      setTimeout(() => clearOverlay(), 2000)
       return
     }
 
     // 立即关闭弹窗，允许用户继续操作
     setIsDialogOpen(false)
 
-    // 显示加载中的Toast通知，允许用户在后台继续操作
-    const toastId = toast.loading(
-      `正在智能排列 ${selectedElements.length} 个图层，您可以在后台继续操作...`,
-      {
-        duration: Infinity, // 不自动关闭
-      }
-    )
+    // 显示加载中的提示在画布中央
+    setOverlay(true, t('canvas:messages.layerArrangement.arranging', { count: selectedElements.length }), 'loading')
 
     try {
       setIsArranging(true)
@@ -380,33 +375,28 @@ export function GroupToolbar() {
 
           excalidrawAPI.refresh()
 
-          // 更新Toast为成功状态
-          toast.success(
-            `智能排列完成！已创建 ${newElements.length} 个新图层`,
-            { id: toastId }
-          )
+          // 显示成功提示在画布中央，2秒后自动关闭
+          setOverlay(true, t('canvas:messages.layerArrangement.arrangementCompleted', { count: newElements.length }), 'success')
+          setTimeout(() => clearOverlay(), 2000)
         } else {
-          // 更新Toast为失败状态
-          toast.error(
-            t('canvas:messages.layerArrangement.arrangementFailed'),
-            { id: toastId }
-          )
+          // 显示失败提示
+          setOverlay(true, t('canvas:messages.layerArrangement.arrangementFailed'), 'error')
+          setTimeout(() => clearOverlay(), 2000)
         }
       } else {
-        // 更新Toast为失败状态
-        toast.error(
-          t('canvas:messages.layerArrangement.arrangementFailed'),
-          { id: toastId }
-        )
+        // 显示失败提示
+        setOverlay(true, t('canvas:messages.layerArrangement.arrangementFailed'), 'error')
+        setTimeout(() => clearOverlay(), 2000)
       }
     } catch (error) {
       console.error('图层排列失败:', error);
-      // 更新Toast为错误状态
+      // 显示错误提示
       let errorMessage = t('canvas:messages.layerArrangement.arrangementError')
       if (error instanceof Error && error.message.includes('overloaded')) {
         errorMessage = t('canvas:messages.layerArrangement.modelOverloaded')
       }
-      toast.error(errorMessage, { id: toastId })
+      setOverlay(true, errorMessage, 'error')
+      setTimeout(() => clearOverlay(), 2000)
     } finally {
       setIsArranging(false)
     }
@@ -558,7 +548,7 @@ export function GroupToolbar() {
 
             <DropdownMenuSeparator className="bg-white/30" />
 
-            <div className="text-xs font-medium text-foreground/70 uppercase">预设尺寸</div>
+            <div className="text-xs font-medium text-foreground/70 uppercase">{t('resize.preset_sizes')}</div>
             {presetSizes.map((preset) => (
               <DropdownMenuItem
                 key={preset.name}
@@ -580,7 +570,7 @@ export function GroupToolbar() {
             <DropdownMenuSeparator className="bg-white/30" />
 
             {/* 自定义尺寸 */}
-            <div className="text-xs font-medium text-foreground uppercase mb-2">自定义尺寸</div>
+            <div className="text-xs font-medium text-foreground uppercase mb-2">{t('resize.custom_size')}</div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <Input
@@ -639,7 +629,7 @@ export function GroupToolbar() {
                   }
                 }}
               >
-                应用
+                {t('resize.apply')}
               </Button>
             </div>
           </div>

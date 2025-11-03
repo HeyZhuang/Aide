@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import {
     Layers,
     Eye,
@@ -60,7 +59,7 @@ interface PSDLayerSidebarProps {
 
 export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLayerSidebarProps) {
     const { t } = useTranslation()
-    const { excalidrawAPI } = useCanvas()
+    const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
 
     // 状态管理
     const [selectedLayer, setSelectedLayer] = useState<PSDLayer | null>(null)
@@ -151,7 +150,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             })
 
             if (newImages.length > 0) {
-                toast.success(`成功上传 ${newImages.length} 张图片`)
+                // 图片上传成功，但不显示overlay（因为是侧边栏操作，不需要画布中央提示）
             } else {
                 setError('无法上传图片，请确保选择的是有效的图片文件')
             }
@@ -180,7 +179,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             console.log('🖱️ 点击图片:', imageInfo.name)
 
             if (!excalidrawAPI) {
-                toast.error('画布未初始化')
+                setOverlay(true, '画布未初始化', 'error')
+                setTimeout(() => clearOverlay(), 2000)
                 return
             }
 
@@ -256,10 +256,12 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 elements: [...currentElements, newImageElement as any]
             })
 
-            toast.success(`图片 "${imageInfo.name}" 已添加到画布`)
+            setOverlay(true, `图片 "${imageInfo.name}" 已添加到画布`, 'success')
+            setTimeout(() => clearOverlay(), 2000)
         } catch (err) {
             console.error('添加图片到画布失败:', err)
-            toast.error('添加图片失败，请重试')
+            setOverlay(true, '添加图片失败，请重试', 'error')
+            setTimeout(() => clearOverlay(), 2000)
         }
     }
 
@@ -280,11 +282,10 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 return updated
             })
 
-            // 显示删除成功提示
-            toast.success(`图片 "${imageName}" 已成功删除`)
+            // 删除成功，不显示提示（侧边栏操作）
         } catch (err) {
             console.error('删除图片失败:', err)
-            toast.error('删除图片失败，请重试')
+            // 删除失败也不显示提示，避免干扰用户
         }
     }
 
@@ -354,7 +355,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     '60000000211457 舒酸定專業抗敏護齦強化琺瑯質牙膏_tube.png',
                     'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_正面立體圖.png',
                     'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_直式立體圖.png',
-                    '主圖測試.jpg'
+                    '主圖測試.jpg',
+                    // 新增的图片
+                    '1.5倍渗透.png',
+                    '3重焕齿.png',
+                    '多效呵护.png'
                 ]
 
                 setPlatformImages(mockPlatformImages)
@@ -429,7 +434,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
             // 如果模板已解析，直接从数据库加载（快速）
             if (template.is_parsed && template.template_id) {
-                toast.loading(`正在加载模板 "${template.display_name}"...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.loadingTemplate', { name: template.display_name }), 'loading')
 
                 try {
                     // 从数据库快速获取已解析的数据
@@ -438,7 +443,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 } catch (error) {
                     console.warn('从数据库加载失败，回退到解析模式:', error)
                     // 如果从数据库加载失败，回退到解析模式
-                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    setOverlay(true, t('canvas:messages.templateLoading.fallbackLoading'), 'loading')
 
                     // 从template文件夹获取PSD文件
                     const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
@@ -454,7 +459,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
             } else {
                 // 如果模板未解析，先解析再加载
-                toast.loading(`正在解析PSD文件 "${template.name}"...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.parsingPSD', { name: template.name }), 'loading')
 
                 try {
                     // 先解析PSD文件并存储到数据库
@@ -465,14 +470,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                         result = await getPSDTemplateById(parseResult.template_id)
                     } else {
                         // 如果刚刚解析完成，直接使用解析结果（需要再次获取）
-                        toast.loading(`正在加载已解析的模板...`, { id: 'loading-template' })
+                        setOverlay(true, t('canvas:messages.templateLoading.loadingParsed'), 'loading')
                         result = await getPSDTemplateById(parseResult.template_id)
                     }
                     console.log('✅ PSD模板解析完成并已加载:', result)
                 } catch (error) {
                     // 如果解析失败，回退到传统的上传解析方式
                     console.warn('解析失败，回退到传统方式:', error)
-                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    setOverlay(true, t('canvas:messages.templateLoading.fallbackLoading'), 'loading')
 
                     // 从template文件夹获取PSD文件
                     const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
@@ -534,8 +539,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 console.log('有效图层数量:', validLayers.length)
 
                 if (validLayers.length === 0) {
-                    toast.dismiss('loading-template')
-                    toast.warning('该PSD文件没有可显示的图层')
+                    setOverlay(true, t('canvas:messages.templateLoading.noDisplayableLayers'), 'error')
+                    setTimeout(() => clearOverlay(), 3000)
                     setSelectedPsdTemplate(null)
                     setLoadingPsd(false)
                     return
@@ -629,7 +634,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
 
                 // 批量添加所有文件到Excalidraw
-                toast.loading(`正在添加 ${totalLayers} 个图层到画布...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.addingLayers', { count: totalLayers }), 'loading')
 
                 // 验证文件条目有效后再添加
                 const validFileEntries = fileEntries.filter(entry => {
@@ -756,21 +761,17 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
 
                 // 关闭加载提示并显示成功消息
-                toast.dismiss('loading-template')
-                toast.success(`✅ 模板 "${template.display_name}" 已成功添加到画布（${newElements.length}个图层）`, {
-                    duration: 3000,
-                })
+                setOverlay(true, t('canvas:messages.templateLoading.templateApplied', { name: template.display_name }), 'success')
+                setTimeout(() => clearOverlay(), 2000)
             }
 
             // 重置状态
             setSelectedPsdTemplate(null)
         } catch (err) {
             console.error('加载PSD模板失败:', err)
-            toast.dismiss('loading-template')
             const errorMessage = err instanceof Error ? err.message : '加载PSD模板失败'
-            toast.error(`❌ ${errorMessage}`, {
-                duration: 5000,
-            })
+            setOverlay(true, errorMessage, 'error')
+            setTimeout(() => clearOverlay(), 3000)
             setSelectedPsdTemplate(null)
         } finally {
             setLoadingPsd(false)
@@ -1051,48 +1052,61 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     // 仅参照布局UI：顶部两类（Layers/Assets）+ 对应内容
     return (
         <div
-            className="bg-background text-foreground h-full w-full flex flex-col overflow-hidden"
+            className="text-foreground h-full w-full flex flex-col overflow-hidden"
         >
             {/* 顶部两个类型（统一指示条与选中态） */}
-            <div className="relative grid grid-cols-2 border-b border-white/20 bg-background">
-                {(['layers', 'assets'] as const).map(top => (
-                    <div key={top} className="flex items-center justify-center py-3">
-                        <button
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${uiTopTab === top
-                                ? 'font-semibold text-foreground scale-105'
-                                : 'opacity-60 hover:opacity-100 hover:bg-white/30'
+            <div className="relative grid grid-cols-2 border-b border-white/20" style={{
+                background: 'rgba(255, 255, 255, 0.4)',
+                backdropFilter: 'blur(10px) saturate(150%)',
+                WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+            }}>
+                {(['layers', 'assets'] as const).map(top => {
+                    const isActive = uiTopTab === top
+                    return (
+                        <div key={top} className="flex items-center justify-center py-3">
+                            <button
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${
+                                    isActive
+                                        ? 'font-semibold text-gray-900 scale-105'
+                                        : 'opacity-70 hover:opacity-100 hover:bg-white/30 text-gray-600'
                                 }`}
-                            onClick={() => setUiTopTab(top)}
-                        // style={{
-                        //     background: uiTopTab === top ? 'rgba(255, 255, 255, 0.4)' : 'transparent',
-                        // }}
-                        >
-                            {top === 'layers' ? (
-                                <Layers className={`h-4 w-4 transition-all ${uiTopTab === top ? 'text-gray-200 scale-110' : ''}`} />
-                            ) : (
-                                <span className={`inline-block transition-all ${uiTopTab === top ? 'text-gray-200 scale-110' : ''}`}>
-                                    <svg t="1762142146696" class="icon w-4 h-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4880">
-                                        <path d="M137.216 512c0 16.865882 24.696471 46.260706 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.792471 81.92-58.187294 81.92-75.053176V395.023059C798.479059 449.957647 663.311059 485.074824 512 485.074824c-151.371294 0-286.479059-35.177412-374.784-90.051765V512z m749.568 152.455529c-88.304941 54.994824-223.472941 90.051765-374.784 90.051765-151.371294 0-286.479059-35.117176-374.784-90.051765v117.037177c0 16.865882 24.696471 46.200471 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.852706 81.92-58.187294 81.92-75.053176V664.395294zM30.117647 781.492706V242.507294C30.117647 108.604235 245.880471 0 512 0s481.882353 108.604235 481.882353 242.507294v538.985412C993.882353 915.395765 778.119529 1024 512 1024s-481.882353-108.604235-481.882353-242.507294z m481.882353-404.178824c113.664 0 218.774588-22.407529 292.864-59.693176 57.223529-28.852706 81.92-58.247529 81.92-75.113412 0-16.865882-24.696471-46.200471-81.92-75.053176-74.089412-37.345882-179.2-59.632941-292.864-59.632942s-218.774588 22.287059-292.864 59.632942c-57.223529 28.852706-81.92 58.187294-81.92 75.053176s24.696471 46.260706 81.92 75.113412c74.089412 37.285647 179.2 59.632941 292.864 59.632941z" fill="currentColor" p-id="4881"></path>
-                                    </svg>
-                                </span>
-                            )}
-                            <span className="text-sm font-medium">{top === 'layers' ? t('sidebar.layers') : t('sidebar.assets')}</span>
-                        </button>
-                    </div>
-                ))}
+                                onClick={() => setUiTopTab(top)}
+                                style={{
+                                    background: isActive ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+                                }}
+                            >
+                                {top === 'layers' ? (
+                                    <Layers className={`h-4 w-4 transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`} />
+                                ) : (
+                                    <span className={`inline-block transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`}>
+                                        <svg className="icon w-4 h-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M137.216 512c0 16.865882 24.696471 46.260706 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.792471 81.92-58.187294 81.92-75.053176V395.023059C798.479059 449.957647 663.311059 485.074824 512 485.074824c-151.371294 0-286.479059-35.177412-374.784-90.051765V512z m749.568 152.455529c-88.304941 54.994824-223.472941 90.051765-374.784 90.051765-151.371294 0-286.479059-35.117176-374.784-90.051765v117.037177c0 16.865882 24.696471 46.200471 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.852706 81.92-58.187294 81.92-75.053176V664.395294zM30.117647 781.492706V242.507294C30.117647 108.604235 245.880471 0 512 0s481.882353 108.604235 481.882353 242.507294v538.985412C993.882353 915.395765 778.119529 1024 512 1024s-481.882353-108.604235-481.882353-242.507294z m481.882353-404.178824c113.664 0 218.774588-22.407529 292.864-59.693176 57.223529-28.852706 81.92-58.247529 81.92-75.113412 0-16.865882-24.696471-46.200471-81.92-75.053176-74.089412-37.345882-179.2-59.632941-292.864-59.632942s-218.774588 22.287059-292.864 59.632942c-57.223529 28.852706-81.92 58.187294-81.92 75.053176s24.696471 46.260706 81.92 75.113412c74.089412 37.285647 179.2 59.632941 292.864 59.632941z" fill="currentColor" />
+                                        </svg>
+                                    </span>
+                                )}
+                                <span className="text-sm font-medium">{top === 'layers' ? t('sidebar.layers') : t('sidebar.assets')}</span>
+                            </button>
+                        </div>
+                    )
+                })}
                 {/* 顶部滑动下划线 - 更精美的设计 */}
                 <div
-                    className="absolute bottom-0 left-0 h-[2px] w-1/2 bg-black dark:bg-white transition-transform duration-300 ease-out rounded-full"
+                    className="absolute bottom-0 left-0 h-[2px] w-1/2 bg-gray-700 dark:bg-gray-300 transition-transform duration-300 ease-out rounded-full"
                     style={{
                         transform: uiTopTab === 'layers' ? 'translateX(0%)' : 'translateX(100%)',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                     }}
                 />
             </div>
 
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
-                <div className="flex-1 flex flex-col overflow-hidden bg-background">
-                    <div className="p-4 border-b border-white/10 space-y-3 bg-background">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-white/10 space-y-3" style={{
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        backdropFilter: 'blur(8px) saturate(150%)',
+                        WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                    }}>
                         <Input
                             placeholder={t('sidebar.search_layers')}
                             value={searchTerm}
@@ -1465,7 +1479,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     </div>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col overflow-hidden bg-background">
+                <div className="flex-1 flex flex-col overflow-hidden">
                     {/* 资产子级 Tabs */}
                     <div className="px-3 pt-3">
                         <div className="flex items-center text-sm">
@@ -1713,7 +1727,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                 e.dataTransfer.setDragImage(dragImage, 40, 40);
                                                                 setTimeout(() => document.body.removeChild(dragImage), 0);
 
-                                                                toast.info(t('image_library.drag_to_replace_or_add'));
+                                                                // 拖拽提示已移除，避免干扰
                                                             } catch (error) {
                                                                 console.error('Failed to set drag data:', error);
                                                             }
@@ -1765,7 +1779,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                         e.dataTransfer.setDragImage(dragImage, 40, 40);
                                                                         setTimeout(() => document.body.removeChild(dragImage), 0);
 
-                                                                        toast.info(t('image_library.drag_to_replace_or_add'));
+                                                                        // 拖拽提示已移除，避免干扰
                                                                     } catch (error) {
                                                                         console.error('Failed to set drag data:', error);
                                                                     }
@@ -1844,7 +1858,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 onClose={() => setShowTemplateManager(false)}
                 onApplyTemplate={(template) => {
                     console.log('应用模板:', template)
-                    toast.success(`模板 "${template.name}" 已应用到画布`)
+                    setOverlay(true, t('canvas:messages.templateLoading.templateApplied', { name: template.name }), 'success')
+                    setTimeout(() => clearOverlay(), 2000)
                 }}
             />
         </div>
