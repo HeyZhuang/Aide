@@ -12,6 +12,9 @@ import uuid
 from PIL import Image
 import io
 
+# 创建路由器实例
+router = APIRouter()
+
 # 数据库配置
 DATABASE_URL = "sqlite:///./user_data/templates.db"
 engine = create_engine(DATABASE_URL)
@@ -202,7 +205,8 @@ async def update_category(category_id: str, category: TemplateCategoryUpdate, db
     for field, value in update_data.items():
         setattr(db_category, field, value)
     
-    db_category.updated_at = datetime.utcnow()
+    # 使用setattr来避免类型检查错误
+    setattr(db_category, 'updated_at', datetime.utcnow())
     db.commit()
     db.refresh(db_category)
     
@@ -386,32 +390,32 @@ async def update_template(
     
     # 更新基本字段
     if name is not None:
-        template.name = name
+        setattr(template, 'name', name or "")
     if description is not None:
-        template.description = description
+        setattr(template, 'description', description)
     if category_id is not None:
-        template.category_id = category_id
+        setattr(template, 'category_id', category_id)
     if template_metadata is not None:
         try:
-            template.template_metadata = json.loads(template_metadata)
+            setattr(template, 'template_metadata', json.loads(template_metadata))
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid metadata JSON format")
     if tags is not None:
         try:
-            template.tags = json.loads(tags)
+            setattr(template, 'tags', json.loads(tags))
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid tags JSON format")
     if is_public is not None:
-        template.is_public = is_public.lower() == "true"
+        setattr(template, 'is_public', is_public.lower() == "true")
     
     # 更新文件
     if thumbnail:
-        template.thumbnail_url = save_uploaded_file(thumbnail, "thumbnails")
+        setattr(template, 'thumbnail_url', save_uploaded_file(thumbnail, "thumbnails"))
     
     if preview:
-        template.preview_url = save_uploaded_file(preview, "previews")
+        setattr(template, 'preview_url', save_uploaded_file(preview, "previews"))
     
-    template.updated_at = datetime.utcnow()
+    setattr(template, 'updated_at', datetime.utcnow())
     db.commit()
     db.refresh(template)
     
@@ -441,13 +445,16 @@ async def delete_template(template_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Template not found")
     
     # 删除相关文件
-    if template.thumbnail_url:
-        thumbnail_path = template.thumbnail_url.replace("/api/template/uploads/", UPLOAD_DIR + "/")
+    thumbnail_url = getattr(template, 'thumbnail_url', None)
+    preview_url = getattr(template, 'preview_url', None)
+    
+    if thumbnail_url:
+        thumbnail_path = thumbnail_url.replace("/api/templates/uploads/", "user_data/template_uploads/")
         if os.path.exists(thumbnail_path):
             os.remove(thumbnail_path)
     
-    if template.preview_url:
-        preview_path = template.preview_url.replace("/api/template/uploads/", UPLOAD_DIR + "/")
+    if preview_url:
+        preview_path = preview_url.replace("/api/templates/uploads/", "user_data/template_uploads/")
         if os.path.exists(preview_path):
             os.remove(preview_path)
     
@@ -462,14 +469,16 @@ async def toggle_favorite(template_id: str, db: Session = Depends(get_db)):
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
-    template.is_favorite = not template.is_favorite
-    template.updated_at = datetime.utcnow()
+    # 使用getattr安全访问属性，避免类型检查错误
+    current_favorite = getattr(template, 'is_favorite', False)
+    setattr(template, 'is_favorite', not current_favorite)
+    setattr(template, 'updated_at', datetime.utcnow())
     db.commit()
     db.refresh(template)
     
     return JSONResponse({
         "id": template.id,
-        "is_favorite": template.is_favorite,
+        "is_favorite": getattr(template, 'is_favorite', False),
     })
 
 @router.post("/items/{template_id}/usage")
@@ -479,8 +488,8 @@ async def increment_usage(template_id: str, db: Session = Depends(get_db)):
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
     
-    template.usage_count += 1
-    template.updated_at = datetime.utcnow()
+    setattr(template, 'usage_count', template.usage_count + 1)
+    setattr(template, 'updated_at', datetime.utcnow())
     db.commit()
     
     return JSONResponse({"message": "Usage count incremented"})
@@ -533,7 +542,7 @@ async def update_collection(collection_id: str, collection: TemplateCollectionUp
     for field, value in update_data.items():
         setattr(db_collection, field, value)
     
-    db_collection.updated_at = datetime.utcnow()
+    setattr(db_collection, 'updated_at', datetime.utcnow())
     db.commit()
     db.refresh(db_collection)
     
@@ -631,8 +640,8 @@ async def apply_to_canvas(
         raise HTTPException(status_code=404, detail="Template not found")
     
     # 增加使用次数
-    template.usage_count += 1
-    template.updated_at = datetime.utcnow()
+    setattr(template, 'usage_count', template.usage_count + 1)
+    setattr(template, 'updated_at', datetime.utcnow())
     db.commit()
     
     # 解析位置信息
@@ -770,3 +779,6 @@ async def get_uploaded_file(subfolder: str, filename: str):
             "Access-Control-Allow-Origin": "*",
         }
     )
+
+# 导出路由器
+__all__ = ['router']

@@ -739,7 +739,9 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
   return (
     <>
-      <div className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 backdrop-blur-lg rounded-lg p-1 shadow-lg border border-gray-700 bg-background">
+      <div
+        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 rounded-lg p-1 shadow-lg border border-border bg-background canvas-left-toolbar"
+      >
         {/* 手型/选择工具切换按钮 - 默认显示选择工具 */}
         <CanvasMenuButton
           type={isHandToolActive ? 'hand' : 'selection'}
@@ -773,15 +775,25 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换上传菜单的显示状态
               setShowUploadMenu(!showUploadMenu);
             }}
-            className="h-14 w-14 p-0 rounded-full hover:bg-primary text-foreground border border-gray-700 hover:bg-primary bg-background"
+            className="h-12 w-12 p-0 rounded-full text-foreground border border-border bg-background hover:bg-accent transition-all duration-200 hover:scale-105"
           />
 
           {showUploadMenu && (
-            <div className="absolute left-16 top-0 z-30 w-48 bg-background border border-border rounded-lg shadow-lg overflow-hidden" ref={uploadMenuRef}>
-              <div className="p-2 text-sm font-medium bg-background text-foreground">添加内容</div>
+            <div
+              className="absolute left-16 top-0 z-30 w-48 rounded-lg overflow-hidden"
+              ref={uploadMenuRef}
+              style={{
+                background: 'var(--glass-nav-bg, rgba(255, 255, 255, 0.85))',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: 'var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05))',
+                boxShadow: 'var(--glass-nav-shadow, 0 8px 32px rgba(0, 0, 0, 0.12))',
+              }}
+            >
+              <div className="p-2 text-sm font-medium text-foreground">添加内容</div>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
                 onClick={() => {
                   // 触发文件选择器
                   fileInputRef.current?.click();
@@ -797,7 +809,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
                 onClick={() => {
                   // 上传PSD文件逻辑
                   // 创建一个隐藏的文件输入元素来选择PSD文件
@@ -842,7 +854,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 hover:bg-white/10 text-foreground"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
                 onClick={(e) => {
                   e.stopPropagation();
                   // 上传模板逻辑
@@ -880,13 +892,23 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           />
 
           {showShapeMenu && (
-            <div className="absolute left-16 top-0 z-30 w-64 bg-background border border-border rounded-lg shadow-lg p-4" ref={shapeMenuRef}>
+            <div
+              className="absolute left-16 top-0 z-30 w-64 rounded-lg p-4"
+              ref={shapeMenuRef}
+              style={{
+                background: 'var(--glass-nav-bg, rgba(255, 255, 255, 0.85))',
+                backdropFilter: 'blur(24px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                border: 'var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05))',
+                boxShadow: 'var(--glass-nav-shadow, 0 8px 32px rgba(0, 0, 0, 0.12))',
+              }}
+            >
               <div className="text-base font-medium mb-3 text-foreground">形状工具</div>
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  variant={activeTool === 'rectangle' ? 'default' : 'ghost'}
+                  variant={activeTool === 'rectangle' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
                   onClick={() => {
                     handleToolChange('rectangle');
                     setShowShapeMenu(false);
@@ -901,9 +923,9 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <span className="text-xs">矩形</span>
                 </Button>
                 <Button
-                  variant={activeTool === 'ellipse' ? 'default' : 'ghost'}
+                  variant={activeTool === 'ellipse' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
                   onClick={() => {
                     handleToolChange('ellipse');
                     setShowShapeMenu(false);
@@ -918,9 +940,9 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <span className="text-xs">圆形</span>
                 </Button>
                 <Button
-                  variant={activeTool === 'arrow' ? 'default' : 'ghost'}
+                  variant={activeTool === 'arrow' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
                   onClick={() => {
                     handleToolChange('arrow');
                     setShowShapeMenu(false);
@@ -935,9 +957,9 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <span className="text-xs">箭头</span>
                 </Button>
                 <Button
-                  variant={activeTool === 'line' ? 'default' : 'ghost'}
+                  variant={activeTool === 'line' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto hover:bg-white/10 text-foreground"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
                   onClick={() => {
                     handleToolChange('line');
                     setShowShapeMenu(false);
@@ -951,20 +973,6 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   </div>
                   <span className="text-xs">直线</span>
                 </Button>
-                {/* <Button
-                  variant={activeTool === 'freedraw' ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => {
-                    handleToolChange('freedraw');
-                    setShowShapeMenu(false);
-                  }}
-                  title="自由绘制"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M10 15L15 10M4.31 17.56C3.53 16.78 3 15.78 3 14.71C3 13.64 3.53 12.64 4.31 11.86L12.14 4.03C12.92 3.25 13.92 2.72 14.99 2.72C16.06 2.72 17.06 3.25 17.84 4.03L19.97 6.16C20.75 6.94 21.28 7.94 21.28 9C21.28 10.07 20.75 11.07 19.97 11.84L12.14 19.67C11.36 20.45 10.36 21 9.29 21C8.22 21 7.22 20.47 6.44 19.69L4.31 17.56Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button> */}
               </div>
             </div>
           )}
@@ -1022,6 +1030,22 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
