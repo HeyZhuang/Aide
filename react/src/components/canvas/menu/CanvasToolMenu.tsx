@@ -740,7 +740,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   return (
     <>
       <div
-        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 rounded-lg p-1 shadow-lg border border-border bg-background canvas-left-toolbar"
+        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 rounded-xl p-1 shadow-lg border border-white/30 bg-white/50 backdrop-blur-md canvas-left-toolbar"
       >
         {/* 手型/选择工具切换按钮 - 默认显示选择工具 */}
         <CanvasMenuButton

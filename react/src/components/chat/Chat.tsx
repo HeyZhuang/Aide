@@ -344,7 +344,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <PhotoProvider>
       <div className='flex flex-col h-full relative w-full'>
         {/* Chat header with minimize/close buttons */}
-        <div className='bottom-chat-header' onClick={toggleMinimize}>
+        <div className='bottom-chat-header bg-white/50 backdrop-blur-md border border-white/30' onClick={toggleMinimize}>
           <h3>AI 助手</h3>
           <div className='flex gap-1'>
             <button
@@ -373,7 +373,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Chat content - only show when not minimized */}
         {!isMinimized && (
           <>
-            <ScrollArea className='bottom-chat-messages' viewportRef={scrollRef}>
+            <ScrollArea className='bottom-chat-messages bg-white/50 backdrop-blur-md border border-white/30' viewportRef={scrollRef}>
               {messages.length > 0 ? (
                 <div className='flex flex-col flex-1'>
                   {/* Messages */}
@@ -495,7 +495,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               )}
             </ScrollArea>
 
-            <div className='bottom-chat-input'>
+            <div className='bottom-chat-input bg-white/50 backdrop-blur-md border border-white/30 rounded-b-xl'>
               <ChatTextarea
                 sessionId={sessionId!}
                 pending={!!pending}

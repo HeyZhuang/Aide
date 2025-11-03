@@ -188,7 +188,7 @@ export function GroupToolbar() {
 
     // 立即关闭弹窗，允许用户继续操作
     setIsDialogOpen(false)
-    
+
     // 显示加载中的Toast通知，允许用户在后台继续操作
     const toastId = toast.loading(
       `正在智能排列 ${selectedElements.length} 个图层，您可以在后台继续操作...`,
@@ -199,15 +199,15 @@ export function GroupToolbar() {
 
     try {
       setIsArranging(true)
-      
+
       // 获取当前画布尺寸
       const sceneState = excalidrawAPI.getSceneElements()
       const appState = excalidrawAPI.getAppState()
-      
+
       // 计算当前画布的实际尺寸
       let canvasWidth = appState.width || 800
       let canvasHeight = appState.height || 600
-      
+
       // 如果有元素，基于元素计算画布边界
       if (sceneState.length > 0) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
@@ -235,8 +235,8 @@ export function GroupToolbar() {
           backgroundColor: element.backgroundColor,
           fillStyle: element.fillStyle,
           strokeWidth: element.strokeWidth,
-        })).filter(element => 
-          element.width > 0 && 
+        })).filter(element =>
+          element.width > 0 &&
           element.height > 0 &&
           isFinite(element.x) &&
           isFinite(element.y) &&
@@ -251,11 +251,11 @@ export function GroupToolbar() {
 
       // 调用API进行图层排列
       const response = await arrangeCanvasElements(requestData)
-      
+
       if (response.success) {
         // 获取当前所有画布元素
         const currentElements = excalidrawAPI.getSceneElements()
-        
+
         // 获取当前选中元素的ID集合
         const selectedElementIds = new Set<string>()
         selectedElements.forEach(element => {
@@ -264,83 +264,83 @@ export function GroupToolbar() {
             selectedElementIds.add(String(element.customData.originalElementId))
           }
         })
-        
+
         // 清理之前通过智能缩放创建的图层
         const elementsToKeep = currentElements.filter(element => {
           const elementId = String(element.id)
           const isArrangedElement = element.customData?.isArranged === true
-          
+
           if (selectedElementIds.has(elementId)) {
             return true
           }
-          
+
           if (!isArrangedElement) {
             return true
           }
-          
+
           return false
         })
-        
+
         const cleanedCount = currentElements.length - elementsToKeep.length
         if (cleanedCount > 0) {
           excalidrawAPI.updateScene({
             elements: elementsToKeep,
           })
         }
-        
+
         // 计算新图层的位置偏移
         let maxOriginalX = -Infinity
         elementsToKeep.forEach(element => {
           const rightEdge = element.x + element.width
           maxOriginalX = Math.max(maxOriginalX, rightEdge)
         })
-        
+
         if (maxOriginalX === -Infinity) {
           maxOriginalX = 0
         }
-        
+
         const spacing = 100
         const offsetX = maxOriginalX + spacing
-        
+
         let minNewY = Infinity
         response.arrangements.forEach((arr: ElementArrangement) => {
           minNewY = Math.min(minNewY, arr.new_coords.y)
         })
-        
+
         let minOriginalY = Infinity
         selectedElements.forEach(element => {
           minOriginalY = Math.min(minOriginalY, element.y)
         })
-        
+
         const offsetY = minOriginalY - minNewY
-        
+
         // 创建新的排列后的元素
         const newElements: OrderedExcalidrawElement[] = []
-        
+
         response.arrangements.forEach((arrangement: ElementArrangement) => {
           let originalElement = selectedElements.find(
             elem => String(elem.id) === String(arrangement.id)
           )
-          
+
           if (!originalElement) {
             const arrangementIdStr = String(arrangement.id).trim()
             originalElement = selectedElements.find(elem => {
               const elemIdStr = String(elem.id).trim()
               return elemIdStr === arrangementIdStr ||
-                     elemIdStr.includes(arrangementIdStr) ||
-                     arrangementIdStr.includes(elemIdStr) ||
-                     elemIdStr.endsWith(arrangementIdStr) ||
-                     arrangementIdStr.endsWith(elemIdStr)
+                elemIdStr.includes(arrangementIdStr) ||
+                arrangementIdStr.includes(elemIdStr) ||
+                elemIdStr.endsWith(arrangementIdStr) ||
+                arrangementIdStr.endsWith(elemIdStr)
             })
           }
-          
-          if (originalElement && arrangement.new_coords && 
-              typeof arrangement.new_coords.width === 'number' && 
-              typeof arrangement.new_coords.height === 'number' &&
-              arrangement.new_coords.width > 0 &&
-              arrangement.new_coords.height > 0) {
+
+          if (originalElement && arrangement.new_coords &&
+            typeof arrangement.new_coords.width === 'number' &&
+            typeof arrangement.new_coords.height === 'number' &&
+            arrangement.new_coords.width > 0 &&
+            arrangement.new_coords.height > 0) {
             const newId = `${originalElement.id}_arranged_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
-            
+
             const newElement: OrderedExcalidrawElement = {
               ...originalElement,
               id: newId,
@@ -357,18 +357,18 @@ export function GroupToolbar() {
                 arrangementTimestamp: Date.now()
               }
             }
-            
+
             newElements.push(newElement)
           }
         })
-        
+
         if (newElements.length > 0) {
           const cleanedElements = excalidrawAPI.getSceneElements()
-          
+
           excalidrawAPI.updateScene({
             elements: [...cleanedElements, ...newElements],
           })
-          
+
           excalidrawAPI.updateScene({
             appState: {
               selectedElementIds: newElements.reduce((acc, element) => {
@@ -377,9 +377,9 @@ export function GroupToolbar() {
               }, {} as Record<string, true>)
             }
           })
-          
+
           excalidrawAPI.refresh()
-          
+
           // 更新Toast为成功状态
           toast.success(
             `智能排列完成！已创建 ${newElements.length} 个新图层`,
@@ -466,12 +466,12 @@ export function GroupToolbar() {
   ]
 
   return (
-    <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
+    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/30 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
       {/* Group按钮 */}
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 px-2 hover:bg-white/10"
+        className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
         onClick={handleGroup}
       >
         <Layers className="h-4 w-4 mr-1" />
@@ -482,25 +482,25 @@ export function GroupToolbar() {
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 px-2 hover:bg-white/10"
+        className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
         onClick={handleUngroup}
       >
         <Merge className="h-4 w-4 mr-1" />
         <span className="text-xs">Ungroup</span>
       </Button>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 对齐菜单 */}
       <DropdownMenu open={showAlignMenu} onOpenChange={setShowAlignMenu}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-7 px-2 hover:bg-white/10">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg">
             <AlignCenterHorizontal className="h-4 w-4 mr-1" />
             <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-background text-foreground border-border w-48"
+          className="bg-white/50 backdrop-blur-md text-foreground border border-white/30 w-48 rounded-lg"
           align="start"
         >
           {alignments.map((alignment, index) => (
@@ -510,7 +510,7 @@ export function GroupToolbar() {
                   handleAlign(alignment.value)
                   setShowAlignMenu(false)
                 }}
-                className="hover:bg-white/10 flex items-center gap-2"
+                className="hover:bg-white/30 flex items-center gap-2 rounded-md"
               >
                 <alignment.icon className="h-4 w-4" />
                 <span className="text-xs">{alignment.label}</span>
@@ -525,19 +525,19 @@ export function GroupToolbar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* Resize按钮 */}
       <DropdownMenu open={showResizeMenu} onOpenChange={setShowResizeMenu}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" className="h-7 px-2 hover:bg-white/10">
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg">
             <Edit3 className="h-4 w-4 mr-1" />
             <span className="text-xs">Resize</span>
             <ChevronDown className="h-3 w-3 ml-1" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-background text-foreground border-border w-56 p-3"
+          className="bg-white/50 backdrop-blur-md text-foreground border border-white/30 w-56 p-3 rounded-lg"
           align="start"
         >
           <div className="space-y-3">
@@ -547,7 +547,7 @@ export function GroupToolbar() {
                 setIsDialogOpen(true)
                 setShowResizeMenu(false)
               }}
-              className="hover:bg-white/10 flex items-center gap-2 text-xs bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30"
+              className="hover:bg-white/30 flex items-center gap-2 text-xs bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-md"
             >
               <Sparkles className="h-4 w-4 text-primary" />
               <div className="flex-1">
@@ -556,9 +556,9 @@ export function GroupToolbar() {
               </div>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="bg-gray-700" />
+            <DropdownMenuSeparator className="bg-white/30" />
 
-            <div className="text-xs font-medium text-gray-400 uppercase">预设尺寸</div>
+            <div className="text-xs font-medium text-foreground/70 uppercase">预设尺寸</div>
             {presetSizes.map((preset) => (
               <DropdownMenuItem
                 key={preset.name}
@@ -566,7 +566,7 @@ export function GroupToolbar() {
                   handleResize(preset.width, preset.height)
                   setShowResizeMenu(false)
                 }}
-                className="hover:bg-white/10 flex items-center gap-2 text-xs"
+                className="hover:bg-white/30 flex items-center gap-2 text-xs rounded-md"
               >
                 <div className="flex-1">
                   <div className="font-medium">{preset.name}</div>
@@ -577,7 +577,7 @@ export function GroupToolbar() {
               </DropdownMenuItem>
             ))}
 
-            <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuSeparator className="bg-white/30" />
 
             {/* 自定义尺寸 */}
             <div className="text-xs font-medium text-foreground uppercase mb-2">自定义尺寸</div>
@@ -586,7 +586,7 @@ export function GroupToolbar() {
                 <Input
                   type="number"
                   placeholder="W"
-                  className="h-7 bg-background border-border text-foreground text-xs"
+                  className="h-7 bg-white/50 backdrop-blur-sm border border-white/30 text-foreground text-xs rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -607,7 +607,7 @@ export function GroupToolbar() {
                 <Input
                   type="number"
                   placeholder="H"
-                  className="h-7 bg-background border-border text-foreground text-xs"
+                  className="h-7 bg-white/50 backdrop-blur-sm border border-white/30 text-foreground text-xs rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -626,7 +626,7 @@ export function GroupToolbar() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 px-2 text-xs border-border text-foreground hover:bg-white/10"
+                className="h-7 px-2 text-xs border border-white/30 text-foreground hover:bg-white/30 backdrop-blur-sm rounded-lg"
                 onClick={(e) => {
                   e.stopPropagation()
                   const widthInput = e.currentTarget.parentElement?.previousElementSibling?.previousElementSibling?.firstChild as HTMLInputElement

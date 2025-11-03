@@ -82,7 +82,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
   }, [excalidrawAPI])
 
   return (
-    <div className="flex items-center gap-2 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
+    <div className="flex items-center gap-2 bg-white/50 backdrop-blur-md border border-white/30 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
       {/* 描边颜色 */}
       <div className="relative group">
         <input
@@ -95,16 +95,16 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
           title="描边颜色"
         />
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/30 backdrop-blur-sm transition-colors rounded-lg">
           <Palette className="h-4 w-4 pointer-events-none" />
           <div
-            className="w-6 h-6 rounded border border-gray-600 shadow-inner pointer-events-none"
+            className="w-6 h-6 rounded border border-white/30 shadow-inner pointer-events-none"
             style={{ backgroundColor: strokeColor }}
           />
         </div>
       </div>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 背景颜色 */}
       <div className="relative group">
@@ -118,10 +118,10 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
           title="背景颜色"
         />
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/30 backdrop-blur-sm transition-colors rounded-lg">
           <PaintBucket className="h-4 w-4 pointer-events-none" />
           <div
-            className="w-6 h-6 rounded border border-gray-600 shadow-inner pointer-events-none"
+            className="w-6 h-6 rounded border border-white/30 shadow-inner pointer-events-none"
             style={{ backgroundColor: backgroundColor === 'transparent' ? '#ffffff' : backgroundColor }}
           />
         </div>
@@ -130,7 +130,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
       <Button
         variant="ghost"
         size="sm"
-        className="h-7 px-2 text-xs hover:bg-white/10"
+        className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
         onClick={() => {
           setBackgroundColor('transparent')
           updateElement({ backgroundColor: 'transparent' })
@@ -140,14 +140,14 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         透明
       </Button>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 描边样式 */}
       <div className="flex items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
-          className={`h-7 px-2 text-xs ${strokeStyle === 'solid' ? 'bg-white/20' : 'hover:bg-white/10'}`}
+          className={`h-7 px-2 text-xs ${strokeStyle === 'solid' ? 'bg-white/30 backdrop-blur-sm' : 'hover:bg-white/30 backdrop-blur-sm'} rounded-lg`}
           onClick={() => {
             setStrokeStyle('solid')
             updateElement({ strokeStyle: 'solid' })
@@ -159,7 +159,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         <Button
           variant="ghost"
           size="sm"
-          className={`h-7 px-2 text-xs ${strokeStyle === 'dashed' ? 'bg-white/20' : 'hover:bg-white/10'}`}
+          className={`h-7 px-2 text-xs ${strokeStyle === 'dashed' ? 'bg-white/30 backdrop-blur-sm' : 'hover:bg-white/30 backdrop-blur-sm'} rounded-lg`}
           onClick={() => {
             setStrokeStyle('dashed')
             updateElement({ strokeStyle: 'dashed' })
@@ -171,7 +171,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         <Button
           variant="ghost"
           size="sm"
-          className={`h-7 px-2 text-xs ${strokeStyle === 'dotted' ? 'bg-white/20' : 'hover:bg-white/10'}`}
+          className={`h-7 px-2 text-xs ${strokeStyle === 'dotted' ? 'bg-white/30 backdrop-blur-sm' : 'hover:bg-white/30 backdrop-blur-sm'} rounded-lg`}
           onClick={() => {
             setStrokeStyle('dotted')
             updateElement({ strokeStyle: 'dotted' })
@@ -182,7 +182,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         </Button>
       </div>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 描边宽度 */}
       <div className="flex items-center gap-2">
@@ -203,7 +203,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
         <span className="text-xs w-6">{strokeWidth}</span>
       </div>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 透明度 */}
       <div className="flex items-center gap-2">
