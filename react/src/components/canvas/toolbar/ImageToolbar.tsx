@@ -8,7 +8,8 @@ import {
   Crop,
   Scissors,
   Lock,
-  Unlock
+  Unlock,
+  ChevronDown
 } from 'lucide-react'
 import { ExcalidrawImageElement } from '@excalidraw/excalidraw/element/types'
 
@@ -277,288 +278,105 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
   }
 
   return (
-    <>
-      <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
-        {/* 圆角半径 */}
-        <div className="flex items-center gap-2 px-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 5H9C6.79086 5 5 6.79086 5 9V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <input
-            type="number"
-            value={cornerRadius}
-            onChange={(e) => handleCornerRadiusChange(parseInt(e.target.value, 10) || 0)}
-            min="0"
-            max="100"
-            className="w-16 h-9 bg-transparent border-none text-sm focus:outline-none focus:ring-0"
-          />
-        </div>
+    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/60 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
+      {/* 透明度控制 */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-foreground">透明度</span>
+        <Slider
+          value={[opacity]}
+          onValueChange={([value]) => handleOpacityChange(value)}
+          max={100}
+          step={1}
+          className="w-24"
+        />
+        <span className="text-xs text-foreground w-8">{opacity}%</span>
+      </div>
 
-        <Separator orientation="vertical" className="h-5 bg-[#4A4E57]" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
-        {/* 透明度滑块 */}
-        <div className="flex items-center gap-2 px-2">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 4V20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4Z" fill="currentColor" />
-          </svg>
-          <div className="w-24">
-            <Slider
-              value={[opacity]}
-              onValueChange={([value]) => handleOpacityChange(value)}
-              min={0}
-              max={100}
-              step={1}
-              className="w-full"
-            />
+      {/* 圆角控制 */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-foreground">圆角</span>
+        <Slider
+          value={[cornerRadius]}
+          onValueChange={([value]) => handleCornerRadiusChange(value)}
+          max={50}
+          step={1}
+          className="w-24"
+        />
+        <span className="text-xs text-foreground w-8">{cornerRadius}</span>
+      </div>
+
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
+
+      {/* 图层操作 */}
+      <div className="relative" ref={layersRef}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
+          onClick={() => setLayersOpen(!layersOpen)}
+        >
+          <Layers className="h-3 w-3 mr-1" />
+          图层
+          <ChevronDown className="ml-1 h-3 w-3" />
+        </Button>
+
+        {layersOpen && (
+          <div className="absolute top-full left-0 mt-1 bg-white/50 backdrop-blur-md border border-white/60 rounded-lg shadow-lg z-10 w-48 py-1">
+            <button
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
+              onClick={() => handleLayerAction('sendToBack')}
+            >
+              置于底层
+            </button>
+            <button
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
+              onClick={() => handleLayerAction('sendBackward')}
+            >
+              下移一层
+            </button>
+            <button
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
+              onClick={() => handleLayerAction('bringForward')}
+            >
+              上移一层
+            </button>
+            <button
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
+              onClick={() => handleLayerAction('bringToFront')}
+            >
+              置于顶层
+            </button>
           </div>
-          <span className="text-xs w-10">{Math.round(opacity)}%</span>
-        </div>
-
-        <Separator orientation="vertical" className="h-5 bg-gray-600" />
-
-        {/* 图层操作 */}
-        <div className="relative" ref={layersRef}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 hover:bg-white/10"
-            onClick={() => setLayersOpen(!layersOpen)}
-            title="图层"
-          >
-            <Layers className="h-5 w-5" />
-          </Button>
-          {layersOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-background border border-border rounded-lg shadow-lg p-2 z-50">
-              <div className="text-xs text-foreground px-2 py-1 mb-1">图层</div>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hover:bg-white/10"
-                  onClick={() => handleLayerAction('sendToBack')}
-                  title="置于底层"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M9 15L12 18L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M4 21H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hover:bg-white/10"
-                  onClick={() => handleLayerAction('sendBackward')}
-                  title="后移一层"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M9 15L12 18L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hover:bg-white/10"
-                  onClick={() => handleLayerAction('bringForward')}
-                  title="前移一层"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 18V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M9 9L12 6L15 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-9 w-9 p-0 hover:bg-white/10"
-                  onClick={() => handleLayerAction('bringToFront')}
-                  title="置于顶层"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 18V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M9 9L12 6L15 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M4 3H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <Separator orientation="vertical" className="h-5 bg-gray-600" />
-
-        {/* 移除背景 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 w-9 p-0 hover:bg-white/10"
-          onClick={handleRemoveBackground}
-          title="移除背景"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16.4998 2H19.9998C21.1044 2 21.9998 2.89543 21.9998 4V7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M2 16.5V19.9998C2 21.1044 2.89543 21.9998 4 21.9998H7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M2 7.5V4C2 2.89543 2.89543 2 4 2H7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M16.5 22H20C21.1044 22 22 21.1044 22 20V16.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M15.5 9.5L12 6L9.5 9.5L7 7L2 15H22L15.5 9.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Button>
-
-        {/* 裁剪 */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-9 w-9 p-0 hover:bg-white/10 ${cropMode ? 'bg-blue-600' : ''}`}
-          onClick={handleCrop}
-          title={cropMode ? '应用裁剪' : '裁剪'}
-        >
-          <Crop className="h-5 w-5" />
-        </Button>
-
-        {/* 裁剪模式下的取消按钮 */}
-        {cropMode && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3 hover:bg-white/10 text-xs"
-            onClick={cancelCrop}
-          >
-            取消
-          </Button>
-        )}
-
-        {/* 提取图层 */}
-        {!cropMode && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 w-9 p-0 hover:bg-white/10"
-            onClick={handleExtractLayers}
-            title="提取图层"
-          >
-            <Scissors className="h-5 w-5" />
-          </Button>
         )}
       </div>
 
-      {/* 裁剪控制面板 */}
-      {cropMode && (
-        <div className="mt-2 bg-[#1e1e1e] text-white px-3 py-3 rounded-lg shadow-lg border border-gray-700">
-          {/* 快捷比例按钮 */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs text-gray-400">比例:</span>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs hover:bg-white/10"
-                onClick={() => setQuickRatio('free')}
-              >
-                自由
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs hover:bg-white/10"
-                onClick={() => setQuickRatio('1:1')}
-              >
-                1:1
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs hover:bg-white/10"
-                onClick={() => setQuickRatio('16:9')}
-              >
-                16:9
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs hover:bg-white/10"
-                onClick={() => setQuickRatio('4:3')}
-              >
-                4:3
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs hover:bg-white/10"
-                onClick={() => setQuickRatio('3:2')}
-              >
-                3:2
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 hover:bg-white/10"
-                onClick={() => setAspectRatioLocked(!aspectRatioLocked)}
-                title={aspectRatioLocked ? '解锁比例' : '锁定比例'}
-              >
-                {aspectRatioLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
-          {/* 裁剪参数 */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <label className="text-gray-400 w-8">X:</label>
-              <input
-                type="number"
-                value={Math.round(cropRect.x)}
-                onChange={(e) => handleCropXChange(parseInt(e.target.value, 10) || 0)}
-                className="flex-1 h-7 bg-[#2a2a2a] border border-gray-600 rounded px-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-gray-400 w-8">Y:</label>
-              <input
-                type="number"
-                value={Math.round(cropRect.y)}
-                onChange={(e) => handleCropYChange(parseInt(e.target.value, 10) || 0)}
-                className="flex-1 h-7 bg-[#2a2a2a] border border-gray-600 rounded px-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-gray-400 w-8">宽:</label>
-              <input
-                type="number"
-                value={Math.round(cropRect.width)}
-                onChange={(e) => handleCropWidthChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                min="1"
-                className="flex-1 h-7 bg-[#2a2a2a] border border-gray-600 rounded px-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-gray-400 w-8">高:</label>
-              <input
-                type="number"
-                value={Math.round(cropRect.height)}
-                onChange={(e) => handleCropHeightChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                min="1"
-                className="flex-1 h-7 bg-[#2a2a2a] border border-gray-600 rounded px-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
+      {/* 裁剪功能 */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
+        onClick={handleCrop}
+      >
+        <Crop className="h-3 w-3 mr-1" />
+        裁剪
+      </Button>
 
-          {/* 提示信息 */}
-          <div className="mt-3 pt-2 border-t border-gray-700">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">
-                {aspectRatioLocked ? `比例已锁定 (${aspectRatio.toFixed(2)})` : '自由裁剪'}
-              </span>
-              <span className="text-gray-500">
-                裁剪尺寸: {Math.round(cropRect.width)} × {Math.round(cropRect.height)}
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-gray-500">
-              位置: ({Math.round(cropRect.x)}, {Math.round(cropRect.y)})
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
+
+      {/* 移除背景 */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
+        onClick={handleRemoveBackground}
+      >
+        <Scissors className="h-3 w-3 mr-1" />
+        移除背景
+      </Button>
+    </div>
   )
 }

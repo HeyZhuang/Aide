@@ -106,7 +106,11 @@ export function TemplateCard({
 
     // 复制模板信息
     const handleCopyInfo = () => {
-        let info = `模板名称: ${template.name}\n描述: ${template.description || '无'}\n类型: ${getTypeLabel(template.type)}\n标签: ${template.tags.join(', ')}\n使用次数: ${template.usage_count}`
+        let info = `模板名称: ${template.name}
+描述: ${template.description || '无'}
+类型: ${getTypeLabel(template.type)}
+标签: ${template.tags.join(', ')}
+使用次数: ${template.usage_count}`
 
         // 为PSD文件添加额外信息
         if (template.type === 'psd_file' && template.metadata) {
@@ -132,21 +136,22 @@ export function TemplateCard({
 
     if (viewMode === 'list') {
         return (
-            <Card className={`transition-all duration-200 hover:shadow-md ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+            <Card className={`transition-all duration-200 hover:shadow-md bg-white/50 backdrop-blur-md border border-white/30 rounded-lg ${isSelected ? 'ring-2 ring-primary' : ''}`}>
                 <CardContent className="p-4">
                     <div className="flex items-center gap-4">
                         {/* 选择框 */}
                         <Checkbox
                             checked={isSelected}
                             onCheckedChange={onSelect}
+                            className="rounded-md"
                         />
 
                         {/* 缩略图 */}
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 relative">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-white/30 backdrop-blur-sm flex-shrink-0 relative border border-white/30">
                             {template.thumbnail_url && !imageError ? (
                                 <>
                                     {imageLoading && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm">
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                                         </div>
                                     )}
@@ -166,7 +171,7 @@ export function TemplateCard({
                                 <div className="w-full h-full flex items-center justify-center">
                                     <div className="text-center">
                                         {getTypeIcon(template.type)}
-                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                        <p className="text-xs text-foreground/70 mt-0.5">
                                             {template.type === 'psd_file' ? 'PSD文件' :
                                                 template.type === 'psd_layer' ? 'PSD图层' :
                                                     template.type === 'image' ? 'IMG' :
@@ -180,120 +185,97 @@ export function TemplateCard({
                         {/* 模板信息 */}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-medium truncate">{template.name}</h3>
+                                <h3 className="font-medium truncate text-foreground">{template.name}</h3>
                                 {template.is_favorite && (
                                     <Star className="h-4 w-4 text-yellow-500 fill-current" />
                                 )}
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-xs bg-white/50 backdrop-blur-sm border border-white/30">
                                     {getTypeLabel(template.type)}
                                 </Badge>
                                 {template.is_public && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs border-white/30">
                                         公开
                                     </Badge>
                                 )}
                             </div>
 
                             {template.description && (
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                                <p className="text-sm text-foreground/70 line-clamp-2 mb-2">
                                     {template.description}
                                 </p>
                             )}
 
-                            {/* PSD文件特殊信息 */}
-                            {template.type === 'psd_file' && (() => {
-                                const psdInfo = getPSDFileInfo()
-                                return psdInfo ? (
-                                    <div className="text-xs text-muted-foreground mb-2 space-y-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">原始文件:</span>
-                                            <span>{psdInfo.originalFilename}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">尺寸:</span>
-                                            <span>{psdInfo.dimensions}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium">图层:</span>
-                                            <span>{psdInfo.layersCount} 个</span>
-                                        </div>
-                                    </div>
-                                ) : null
-                            })()}
-
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-4 text-xs text-foreground/60">
                                 <div className="flex items-center gap-1">
-                                    <Heart className="h-3 w-3" />
-                                    {template.usage_count}
+                                    <User className="h-3 w-3" />
+                                    {template.created_by || '未知作者'}
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     {formatDate(template.created_at)}
                                 </div>
-                                {template.tags.length > 0 && (
-                                    <div className="flex items-center gap-1">
-                                        <Tag className="h-3 w-3" />
-                                        {template.tags.slice(0, 2).join(', ')}
-                                        {template.tags.length > 2 && ` +${template.tags.length - 2}`}
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    {template.usage_count}
+                                </div>
                             </div>
                         </div>
 
-                        {/* 操作按钮 */}
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={onApply}
-                                className="text-green-600 hover:text-green-700"
-                            >
-                                <Download className="h-4 w-4" />
-                                应用
-                            </Button>
-
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onToggleFavorite}
-                                className={template.is_favorite ? 'text-yellow-500' : ''}
-                            >
-                                {template.is_favorite ? (
-                                    <Star className="h-4 w-4 fill-current" />
-                                ) : (
-                                    <StarOff className="h-4 w-4" />
+                        {/* 标签 */}
+                        {template.tags && template.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 max-w-32">
+                                {template.tags.slice(0, 2).map((tag) => (
+                                    <Badge key={tag} variant="outline" className="text-xs border-white/30">
+                                        {tag}
+                                    </Badge>
+                                ))}
+                                {template.tags.length > 2 && (
+                                    <Badge variant="outline" className="text-xs border-white/30">
+                                        +{template.tags.length - 2}
+                                    </Badge>
                                 )}
-                            </Button>
+                            </div>
+                        )}
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={onEdit}>
-                                        <Edit3 className="h-4 w-4 mr-2" />
-                                        编辑
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleCopyInfo}>
-                                        <Copy className="h-4 w-4 mr-2" />
-                                        复制信息
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => toast.info('预览功能开发中')}>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        预览
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={onDelete}
-                                        className="text-red-600 focus:text-red-600"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        删除
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
+                        {/* 操作菜单 */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-white/30 backdrop-blur-sm rounded-md">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-white/50 backdrop-blur-md border border-white/30 rounded-lg">
+                                <DropdownMenuItem onClick={onApply} className="hover:bg-white/30 rounded-md">
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    应用
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onEdit} className="hover:bg-white/30 rounded-md">
+                                    <Edit3 className="h-4 w-4 mr-2" />
+                                    编辑
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onToggleFavorite} className="hover:bg-white/30 rounded-md">
+                                    {template.is_favorite ? (
+                                        <>
+                                            <StarOff className="h-4 w-4 mr-2" />
+                                            取消收藏
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Star className="h-4 w-4 mr-2" />
+                                            收藏
+                                        </>
+                                    )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleCopyInfo} className="hover:bg-white/30 rounded-md">
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    复制信息
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onDelete} className="hover:bg-white/30 rounded-md text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    删除
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </CardContent>
             </Card>
@@ -302,169 +284,94 @@ export function TemplateCard({
 
     // 网格视图
     return (
-        <Card className={`transition-all duration-200 hover:shadow-md ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+        <Card className={`transition-all duration-200 hover:shadow-lg bg-white/50 backdrop-blur-md border border-white/30 rounded-xl overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
             <CardContent className="p-0">
-                {/* 缩略图区域 */}
-                <div className="relative">
-                    <div className="aspect-square rounded-t-lg overflow-hidden bg-muted">
-                        {template.thumbnail_url && !imageError ? (
-                            <>
-                                {imageLoading && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-muted">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                    </div>
-                                )}
-                                <img
-                                    src={template.thumbnail_url}
-                                    alt={template.name}
-                                    className={`w-full h-full object-contain transition-opacity duration-200 ${imageLoading ? 'opacity-0' : 'opacity-100'
-                                        }`}
-                                    onLoad={() => setImageLoading(false)}
-                                    onError={() => {
-                                        setImageError(true)
-                                        setImageLoading(false)
-                                    }}
-                                />
-                            </>
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <div className="text-center">
-                                    {getTypeIcon(template.type)}
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {template.type === 'psd_file' ? 'PSD文件' :
-                                            template.type === 'psd_layer' ? 'PSD图层' :
-                                                template.type === 'image' ? '图片' :
-                                                    template.type === 'text_style' ? '文字' : '模板'}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 选择框 */}
-                    <div className="absolute top-2 left-2">
-                        <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={onSelect}
-                            className="bg-background/80 backdrop-blur-sm"
-                        />
-                    </div>
-
-                    {/* 收藏按钮 */}
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-background/90"
-                        onClick={onToggleFavorite}
-                    >
-                        {template.is_favorite ? (
-                            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        ) : (
-                            <StarOff className="h-4 w-4" />
-                        )}
-                    </Button>
-
-                    {/* 类型标签 */}
-                    <div className="absolute bottom-2 left-2">
-                        <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">
-                            {getTypeLabel(template.type)}
-                        </Badge>
-                    </div>
-
-                    {/* 使用次数 */}
-                    <div className="absolute bottom-2 right-2">
-                        <Badge variant="outline" className="text-xs bg-background/80 backdrop-blur-sm">
-                            <Heart className="h-3 w-3 mr-1" />
-                            {template.usage_count}
-                        </Badge>
-                    </div>
+                {/* 选择框 */}
+                <div className="absolute top-2 left-2 z-10">
+                    <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={onSelect}
+                        className="rounded-md bg-white/50 backdrop-blur-sm border-white/30"
+                    />
                 </div>
 
-                {/* 内容区域 */}
-                <div className="p-3">
-                    <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-sm line-clamp-2 flex-1">{template.name}</h3>
-                        {template.is_public && (
-                            <Badge variant="outline" className="text-xs ml-2">
-                                公开
-                            </Badge>
-                        )}
+                {/* 收藏标记 */}
+                {template.is_favorite && (
+                    <div className="absolute top-2 right-2 z-10">
+                        <Star className="h-5 w-5 text-yellow-500 fill-current drop-shadow-md" />
                     </div>
+                )}
 
-                    {template.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                            {template.description}
-                        </p>
-                    )}
-
-                    {/* PSD文件特殊信息 */}
-                    {template.type === 'psd_file' && (() => {
-                        const psdInfo = getPSDFileInfo()
-                        return psdInfo ? (
-                            <div className="text-xs text-muted-foreground mb-3 space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">尺寸:</span>
-                                    <span>{psdInfo.dimensions}</span>
+                {/* 缩略图 */}
+                <div className="relative h-48 bg-white/30 backdrop-blur-sm border-b border-white/30">
+                    {template.thumbnail_url && !imageError ? (
+                        <>
+                            {imageLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm">
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">图层:</span>
-                                    <span>{psdInfo.layersCount} 个</span>
-                                </div>
-                            </div>
-                        ) : null
-                    })()}
-
-                    {/* 标签 */}
-                    {template.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mb-3">
-                            {template.tags.slice(0, 3).map((tag, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                    {tag}
-                                </Badge>
-                            ))}
-                            {template.tags.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                    +{template.tags.length - 3}
-                                </Badge>
                             )}
+                            <img
+                                src={template.thumbnail_url}
+                                alt={template.name}
+                                className={`w-full h-full object-contain transition-opacity duration-200 ${imageLoading ? 'opacity-0' : 'opacity-100'
+                                    }`}
+                                onLoad={() => setImageLoading(false)}
+                                onError={() => {
+                                    setImageError(true)
+                                    setImageLoading(false)
+                                }}
+                            />
+                        </>
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <div className="text-center">
+                                {getTypeIcon(template.type)}
+                                <p className="text-sm text-foreground/70 mt-2">
+                                    {getTypeLabel(template.type)}
+                                </p>
+                            </div>
                         </div>
                     )}
+                </div>
 
-                    {/* 操作按钮 */}
-                    <div className="flex items-center gap-1">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={onApply}
-                            className="flex-1 text-xs h-7 text-green-600 hover:text-green-700"
-                        >
-                            <Download className="h-3 w-3 mr-1" />
-                            应用
-                        </Button>
-
+                {/* 模板信息 */}
+                <div className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-medium text-foreground truncate flex-1 mr-2">{template.name}</h3>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-white/30 backdrop-blur-sm rounded-md">
                                     <MoreHorizontal className="h-3 w-3" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={onEdit}>
+                            <DropdownMenuContent align="end" className="bg-white/50 backdrop-blur-md border border-white/30 rounded-lg">
+                                <DropdownMenuItem onClick={onApply} className="hover:bg-white/30 rounded-md">
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    应用
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onEdit} className="hover:bg-white/30 rounded-md">
                                     <Edit3 className="h-4 w-4 mr-2" />
                                     编辑
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleCopyInfo}>
+                                <DropdownMenuItem onClick={onToggleFavorite} className="hover:bg-white/30 rounded-md">
+                                    {template.is_favorite ? (
+                                        <>
+                                            <StarOff className="h-4 w-4 mr-2" />
+                                            取消收藏
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Star className="h-4 w-4 mr-2" />
+                                            收藏
+                                        </>
+                                    )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleCopyInfo} className="hover:bg-white/30 rounded-md">
                                     <Copy className="h-4 w-4 mr-2" />
                                     复制信息
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast.info('预览功能开发中')}>
-                                    <Eye className="h-4 w-4 mr-2" />
-                                    预览
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={onDelete}
-                                    className="text-red-600 focus:text-red-600"
-                                >
+                                <DropdownMenuItem onClick={onDelete} className="hover:bg-white/30 rounded-md text-red-600">
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     删除
                                 </DropdownMenuItem>
@@ -472,10 +379,49 @@ export function TemplateCard({
                         </DropdownMenu>
                     </div>
 
-                    {/* 创建时间 */}
-                    <div className="text-xs text-muted-foreground mt-2">
-                        {formatDate(template.created_at)}
+                    {template.description && (
+                        <p className="text-sm text-foreground/70 line-clamp-2 mb-3">
+                            {template.description}
+                        </p>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        <Badge variant="secondary" className="text-xs bg-white/50 backdrop-blur-sm border border-white/30">
+                            {getTypeLabel(template.type)}
+                        </Badge>
+                        {template.is_public && (
+                            <Badge variant="outline" className="text-xs border-white/30">
+                                公开
+                            </Badge>
+                        )}
                     </div>
+
+                    <div className="flex items-center justify-between text-xs text-foreground/60">
+                        <div className="flex items-center gap-1">
+                            <Eye className="h-3 w-3" />
+                            {template.usage_count}
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(template.created_at)}
+                        </div>
+                    </div>
+
+                    {/* 标签 */}
+                    {template.tags && template.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-3">
+                            {template.tags.slice(0, 3).map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-xs border-white/30">
+                                    {tag}
+                                </Badge>
+                            ))}
+                            {template.tags.length > 3 && (
+                                <Badge variant="outline" className="text-xs border-white/30">
+                                    +{template.tags.length - 3}
+                                </Badge>
+                            )}
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

@@ -775,26 +775,22 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换上传菜单的显示状态
               setShowUploadMenu(!showUploadMenu);
             }}
-            className="h-12 w-12 p-0 rounded-full text-white border border-border bg-black hover:bg-gray-800 transition-all duration-200 hover:scale-105"
-            iconClassName="size-5 text-white" // 设置图标为白色
+            className="h-12 w-12 p-0 rounded-full text-white border border-white/30 bg-black/50 backdrop-blur-md hover:bg-gray-800/70 transition-all duration-200 hover:scale-105 shadow-lg"
+            iconClassName="size-5 text-white"
           />
 
           {showUploadMenu && (
             <div
-              className="absolute left-16 top-0 z-30 w-48 rounded-lg overflow-hidden"
+              className="absolute left-16 top-0 z-30 w-48 rounded-xl overflow-hidden shadow-lg backdrop-blur-md border border-white/30"
               ref={uploadMenuRef}
               style={{
-                background: 'var(--glass-nav-bg, rgba(255, 255, 255, 0.85))',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: 'var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05))',
-                boxShadow: 'var(--glass-nav-shadow, 0 8px 32px rgba(0, 0, 0, 0.12))',
+                background: 'rgba(255, 255, 255, 0.5)',
               }}
             >
               <div className="p-2 text-sm font-medium text-foreground">添加内容</div>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                 onClick={() => {
                   // 触发文件选择器
                   fileInputRef.current?.click();
@@ -810,7 +806,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                 onClick={() => {
                   // 上传PSD文件逻辑
                   // 创建一个隐藏的文件输入元素来选择PSD文件
@@ -855,7 +851,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-accent transition-all duration-200"
+                className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                 onClick={(e) => {
                   e.stopPropagation();
                   // 上传模板逻辑
@@ -889,19 +885,15 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换形状菜单的显示状态
               setShowShapeMenu(!showShapeMenu);
             }}
-            className="h-9 w-9 p-0"
+            className="h-9 w-9 p-0 rounded-lg hover:bg-white/30 backdrop-blur-sm"
           />
 
           {showShapeMenu && (
             <div
-              className="absolute left-16 top-0 z-30 w-64 rounded-lg p-4"
+              className="absolute left-16 top-0 z-30 w-64 rounded-xl p-4 shadow-lg backdrop-blur-md border border-white/30"
               ref={shapeMenuRef}
               style={{
-                background: 'var(--glass-nav-bg, rgba(255, 255, 255, 0.85))',
-                backdropFilter: 'blur(24px) saturate(200%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-                border: 'var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05))',
-                boxShadow: 'var(--glass-nav-shadow, 0 8px 32px rgba(0, 0, 0, 0.12))',
+                background: 'rgba(255, 255, 255, 0.5)',
               }}
             >
               <div className="text-base font-medium mb-3 text-foreground">形状工具</div>
@@ -909,7 +901,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'rectangle' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                   onClick={() => {
                     handleToolChange('rectangle');
                     setShowShapeMenu(false);
@@ -926,7 +918,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'ellipse' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                   onClick={() => {
                     handleToolChange('ellipse');
                     setShowShapeMenu(false);
@@ -943,7 +935,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'arrow' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                   onClick={() => {
                     handleToolChange('arrow');
                     setShowShapeMenu(false);
@@ -960,7 +952,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 <Button
                   variant={activeTool === 'line' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-accent transition-all duration-200"
+                  className="flex flex-col items-center justify-center p-3 h-auto text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
                   onClick={() => {
                     handleToolChange('line');
                     setShowShapeMenu(false);
@@ -1031,6 +1023,10 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
 
 
 

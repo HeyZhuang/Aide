@@ -130,13 +130,13 @@ export function BottomTemplateToolbar({
     if (!isVisible) return null
 
     return (
-        <div className="fixed left-0 top-0 bottom-0 z-[9999] bg-background border-r shadow-lg w-80 flex flex-col" style={{ zIndex: 9999 }}>
+        <div className="fixed left-0 top-0 bottom-0 z-[9999] bg-white/50 backdrop-blur-md border-r border-white/30 shadow-lg w-80 flex flex-col" style={{ zIndex: 9999 }}>
             {/* 工具栏头部 */}
-            <div className="flex items-center justify-between p-3 bg-muted/50 border-b">
+            <div className="flex items-center justify-between p-3 bg-white/30 backdrop-blur-sm border-b border-white/30">
                 <div className="flex items-center gap-2">
                     <Layers className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">模板工具</span>
-                    <Badge variant="secondary" className="text-xs">
+                    <span className="text-sm font-medium text-foreground">模板工具</span>
+                    <Badge variant="secondary" className="text-xs bg-white/50 backdrop-blur-sm border border-white/30">
                         {templates.length}
                     </Badge>
                 </div>
@@ -146,6 +146,7 @@ export function BottomTemplateToolbar({
                         variant="ghost"
                         size="sm"
                         onClick={() => setIsExpanded(!isExpanded)}
+                        className="hover:bg-white/30 backdrop-blur-sm rounded-md"
                     >
                         {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
                     </Button>
@@ -153,6 +154,7 @@ export function BottomTemplateToolbar({
                         variant="ghost"
                         size="sm"
                         onClick={onToggleVisibility}
+                        className="hover:bg-white/30 backdrop-blur-sm rounded-md"
                     >
                         <EyeOff className="h-4 w-4" />
                     </Button>
@@ -169,7 +171,7 @@ export function BottomTemplateToolbar({
                                 variant={activeTab === 'recent' ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setActiveTab('recent')}
-                                className="justify-start"
+                                className={`justify-start rounded-lg ${activeTab === 'recent' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70'}`}
                             >
                                 <Calendar className="h-3 w-3 mr-2" />
                                 最近
@@ -178,7 +180,7 @@ export function BottomTemplateToolbar({
                                 variant={activeTab === 'favorites' ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setActiveTab('favorites')}
-                                className="justify-start"
+                                className={`justify-start rounded-lg ${activeTab === 'favorites' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70'}`}
                             >
                                 <Star className="h-3 w-3 mr-2" />
                                 收藏
@@ -187,7 +189,7 @@ export function BottomTemplateToolbar({
                                 variant={activeTab === 'categories' ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setActiveTab('categories')}
-                                className="justify-start"
+                                className={`justify-start rounded-lg ${activeTab === 'categories' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70'}`}
                             >
                                 <FolderOpen className="h-3 w-3 mr-2" />
                                 分类
@@ -198,7 +200,7 @@ export function BottomTemplateToolbar({
                         <div className="space-y-2">
                             <Button
                                 size="sm"
-                                className="w-full justify-start"
+                                className="w-full justify-start hover:bg-white/30 backdrop-blur-sm rounded-lg"
                                 onClick={onOpenTemplateManager}
                             >
                                 <Plus className="h-3 w-3 mr-2" />
@@ -207,7 +209,7 @@ export function BottomTemplateToolbar({
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="w-full justify-start"
+                                className="w-full justify-start bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"
                                 onClick={loadData}
                                 disabled={loading}
                             >
@@ -216,24 +218,24 @@ export function BottomTemplateToolbar({
                             </Button>
                         </div>
 
-                        <Separator />
+                        <Separator className="bg-white/30" />
 
                         {/* 模板列表 */}
                         <div className="flex-1 overflow-y-auto p-3">
                             <div className="space-y-2">
                                 {loading ? (
                                     <div className="flex items-center justify-center py-8">
-                                        <RefreshCw className="h-6 w-6 animate-spin" />
+                                        <RefreshCw className="h-6 w-6 animate-spin text-foreground" />
                                     </div>
                                 ) : getDisplayTemplates().length > 0 ? (
                                     getDisplayTemplates().map((template) => (
                                         <div
                                             key={template.id}
-                                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted cursor-pointer group"
+                                            className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/30 backdrop-blur-sm cursor-pointer group border border-white/20"
                                             onClick={() => handleApplyTemplate(template)}
                                         >
                                             {/* 缩略图 */}
-                                            <div className="w-10 h-10 bg-muted rounded flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            <div className="w-10 h-10 bg-white/30 backdrop-blur-sm rounded flex items-center justify-center overflow-hidden flex-shrink-0 border border-white/20">
                                                 {template.thumbnail_url ? (
                                                     <img
                                                         src={template.thumbnail_url}
@@ -260,8 +262,8 @@ export function BottomTemplateToolbar({
 
                                             {/* 模板信息 */}
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium truncate">{template.name}</p>
-                                                <p className="text-xs text-muted-foreground truncate">
+                                                <p className="text-sm font-medium truncate text-foreground">{template.name}</p>
+                                                <p className="text-xs text-foreground/70 truncate">
                                                     {categories.find(c => c.id === template.category_id)?.name}
                                                 </p>
                                             </div>
@@ -271,14 +273,14 @@ export function BottomTemplateToolbar({
                                                 {template.is_favorite && (
                                                     <Star className="h-3 w-3 text-yellow-500 fill-current" />
                                                 )}
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-xs border-white/30">
                                                     {template.usage_count}
                                                 </Badge>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="text-center py-8 text-sm text-muted-foreground">
+                                    <div className="text-center py-8 text-foreground/70">
                                         <Layers className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                         <p>暂无模板</p>
                                         <p className="text-xs">点击"管理模板"开始创建</p>

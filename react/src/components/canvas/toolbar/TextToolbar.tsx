@@ -195,34 +195,34 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-background text-foreground px-2 py-1.5 rounded-lg shadow-lg border border-border">
+    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/60 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
       {/* 字体选择 */}
       <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs hover:bg-white/10"
+            className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
           >
             {selectedFont}
             <ChevronDown className="ml-1 h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-background text-foreground border-border w-[400px] p-0"
+          className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 w-[400px] p-0 rounded-xl shadow-lg"
           align="start"
         >
           <Tabs defaultValue="system" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 bg-background">
+            <TabsList className="w-full grid grid-cols-2 bg-white/30 backdrop-blur-sm rounded-t-xl">
               <TabsTrigger
                 value="system"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tl-xl"
               >
                 System Fonts
               </TabsTrigger>
               <TabsTrigger
                 value="upload"
-                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tr-xl"
               >
                 Upload Font
               </TabsTrigger>
@@ -238,9 +238,9 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         handleFontChange(font.name, font.value)
                         setFontMenuOpen(false)
                       }}
-                      className={`px-3 py-2 rounded cursor-pointer transition-colors ${selectedFont === font.name
+                      className={`px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ${selectedFont === font.name
                         ? 'bg-blue-600 text-white'
-                        : 'hover:bg-white/10 text-foreground'
+                        : 'hover:bg-white/30 text-foreground'
                         }`}
                     >
                       {font.name}
@@ -252,13 +252,13 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
 
             <TabsContent value="upload" className="m-0">
               <div className="p-2">
-                <div className="flex items-center justify-between px-2 py-2 border-b border-border">
+                <div className="flex items-center justify-between px-2 py-2 border-b border-white/20 rounded-t-lg">
                   <span className="text-xs text-foreground">自定义字体</span>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 hover:bg-white/10"
+                      className="h-6 w-6 p-0 hover:bg-white/30 backdrop-blur-sm rounded-md"
                       onClick={loadCustomFonts}
                       disabled={loadingFonts}
                       title="刷新字体列表"
@@ -268,7 +268,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs hover:bg-white/10"
+                      className="h-6 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-md"
                       onClick={() => {
                         setShowUploadDialog(true)
                         setFontMenuOpen(false)
@@ -292,7 +292,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-border text-foreground hover:bg-white/10"
+                        className="border-white/30 text-foreground hover:bg-white/30 backdrop-blur-sm rounded-lg"
                         onClick={() => {
                           setShowUploadDialog(true)
                           setFontMenuOpen(false)
@@ -308,7 +308,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         <div
                           key={font.id}
                           onClick={() => handleCustomFontSelect(font)}
-                          className="px-3 py-2.5 rounded cursor-pointer transition-colors hover:bg-white/10 text-foreground group"
+                          className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 hover:bg-white/30 text-foreground group"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
@@ -318,7 +318,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                                 </span>
                                 <Badge
                                   variant="outline"
-                                  className="text-xs border-border text-foreground"
+                                  className="text-xs border-white/30 text-foreground rounded"
                                 >
                                   {font.font_format.toUpperCase()}
                                 </Badge>
@@ -328,7 +328,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white/30 backdrop-blur-sm rounded-md"
                               onClick={(e) => handleToggleFavorite(font.id, e)}
                             >
                               <Star
@@ -350,7 +350,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 字号选择 */}
       <DropdownMenu>
@@ -358,18 +358,18 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs hover:bg-white/10"
+            className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg"
           >
             {fontSize}
             <ChevronDown className="ml-1 h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-[#2a2a2a] text-white border-gray-700 max-h-60 overflow-y-auto">
+        <DropdownMenuContent className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 max-h-60 overflow-y-auto rounded-lg shadow-lg">
           {fontSizes.map((size) => (
             <DropdownMenuItem
               key={size}
               onClick={() => handleSizeChange(size)}
-              className="hover:bg-white/10 text-white"
+              className="hover:bg-white/30 text-foreground rounded-md transition-all duration-200"
             >
               {size}px
             </DropdownMenuItem>
@@ -377,13 +377,13 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 对齐方式 */}
       <Button
         variant="ghost"
         size="sm"
-        className={`h-7 w-7 p-0 hover:bg-white/10 ${textAlign === 'left' ? 'bg-blue-600' : ''}`}
+        className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'left' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('left')}
         title="左对齐"
       >
@@ -392,7 +392,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`h-7 w-7 p-0 hover:bg-white/10 ${textAlign === 'center' ? 'bg-blue-600' : ''}`}
+        className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'center' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('center')}
         title="居中对齐"
       >
@@ -401,14 +401,14 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
       <Button
         variant="ghost"
         size="sm"
-        className={`h-7 w-7 p-0 hover:bg-white/10 ${textAlign === 'right' ? 'bg-blue-600' : ''}`}
+        className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'right' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('right')}
         title="右对齐"
       >
         <AlignRight className="h-4 w-4" />
       </Button>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 透明度 */}
       <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         <span className="text-xs w-8">{Math.round(opacity)}%</span>
       </div>
 
-      <Separator orientation="vertical" className="h-5 bg-gray-600" />
+      <Separator orientation="vertical" className="h-5 bg-white/30" />
 
       {/* 文字颜色 */}
       <div className="relative group">

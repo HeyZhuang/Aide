@@ -102,13 +102,14 @@ export function TemplateToolbarManager({
         <>
             {/* 主工具栏按钮 */}
             <div className="fixed top-4 right-4 z-[9999] flex items-center gap-2" style={{ zIndex: 9999 }}>
-                <Card className="shadow-lg">
+                <Card className="shadow-lg bg-white/50 backdrop-blur-md border border-white/30 rounded-xl">
                     <CardContent className="p-2">
                         <div className="flex items-center gap-2">
                             <Button
                                 variant={showFloatingToolbar ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setShowFloatingToolbar(!showFloatingToolbar)}
+                                className={showFloatingToolbar ? "bg-blue-600 hover:bg-blue-700 rounded-lg" : "bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"}
                             >
                                 <Layers className="h-4 w-4 mr-1" />
                                 浮动
@@ -118,6 +119,7 @@ export function TemplateToolbarManager({
                                 variant={showBottomToolbar ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setShowBottomToolbar(!showBottomToolbar)}
+                                className={showBottomToolbar ? "bg-blue-600 hover:bg-blue-700 rounded-lg" : "bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"}
                             >
                                 <Layers className="h-4 w-4 mr-1" />
                                 左侧
@@ -127,6 +129,7 @@ export function TemplateToolbarManager({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowTemplateManager(true)}
+                                className="bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"
                             >
                                 <Maximize2 className="h-4 w-4 mr-1" />
                                 管理
@@ -136,6 +139,7 @@ export function TemplateToolbarManager({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setShowSettings(true)}
+                                className="bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"
                             >
                                 <Settings className="h-4 w-4" />
                             </Button>
@@ -171,11 +175,11 @@ export function TemplateToolbarManager({
 
             {/* 设置对话框 */}
             {showSettings && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <Card className="w-96 max-h-[80vh] overflow-y-auto">
-                        <CardHeader>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <Card className="w-96 max-h-[80vh] overflow-y-auto bg-white/50 backdrop-blur-md border border-white/30 rounded-xl">
+                        <CardHeader className="bg-white/30 backdrop-blur-sm border-b border-white/30 rounded-t-xl">
                             <div className="flex items-center justify-between">
-                                <CardTitle className="flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-foreground">
                                     <Settings className="h-5 w-5" />
                                     模板工具栏设置
                                 </CardTitle>
@@ -183,6 +187,7 @@ export function TemplateToolbarManager({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setShowSettings(false)}
+                                    className="hover:bg-white/30 backdrop-blur-sm rounded-md"
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
@@ -191,10 +196,10 @@ export function TemplateToolbarManager({
                         <CardContent className="space-y-6">
                             {/* 显示设置 */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-medium">显示设置</h3>
+                                <h3 className="text-sm font-medium text-foreground">显示设置</h3>
 
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="auto-show-floating" className="text-sm">
+                                    <Label htmlFor="auto-show-floating" className="text-sm text-foreground">
                                         自动显示浮动工具栏
                                     </Label>
                                     <Switch
@@ -207,7 +212,7 @@ export function TemplateToolbarManager({
                                 </div>
 
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="auto-show-bottom" className="text-sm">
+                                    <Label htmlFor="auto-show-bottom" className="text-sm text-foreground">
                                         自动显示左侧工具栏
                                     </Label>
                                     <Switch
@@ -220,7 +225,7 @@ export function TemplateToolbarManager({
                                 </div>
 
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="show-tooltips" className="text-sm">
+                                    <Label htmlFor="show-tooltips" className="text-sm text-foreground">
                                         显示工具提示
                                     </Label>
                                     <Switch
@@ -233,7 +238,7 @@ export function TemplateToolbarManager({
                                 </div>
 
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="compact-mode" className="text-sm">
+                                    <Label htmlFor="compact-mode" className="text-sm text-foreground">
                                         紧凑模式
                                     </Label>
                                     <Switch
@@ -246,14 +251,14 @@ export function TemplateToolbarManager({
                                 </div>
                             </div>
 
-                            <Separator />
+                            <Separator className="bg-white/30" />
 
                             {/* 行为设置 */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-medium">行为设置</h3>
+                                <h3 className="text-sm font-medium text-foreground">行为设置</h3>
 
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="remember-position" className="text-sm">
+                                    <Label htmlFor="remember-position" className="text-sm text-foreground">
                                         记住位置
                                     </Label>
                                     <Switch
@@ -266,7 +271,7 @@ export function TemplateToolbarManager({
                                 </div>
                             </div>
 
-                            <Separator />
+                            <Separator className="bg-white/30" />
 
                             {/* 操作按钮 */}
                             <div className="flex items-center justify-between">
@@ -274,6 +279,7 @@ export function TemplateToolbarManager({
                                     variant="outline"
                                     size="sm"
                                     onClick={resetSettings}
+                                    className="bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"
                                 >
                                     <RotateCcw className="h-4 w-4 mr-1" />
                                     重置
@@ -286,6 +292,7 @@ export function TemplateToolbarManager({
                                         onClick={() => {
                                             toast.info('帮助文档开发中')
                                         }}
+                                        className="bg-white/50 backdrop-blur-sm border border-white/30 hover:bg-white/70 rounded-lg"
                                     >
                                         <HelpCircle className="h-4 w-4 mr-1" />
                                         帮助
@@ -294,6 +301,7 @@ export function TemplateToolbarManager({
                                     <Button
                                         size="sm"
                                         onClick={() => setShowSettings(false)}
+                                        className="rounded-lg"
                                     >
                                         <Save className="h-4 w-4 mr-1" />
                                         保存
@@ -302,10 +310,10 @@ export function TemplateToolbarManager({
                             </div>
 
                             {/* 信息 */}
-                            <div className="bg-muted/50 p-3 rounded-lg">
+                            <div className="bg-white/30 backdrop-blur-sm p-3 rounded-lg border border-white/30">
                                 <div className="flex items-start gap-2">
-                                    <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                    <div className="text-xs text-muted-foreground">
+                                    <Info className="h-4 w-4 text-foreground/70 mt-0.5" />
+                                    <div className="text-xs text-foreground/70">
                                         <p>• 浮动工具栏可以拖拽移动位置</p>
                                         <p>• 底部工具栏固定在屏幕底部</p>
                                         <p>• 设置会自动保存到本地存储</p>

@@ -498,8 +498,11 @@ export function TemplateManager({
     // 全屏模式
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-7xl h-[90vh] p-0 z-[9999]" style={{ zIndex: 9999 }}>
-                <DialogHeader className="p-6 pb-0">
+            <DialogContent className="max-w-7xl h-[90vh] p-0 z-[9999] backdrop-blur-md border border-white/30 rounded-xl overflow-hidden" style={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                zIndex: 9999
+            }}>
+                <DialogHeader className="p-6 pb-0 backdrop-blur-sm bg-white/30">
                     <div className="flex items-center justify-between">
                         <div>
                             <DialogTitle className="text-2xl font-bold">模板管理</DialogTitle>
@@ -512,6 +515,7 @@ export function TemplateManager({
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setIsFloating(true)}
+                                className="backdrop-blur-sm bg-white/30 border-white/30 hover:bg-white/50 rounded-lg"
                             >
                                 <Pin className="h-4 w-4 mr-1" />
                                 浮动模式
@@ -522,28 +526,28 @@ export function TemplateManager({
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* 左侧边栏 */}
-                    <div className="w-80 border-r bg-muted/20">
+                    <div className="w-80 border-r bg-white/30 backdrop-blur-md border-white/30">
                         <ScrollArea className="h-full p-4">
                             <div className="space-y-4">
                                 {/* 搜索栏 */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-foreground/70" />
                                     <Input
                                         placeholder="搜索模板..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10"
+                                        className="pl-10 bg-white/50 backdrop-blur-sm border-white/30 text-foreground placeholder:text-foreground/50 rounded-lg"
                                     />
                                 </div>
 
                                 {/* 分类筛选 */}
                                 <div>
-                                    <Label className="text-sm font-medium mb-2 block">分类</Label>
+                                    <Label className="text-sm font-medium mb-2 block text-foreground">分类</Label>
                                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="bg-white/50 backdrop-blur-sm border-white/30 text-foreground rounded-lg">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="bg-white/50 backdrop-blur-md border-white/30 text-foreground rounded-lg">
                                             <SelectItem value="all">全部</SelectItem>
                                             {categories.map(category => (
                                                 <SelectItem key={category.id} value={category.id}>
@@ -554,14 +558,15 @@ export function TemplateManager({
                                     </Select>
                                 </div>
 
-                                {/* 视图模式 */}
+                                {/* 视图模式切换 */}
                                 <div>
-                                    <Label className="text-sm font-medium mb-2 block">视图模式</Label>
-                                    <div className="flex gap-2">
+                                    <Label className="text-sm font-medium mb-2 block text-foreground">视图</Label>
+                                    <div className="flex gap-1">
                                         <Button
                                             variant={viewMode === 'grid' ? 'default' : 'outline'}
                                             size="sm"
                                             onClick={() => setViewMode('grid')}
+                                            className={viewMode === 'grid' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/50 backdrop-blur-sm border-white/30 hover:bg-white/70 rounded-lg'}
                                         >
                                             <Grid3X3 className="h-4 w-4" />
                                         </Button>
@@ -569,161 +574,146 @@ export function TemplateManager({
                                             variant={viewMode === 'list' ? 'default' : 'outline'}
                                             size="sm"
                                             onClick={() => setViewMode('list')}
+                                            className={viewMode === 'list' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-white/50 backdrop-blur-sm border-white/30 hover:bg-white/70 rounded-lg'}
                                         >
                                             <List className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
-
-                                {/* 统计信息 */}
-                                {stats && (
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm">统计信息</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span>总模板</span>
-                                                <span className="font-medium">{stats.total_templates}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span>分类数</span>
-                                                <span className="font-medium">{stats.total_categories}</span>
-                                            </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span>收藏数</span>
-                                                <span className="font-medium">
-                                                    {templates.filter(t => t.is_favorite).length}
-                                                </span>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
                             </div>
                         </ScrollArea>
                     </div>
 
                     {/* 主内容区 */}
                     <div className="flex-1 flex flex-col">
-                        {/* 工具栏 */}
-                        <div className="p-4 border-b bg-background">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Button onClick={() => setShowUploadDialog(true)}>
-                                        <Plus className="h-4 w-4 mr-1" />
-                                        新建模板
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setShowCategoryManager(true)}
-                                    >
-                                        <FolderPlus className="h-4 w-4 mr-1" />
-                                        管理分类
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setShowFontManager(true)}
-                                    >
-                                        <Type className="h-4 w-4 mr-1" />
-                                        字体管理
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setShowFilters(!showFilters)}
-                                    >
-                                        <Filter className="h-4 w-4 mr-1" />
-                                        筛选
-                                    </Button>
-                                </div>
+                        {/* 顶部操作栏 */}
+                        <div className="p-4 border-b bg-white/30 backdrop-blur-sm border-white/30 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    onClick={() => setShowUploadDialog(true)}
+                                    className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                >
+                                    <Plus className="h-4 w-4 mr-1" />
+                                    上传模板
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={loadData}
+                                    disabled={loading}
+                                    className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                >
+                                    <RefreshCw className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                                    刷新
+                                </Button>
+                            </div>
 
-                                <div className="flex items-center gap-2">
-                                    {selectedTemplates.size > 0 && (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-muted-foreground">
-                                                已选择 {selectedTemplates.size} 个
-                                            </span>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleBatchOperation('favorite')}
-                                            >
-                                                <Star className="h-4 w-4 mr-1" />
-                                                收藏
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleBatchOperation('delete')}
-                                            >
-                                                <Trash2 className="h-4 w-4 mr-1" />
-                                                删除
-                                            </Button>
-                                        </div>
-                                    )}
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={loadData}
-                                        disabled={loading}
-                                    >
-                                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowCategoryManager(true)}
+                                    className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                >
+                                    <FolderPlus className="h-4 w-4 mr-1" />
+                                    管理分类
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowFontManager(true)}
+                                    className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                >
+                                    <Type className="h-4 w-4 mr-1" />
+                                    字体管理
+                                </Button>
                             </div>
                         </div>
 
-                        {/* 筛选器 */}
-                        {showFilters && (
-                            <div className="p-4 border-b bg-muted/20">
-                                <TemplateSearchFiltersComponent
-                                    filters={filters}
-                                    onFiltersChange={setFilters}
-                                    categories={categories}
-                                />
-                            </div>
-                        )}
-
                         {/* 模板列表 */}
-                        <ScrollArea className="flex-1 p-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                        <ScrollArea className="flex-1 p-4">
                             {loading ? (
-                                <div className="flex items-center justify-center h-32">
-                                    <RefreshCw className="h-6 w-6 animate-spin" />
+                                <div className="flex items-center justify-center h-full">
+                                    <RefreshCw className="h-6 w-6 animate-spin text-foreground" />
                                 </div>
-                            ) : (
-                                <div className={
-                                    viewMode === 'grid'
-                                        ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-                                        : 'space-y-2'
-                                }>
+                            ) : filteredTemplates.length > 0 ? (
+                                <div className={viewMode === 'grid' ? 'grid grid-cols-4 gap-4' : 'space-y-2'}>
                                     {filteredTemplates.map((template) => (
                                         <TemplateCard
                                             key={template.id}
                                             template={template}
                                             viewMode={viewMode}
                                             isSelected={selectedTemplates.has(template.id)}
-                                            onSelect={(selected: boolean) => {
-                                                setSelectedTemplates(prev => {
-                                                    const newSet = new Set(prev)
-                                                    if (selected) {
-                                                        newSet.add(template.id)
-                                                    } else {
-                                                        newSet.delete(template.id)
-                                                    }
-                                                    return newSet
-                                                })
+                                            onToggleSelect={(id) => {
+                                                const newSet = new Set(selectedTemplates)
+                                                if (newSet.has(id)) {
+                                                    newSet.delete(id)
+                                                } else {
+                                                    newSet.add(id)
+                                                }
+                                                setSelectedTemplates(newSet)
                                             }}
-                                            onApply={() => handleApplyTemplate(template)}
-                                            onToggleFavorite={() => handleToggleFavorite(template.id)}
-                                            onDelete={() => handleDeleteTemplate(template.id)}
-                                            onEdit={() => {
-                                                // TODO: 实现编辑功能
-                                                toast.info('编辑功能开发中')
-                                            }}
+                                            onApply={handleApplyTemplate}
+                                            onToggleFavorite={handleToggleFavorite}
+                                            onDelete={handleDeleteTemplate}
                                         />
                                     ))}
                                 </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-foreground/70">
+                                    <Layers className="h-12 w-12 mb-4" />
+                                    <h3 className="text-lg font-medium mb-2">暂无模板</h3>
+                                    <p className="text-sm mb-4">点击"上传模板"开始添加</p>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => setShowUploadDialog(true)}
+                                        className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                    >
+                                        <Plus className="h-4 w-4 mr-1" />
+                                        上传模板
+                                    </Button>
+                                </div>
                             )}
                         </ScrollArea>
+
+                        {/* 批量操作栏 */}
+                        {selectedTemplates.size > 0 && (
+                            <div className="p-3 border-t bg-white/30 backdrop-blur-sm border-white/30 flex items-center justify-between">
+                                <div className="text-sm text-foreground">
+                                    已选择 {selectedTemplates.size} 项
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleBatchOperation('favorite')}
+                                        className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                    >
+                                        <Star className="h-4 w-4 mr-1" />
+                                        收藏
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleBatchOperation('unfavorite')}
+                                        className="backdrop-blur-sm bg-white/50 border-white/30 hover:bg-white/70 rounded-lg"
+                                    >
+                                        <StarOff className="h-4 w-4 mr-1" />
+                                        取消收藏
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() => handleBatchOperation('delete')}
+                                        className="rounded-lg"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        删除
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
