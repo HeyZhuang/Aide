@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useCanvas } from '@/contexts/canvas'
+import { useTranslation } from 'react-i18next'
 import {
   AlignLeft,
   AlignCenter,
@@ -33,6 +34,7 @@ interface TextToolbarProps {
 }
 
 export function TextToolbar({ selectedElement }: TextToolbarProps) {
+  const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
   const [selectedFont, setSelectedFont] = useState('Virgil')
   const [fontSize, setFontSize] = useState(20)
@@ -218,13 +220,13 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                 value="system"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tl-xl"
               >
-                System Fonts
+                {t('canvas:toolbar.text.customFonts')}
               </TabsTrigger>
               <TabsTrigger
                 value="upload"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tr-xl"
               >
-                Upload Font
+                {t('canvas:toolbar.text.uploadFont')}
               </TabsTrigger>
             </TabsList>
 
@@ -253,7 +255,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
             <TabsContent value="upload" className="m-0">
               <div className="p-2">
                 <div className="flex items-center justify-between px-2 py-2 border-b border-white/20 rounded-t-lg">
-                  <span className="text-xs text-foreground">自定义字体</span>
+                  <span className="text-xs text-foreground">{t('canvas:toolbar.text.customFonts')}</span>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
@@ -261,7 +263,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                       className="h-6 w-6 p-0 hover:bg-white/30 backdrop-blur-sm rounded-md"
                       onClick={loadCustomFonts}
                       disabled={loadingFonts}
-                      title="刷新字体列表"
+                      title={t('canvas:toolbar.text.refreshFontList')}
                     >
                       <RefreshCw className={`h-3 w-3 ${loadingFonts ? 'animate-spin' : ''}`} />
                     </Button>
@@ -275,7 +277,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                       }}
                     >
                       <Upload className="h-3 w-3 mr-1" />
-                      上传
+                      {t('canvas:toolbar.text.upload')}
                     </Button>
                   </div>
                 </div>
@@ -288,7 +290,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                   ) : customFonts.length === 0 ? (
                     <div className="p-6 text-center">
                       <Type className="h-8 w-8 mx-auto mb-2 text-foreground" />
-                      <p className="text-sm text-foreground mb-3">暂无自定义字体</p>
+                      <p className="text-sm text-foreground mb-3">{t('canvas:toolbar.text.noCustomFonts')}</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -299,7 +301,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                         }}
                       >
                         <Upload className="h-3 w-3 mr-1" />
-                        上传字体
+                        {t('canvas:toolbar.text.uploadFont')}
                       </Button>
                     </div>
                   ) : (
@@ -385,7 +387,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         size="sm"
         className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'left' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('left')}
-        title="左对齐"
+        title={t('canvas:toolbar.text.textAlignLeft')}
       >
         <AlignLeft className="h-4 w-4" />
       </Button>
@@ -394,7 +396,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         size="sm"
         className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'center' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('center')}
-        title="居中对齐"
+        title={t('canvas:toolbar.text.textAlignCenter')}
       >
         <AlignCenter className="h-4 w-4" />
       </Button>
@@ -403,7 +405,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
         size="sm"
         className={`h-7 w-7 p-0 hover:bg-white/30 backdrop-blur-sm rounded-lg ${textAlign === 'right' ? 'bg-blue-600' : ''}`}
         onClick={() => handleAlignChange('right')}
-        title="右对齐"
+        title={t('canvas:toolbar.text.textAlignRight')}
       >
         <AlignRight className="h-4 w-4" />
       </Button>
@@ -412,7 +414,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
 
       {/* 透明度 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs">透明度</span>
+        <span className="text-xs">{t('canvas:toolbar.text.opacity')}</span>
         <div className="w-20">
           <Slider
             value={[opacity]}
@@ -435,7 +437,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           value={textColor}
           onChange={(e) => handleColorChange(e.target.value)}
           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-          title="选择文字颜色"
+          title={t('canvas:toolbar.text.selectColor')}
         />
         <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors">
           <div className="relative pointer-events-none">

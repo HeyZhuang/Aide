@@ -1,6 +1,7 @@
 import { Separator } from '@/components/ui/separator'
 import { useCanvas } from '@/contexts/canvas'
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import CanvasMenuButton from './CanvasMenuButton'
 import { ToolType } from './CanvasMenuIcon'
 import { PSDCanvasUploader } from '../PSDCanvasUploader'
@@ -25,6 +26,7 @@ interface CanvasToolMenuProps {
 }
 
 const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
+  const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
 
   const [activeTool, setActiveTool] = useState<ToolType | undefined>(undefined)
@@ -787,7 +789,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 background: 'rgba(255, 255, 255, 0.5)',
               }}
             >
-              <div className="p-2 text-sm font-medium text-foreground">添加内容</div>
+              <div className="p-2 text-sm font-medium text-foreground">{t('canvas:toolbar.menu.addContent')}</div>
               <Button
                 variant="ghost"
                 className="w-full justify-start px-4 py-2 h-9 text-foreground hover:bg-white/30 backdrop-blur-sm transition-all duration-200 rounded-lg"
@@ -802,7 +804,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <path d="M16 3L12 7M12 3L16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M12 13L12 21M8 17L12 21M16 17L12 21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                上传图片
+                {t('canvas:toolbar.menu.uploadImage')}
               </Button>
               <Button
                 variant="ghost"
@@ -847,7 +849,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <path d="M16 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                上传PSD文件
+                {t('canvas:toolbar.menu.uploadPSD')}
               </Button>
               <Button
                 variant="ghost"
@@ -866,7 +868,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                   <path d="M10 17H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   <path d="M16 17H12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                上传模板
+                {t('canvas:toolbar.menu.uploadTemplate')}
               </Button>
             </div>
           )}
@@ -896,7 +898,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                 background: 'rgba(255, 255, 255, 0.5)',
               }}
             >
-              <div className="text-base font-medium mb-3 text-foreground">形状工具</div>
+              <div className="text-base font-medium mb-3 text-foreground">{t('canvas:toolbar.menu.shapeTools')}</div>
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant={activeTool === 'rectangle' ? 'secondary' : 'ghost'}
@@ -906,14 +908,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                     handleToolChange('rectangle');
                     setShowShapeMenu(false);
                   }}
-                  title="矩形"
+                  title={t('canvas:toolbar.menu.rectangle')}
                 >
                   <div className="w-8 h-8 flex items-center justify-center mb-1">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
                     </svg>
                   </div>
-                  <span className="text-xs">矩形</span>
+                  <span className="text-xs">{t('canvas:toolbar.menu.rectangle')}</span>
                 </Button>
                 <Button
                   variant={activeTool === 'ellipse' ? 'secondary' : 'ghost'}
@@ -923,14 +925,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                     handleToolChange('ellipse');
                     setShowShapeMenu(false);
                   }}
-                  title="圆形"
+                  title={t('canvas:toolbar.menu.circle')}
                 >
                   <div className="w-8 h-8 flex items-center justify-center mb-1">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <ellipse cx="12" cy="12" rx="9" ry="9" stroke="currentColor" strokeWidth="2" />
                     </svg>
                   </div>
-                  <span className="text-xs">圆形</span>
+                  <span className="text-xs">{t('canvas:toolbar.menu.circle')}</span>
                 </Button>
                 <Button
                   variant={activeTool === 'arrow' ? 'secondary' : 'ghost'}
@@ -940,14 +942,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                     handleToolChange('arrow');
                     setShowShapeMenu(false);
                   }}
-                  title="箭头"
+                  title={t('canvas:toolbar.menu.arrow')}
                 >
                   <div className="w-8 h-8 flex items-center justify-center mb-1">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </div>
-                  <span className="text-xs">箭头</span>
+                  <span className="text-xs">{t('canvas:toolbar.menu.arrow')}</span>
                 </Button>
                 <Button
                   variant={activeTool === 'line' ? 'secondary' : 'ghost'}
@@ -957,14 +959,14 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
                     handleToolChange('line');
                     setShowShapeMenu(false);
                   }}
-                  title="直线"
+                  title={t('canvas:toolbar.menu.line')}
                 >
                   <div className="w-8 h-8 flex items-center justify-center mb-1">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="2" />
                     </svg>
                   </div>
-                  <span className="text-xs">直线</span>
+                  <span className="text-xs">{t('canvas:toolbar.menu.line')}</span>
                 </Button>
               </div>
             </div>

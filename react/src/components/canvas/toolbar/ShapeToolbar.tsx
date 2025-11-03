@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { useCanvas } from '@/contexts/canvas'
+import { useTranslation } from 'react-i18next'
 import {
   Palette,
   PaintBucket,
@@ -18,6 +19,7 @@ interface ShapeToolbarProps {
 type StrokeStyle = 'solid' | 'dashed' | 'dotted'
 
 export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
+  const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
   const [strokeColor, setStrokeColor] = useState('#000000')
   const [backgroundColor, setBackgroundColor] = useState('transparent')
@@ -93,7 +95,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
             updateElement({ strokeColor: e.target.value })
           }}
           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-          title="描边颜色"
+          title={t('canvas:toolbar.shape.strokeColor')}
         />
         <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/30 backdrop-blur-sm transition-colors rounded-lg">
           <Palette className="h-4 w-4 pointer-events-none" />
@@ -116,7 +118,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
             updateElement({ backgroundColor: e.target.value })
           }}
           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
-          title="背景颜色"
+          title={t('canvas:toolbar.shape.backgroundColor')}
         />
         <div className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/30 backdrop-blur-sm transition-colors rounded-lg">
           <PaintBucket className="h-4 w-4 pointer-events-none" />
@@ -135,9 +137,9 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
           setBackgroundColor('transparent')
           updateElement({ backgroundColor: 'transparent' })
         }}
-        title="透明背景"
+        title={t('canvas:toolbar.shape.transparent')}
       >
-        透明
+        {t('canvas:toolbar.shape.transparent')}
       </Button>
 
       <Separator orientation="vertical" className="h-5 bg-white/30" />
@@ -152,7 +154,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
             setStrokeStyle('solid')
             updateElement({ strokeStyle: 'solid' })
           }}
-          title="实线"
+          title={t('canvas:toolbar.shape.solid')}
         >
           <div className="w-8 h-0.5 bg-current" />
         </Button>
@@ -164,7 +166,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
             setStrokeStyle('dashed')
             updateElement({ strokeStyle: 'dashed' })
           }}
-          title="虚线"
+          title={t('canvas:toolbar.shape.dashed')}
         >
           <div className="w-8 h-0.5 border-t-2 border-dashed border-current" />
         </Button>
@@ -176,7 +178,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
             setStrokeStyle('dotted')
             updateElement({ strokeStyle: 'dotted' })
           }}
-          title="点线"
+          title={t('canvas:toolbar.shape.dotted')}
         >
           <div className="w-8 h-0.5 border-t-2 border-dotted border-current" />
         </Button>
@@ -207,7 +209,7 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
 
       {/* 透明度 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs">不透明度</span>
+        <span className="text-xs">{t('canvas:toolbar.shape.opacity')}</span>
         <div className="w-20">
           <Slider
             value={[opacity]}

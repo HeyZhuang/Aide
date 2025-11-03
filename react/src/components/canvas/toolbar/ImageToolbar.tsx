@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { useCanvas } from '@/contexts/canvas'
+import { useTranslation } from 'react-i18next'
 import {
   Layers,
   Crop,
@@ -18,6 +19,7 @@ interface ImageToolbarProps {
 }
 
 export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
+  const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
   const [opacity, setOpacity] = useState(100)
   const [cornerRadius, setCornerRadius] = useState(0)
@@ -281,7 +283,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
     <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/60 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
       {/* 透明度控制 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-foreground">透明度</span>
+        <span className="text-xs text-foreground">{t('canvas:toolbar.image.opacity')}</span>
         <Slider
           value={[opacity]}
           onValueChange={([value]) => handleOpacityChange(value)}
@@ -296,7 +298,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
 
       {/* 圆角控制 */}
       <div className="flex items-center gap-2">
-        <span className="text-xs text-foreground">圆角</span>
+        <span className="text-xs text-foreground">{t('canvas:toolbar.image.borderRadius')}</span>
         <Slider
           value={[cornerRadius]}
           onValueChange={([value]) => handleCornerRadiusChange(value)}
@@ -318,7 +320,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
           onClick={() => setLayersOpen(!layersOpen)}
         >
           <Layers className="h-3 w-3 mr-1" />
-          图层
+          {t('canvas:toolbar.image.layers')}
           <ChevronDown className="ml-1 h-3 w-3" />
         </Button>
 
@@ -328,25 +330,25 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
               onClick={() => handleLayerAction('sendToBack')}
             >
-              置于底层
+              {t('canvas:toolbar.image.sendToBack')}
             </button>
             <button
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
               onClick={() => handleLayerAction('sendBackward')}
             >
-              下移一层
+              {t('canvas:toolbar.image.sendBackward')}
             </button>
             <button
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
               onClick={() => handleLayerAction('bringForward')}
             >
-              上移一层
+              {t('canvas:toolbar.image.bringForward')}
             </button>
             <button
               className="w-full text-left px-3 py-1.5 text-xs hover:bg-white/30 text-foreground transition-all duration-200"
               onClick={() => handleLayerAction('bringToFront')}
             >
-              置于顶层
+              {t('canvas:toolbar.image.bringToFront')}
             </button>
           </div>
         )}
@@ -362,7 +364,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
         onClick={handleCrop}
       >
         <Crop className="h-3 w-3 mr-1" />
-        裁剪
+        {t('canvas:toolbar.image.crop')}
       </Button>
 
       <Separator orientation="vertical" className="h-5 bg-white/30" />
@@ -375,7 +377,7 @@ export function ImageToolbar({ selectedElement }: ImageToolbarProps) {
         onClick={handleRemoveBackground}
       >
         <Scissors className="h-3 w-3 mr-1" />
-        移除背景
+        {t('canvas:toolbar.image.removeBackground')}
       </Button>
     </div>
   )

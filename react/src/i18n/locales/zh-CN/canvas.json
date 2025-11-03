@@ -45,6 +45,52 @@
     "plus": "上传",
     "frame": "框架"
   },
+  "toolbar": {
+    "text": {
+      "customFonts": "自定义字体",
+      "refreshFontList": "刷新字体列表",
+      "upload": "上传",
+      "noCustomFonts": "暂无自定义字体",
+      "uploadFont": "上传字体",
+      "opacity": "透明度",
+      "textAlignLeft": "左对齐",
+      "textAlignCenter": "居中对齐",
+      "textAlignRight": "右对齐",
+      "selectColor": "选择文字颜色"
+    },
+    "image": {
+      "opacity": "透明度",
+      "borderRadius": "圆角",
+      "layers": "图层",
+      "sendToBack": "置于底层",
+      "sendBackward": "下移一层",
+      "bringForward": "上移一层",
+      "bringToFront": "置于顶层",
+      "crop": "裁剪",
+      "removeBackground": "移除背景"
+    },
+    "shape": {
+      "strokeColor": "描边颜色",
+      "backgroundColor": "背景颜色",
+      "transparent": "透明",
+      "solid": "实线",
+      "dashed": "虚线",
+      "dotted": "点线",
+      "strokeWidth": "描边宽度",
+      "opacity": "不透明度"
+    },
+    "menu": {
+      "addContent": "添加内容",
+      "uploadImage": "上传图片",
+      "uploadPSD": "上传PSD文件",
+      "uploadTemplate": "上传模板",
+      "shapeTools": "形状工具",
+      "rectangle": "矩形",
+      "circle": "圆形",
+      "arrow": "箭头",
+      "line": "直线"
+    }
+  },
   "popbar": {
     "addToChat": "添加到聊天",
     "magicGenerate": "✨ 魔法生成"

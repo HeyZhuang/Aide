@@ -45,6 +45,52 @@
     "upload": "Upload",
     "frame": "Frame"
   },
+  "toolbar": {
+    "text": {
+      "customFonts": "Custom Fonts",
+      "refreshFontList": "Refresh font list",
+      "upload": "Upload",
+      "noCustomFonts": "No custom fonts",
+      "uploadFont": "Upload font",
+      "opacity": "Opacity",
+      "textAlignLeft": "Left align",
+      "textAlignCenter": "Center align",
+      "textAlignRight": "Right align",
+      "selectColor": "Select text color"
+    },
+    "image": {
+      "opacity": "Opacity",
+      "borderRadius": "Border radius",
+      "layers": "Layers",
+      "sendToBack": "Send to back",
+      "sendBackward": "Send backward",
+      "bringForward": "Bring forward",
+      "bringToFront": "Bring to front",
+      "crop": "Crop",
+      "removeBackground": "Remove background"
+    },
+    "shape": {
+      "strokeColor": "Stroke color",
+      "backgroundColor": "Background color",
+      "transparent": "Transparent",
+      "solid": "Solid",
+      "dashed": "Dashed",
+      "dotted": "Dotted",
+      "strokeWidth": "Stroke width",
+      "opacity": "Opacity"
+    },
+    "menu": {
+      "addContent": "Add Content",
+      "uploadImage": "Upload Image",
+      "uploadPSD": "Upload PSD File",
+      "uploadTemplate": "Upload Template",
+      "shapeTools": "Shape Tools",
+      "rectangle": "Rectangle",
+      "circle": "Circle",
+      "arrow": "Arrow",
+      "line": "Line"
+    }
+  },
   "popbar": {
     "addToChat": "Add to chat",
     "magicGenerate": "✨ Magic Generate"
