@@ -645,18 +645,19 @@ export function TemplateManager({
                                             template={template}
                                             viewMode={viewMode}
                                             isSelected={selectedTemplates.has(template.id)}
-                                            onToggleSelect={(id) => {
+                                            onSelect={(selected: boolean) => {
                                                 const newSet = new Set(selectedTemplates)
-                                                if (newSet.has(id)) {
-                                                    newSet.delete(id)
+                                                if (selected) {
+                                                    newSet.add(template.id)
                                                 } else {
-                                                    newSet.add(id)
+                                                    newSet.delete(template.id)
                                                 }
                                                 setSelectedTemplates(newSet)
                                             }}
-                                            onApply={handleApplyTemplate}
-                                            onToggleFavorite={handleToggleFavorite}
-                                            onDelete={handleDeleteTemplate}
+                                            onApply={() => handleApplyTemplate(template)}
+                                            onToggleFavorite={() => handleToggleFavorite(template.id)}
+                                            onDelete={() => handleDeleteTemplate(template.id)}
+                                            onEdit={() => {}}
                                         />
                                     ))}
                                 </div>

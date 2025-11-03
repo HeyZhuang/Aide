@@ -211,15 +211,10 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                     return true
                 }
 
-                // 4. 基于图层名称和PSD文件ID（防止同名图层在不同PSD中重复）
-                if (element.customData?.layerName === layer.name &&
-                    element.customData?.psdFileId === psdFileId) {
-                    return true
-                }
-
-                // 5. 基于图层名称（全局去重，防止任何同名图层）
-                if (element.customData?.layerName === layer.name) {
-                    console.log(`发现全局重复图层名称: ${layer.name}`)
+                // 4. 基于PSD文件ID和图层索引（最准确的重复检测）
+                // 只检查相同PSD文件中的相同索引图层，允许不同PSD文件有同名图层
+                if (element.customData?.psdFileId === psdFileId &&
+                    element.customData?.psdLayerIndex === layer.index) {
                     return true
                 }
 
@@ -441,51 +436,19 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
             // 首先去除所有群组
             removeAllGroups()
 
-            // 然后进行全局清理
-            cleanupDuplicateLayers()
-
-            // 更彻底的重复图层清理
+            // 只清理当前PSD文件的旧图层（基于PSD文件ID），保留其他PSD的图层
             const currentElements = excalidrawAPI.getSceneElements()
-
-            // 1. 清理基于PSD文件ID的重复图层
-            let elementsToKeep = currentElements.filter(element =>
+            const elementsToKeep = currentElements.filter(element =>
                 !element.customData?.psdFileId || element.customData.psdFileId !== psdData.file_id
             )
 
-            // 2. 清理基于图层名称的重复图层（防止同名图层重复）
-            const layerNames = new Set<string>()
-            elementsToKeep = elementsToKeep.filter(element => {
-                const layerName = element.customData?.layerName
-                if (!layerName) return true // 保留非PSD图层
-
-                if (layerNames.has(layerName)) {
-                    console.log(`发现重复图层名称: ${layerName}，移除重复项`)
-                    return false
-                }
-                layerNames.add(layerName)
-                return true
-            })
-
-            // 3. 清理基于位置的重复图层（防止同位置图层重复）
-            const positionMap = new Map<string, any>()
-            elementsToKeep = elementsToKeep.filter(element => {
-                const layerName = element.customData?.layerName
-                if (!layerName) return true // 保留非PSD图层
-
-                const positionKey = `${Math.round(element.x)},${Math.round(element.y)}`
-                if (positionMap.has(positionKey)) {
-                    console.log(`发现同位置图层: ${layerName} at (${element.x}, ${element.y})，移除重复项`)
-                    return false
-                }
-                positionMap.set(positionKey, element)
-                return true
-            })
-
             if (elementsToKeep.length < currentElements.length) {
-                console.log(`清理了 ${currentElements.length - elementsToKeep.length} 個重複的 PSD 圖層`)
+                console.log(`清理了 ${currentElements.length - elementsToKeep.length} 個當前 PSD 文件的舊圖層`)
                 excalidrawAPI.updateScene({
                     elements: elementsToKeep,
                 })
+                // 等待清理完成
+                await new Promise(resolve => setTimeout(resolve, 100))
             }
 
             // 詳細記錄每個圖層的狀態
@@ -590,47 +553,182 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                 const sortedLayers = [...imageLayers].sort((a, b) => a.index - b.index)
                 console.log('图层排序（从底层到顶层）:', sortedLayers.map(l => ({ index: l.index, name: l.name })))
 
+                // 逐个添加图层，确保每个图层都正确添加到画布
+                let addedCount = 0
+                const finalOffsetX = centerOffsetX
+                const finalOffsetY = centerOffsetY
+
                 for (let i = 0; i < sortedLayers.length; i++) {
                     const layer = sortedLayers[i]
 
-                    // 使用PSD原始坐标 + 整体居中偏移
-                    const finalOffsetX = centerOffsetX
-                    const finalOffsetY = centerOffsetY
+                    try {
+                        if (!layer.image_url) {
+                            // 占位符图层，使用addLayerToCanvas处理
+                            await addLayerToCanvas(layer, psdData.file_id, finalOffsetX, finalOffsetY)
+                            addedCount++
+                            await new Promise(resolve => setTimeout(resolve, 30))
+                            continue
+                        }
 
-                    console.log(`添加圖層 ${i + 1}/${sortedLayers.length}: "${layer.name}" (索引: ${layer.index})`, {
-                        layer,
-                        originalPosition: { x: layer.left, y: layer.top },
-                        finalPosition: { x: layer.left + finalOffsetX, y: layer.top + finalOffsetY },
-                        size: { width: layer.width, height: layer.height },
-                        layoutMode: 'original_psd',
-                        layerOrder: i + 1
-                    })
+                        // 获取图片数据
+                        const response = await fetch(layer.image_url)
+                        if (!response.ok) {
+                            console.warn(`获取图层 "${layer.name}" 图片失败: ${response.status}`)
+                            continue
+                        }
 
-                    await addLayerToCanvas(layer, psdData.file_id, finalOffsetX, finalOffsetY)
+                        const blob = await response.blob()
+                        const file = new File([blob], `${layer.name}.png`, { type: 'image/png' })
+                        const dataURL = await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader()
+                            reader.onload = () => resolve(reader.result as string)
+                            reader.onerror = reject
+                            reader.readAsDataURL(file)
+                        })
 
-                    // 添加小延遲避免過快請求
-                    await new Promise(resolve => setTimeout(resolve, 50))
+                        // 生成唯一的文件ID和元素ID（每个图层都使用唯一的时间戳和随机数）
+                        const uniqueId = `${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`
+                        const fileId = `psd_layer_${layer.index}_${psdData.file_id}_${uniqueId}` as any
+                        const elementId = `psd_layer_element_${layer.index}_${uniqueId}`
+
+                        // 创建文件数据
+                        const fileData = {
+                            id: fileId,
+                            mimeType: 'image/png' as const,
+                            dataURL: dataURL as any,
+                            created: Date.now()
+                        }
+
+                        // 添加文件到Excalidraw
+                        excalidrawAPI.addFiles([fileData])
+                        
+                        // 等待文件加载完成（增加等待时间）
+                        await new Promise(resolve => setTimeout(resolve, 200))
+
+                        // 获取当前画布元素（每次都要获取最新的）
+                        let currentElements = excalidrawAPI.getSceneElements()
+                        
+                        // 检查是否已存在相同ID的元素（防止重复）
+                        const exists = currentElements.some(el => el.id === elementId)
+                        if (exists) {
+                            console.warn(`图层 "${layer.name}" 已存在，跳过`)
+                            continue
+                        }
+
+                        // 创建图片元素
+                        const imageElement = {
+                            type: 'image' as const,
+                            id: elementId,
+                            x: layer.left + finalOffsetX,
+                            y: layer.top + finalOffsetY,
+                            width: layer.width,
+                            height: layer.height,
+                            angle: 0,
+                            strokeColor: '#000000',
+                            backgroundColor: 'transparent',
+                            fillStyle: 'solid' as const,
+                            strokeWidth: 1,
+                            strokeStyle: 'solid' as const,
+                            roughness: 1,
+                            opacity: Math.round((layer.opacity || 255) / 255 * 100),
+                            groupIds: [],
+                            frameId: null,
+                            roundness: null,
+                            seed: Math.floor(Math.random() * 1000000),
+                            version: 1,
+                            versionNonce: Math.floor(Math.random() * 1000000),
+                            isDeleted: false,
+                            boundElements: null,
+                            updated: Date.now(),
+                            link: null,
+                            locked: false,
+                            fileId: fileId,
+                            scale: [1, 1] as [number, number],
+                            status: 'saved' as const,
+                            index: null,
+                            crop: null,
+                            customData: {
+                                psdLayerIndex: layer.index,
+                                psdFileId: psdData.file_id,
+                                layerName: layer.name,
+                                originalOpacity: layer.opacity || 255,
+                                blendMode: layer.blend_mode || 'normal',
+                            }
+                        } as any
+
+                        // 再次获取最新元素（确保没有其他更新）
+                        currentElements = excalidrawAPI.getSceneElements()
+                        
+                        // 更新场景，添加新图层
+                        excalidrawAPI.updateScene({
+                            elements: [...currentElements, imageElement],
+                        })
+
+                        // 等待场景更新完成
+                        await new Promise(resolve => setTimeout(resolve, 150))
+
+                        // 验证图层是否成功添加
+                        const verifyElements = excalidrawAPI.getSceneElements()
+                        const verified = verifyElements.some(el => el.id === elementId && !el.isDeleted)
+                        
+                        if (verified) {
+                            addedCount++
+                            console.log(`✅ 已添加图层 ${i + 1}/${sortedLayers.length}: "${layer.name}" (验证通过)`)
+                        } else {
+                            console.warn(`⚠️ 图层 "${layer.name}" 添加后验证失败，可能被覆盖`)
+                            // 重试一次
+                            const retryElements = excalidrawAPI.getSceneElements()
+                            excalidrawAPI.updateScene({
+                                elements: [...retryElements, imageElement],
+                            })
+                            await new Promise(resolve => setTimeout(resolve, 150))
+                            
+                            const retryVerify = excalidrawAPI.getSceneElements()
+                            const retryVerified = retryVerify.some(el => el.id === elementId && !el.isDeleted)
+                            if (retryVerified) {
+                                addedCount++
+                                console.log(`✅ 图层 "${layer.name}" 重试后添加成功`)
+                            } else {
+                                console.error(`❌ 图层 "${layer.name}" 添加失败`)
+                            }
+                        }
+
+                        // 添加延迟，确保下一个图层不会覆盖当前图层
+                        await new Promise(resolve => setTimeout(resolve, 100))
+                    } catch (error) {
+                        console.error(`添加图层 "${layer.name}" 失败:`, error)
+                    }
                 }
+
+                console.log(`批量添加完成: ${addedCount}/${sortedLayers.length} 个图层`)
 
                 // 檢查畫布元素
                 const finalElements = excalidrawAPI.getSceneElements()
-                console.log('畫布最終元素:', finalElements)
-
+                const finalPsdElements = finalElements.filter(el => 
+                    el.customData?.psdFileId === psdData.file_id
+                )
+                console.log('畫布最終元素:', finalElements.length, '个，PSD图层:', finalPsdElements.length, '个')
+                console.log('PSD图层详情:', finalPsdElements.map(el => ({
+                    id: el.id,
+                    name: el.customData?.layerName,
+                    index: el.customData?.psdLayerIndex
+                })))
                 const imageLayersCount = sortedLayers.filter(l => l.image_url).length
                 const placeholderLayersCount = sortedLayers.filter(l => !l.image_url).length
 
-                let message = `已自動添加 ${sortedLayers.length} 個圖層到畫布（保持PSD原始布局）`
+                let message = `已自動添加 ${finalPsdElements.length} 個圖層到畫布（保持PSD原始布局）`
                 if (placeholderLayersCount > 0) {
                     message += ` - ${imageLayersCount} 個圖像圖層，${placeholderLayersCount} 個占位符`
                 }
 
                 toast.success(message)
+                console.log(`✅ PSD图层添加完成: ${finalPsdElements.length}/${sortedLayers.length} 个图层成功添加`)
             } catch (error) {
                 console.error('自動添加圖層失敗:', error)
                 toast.error('自動添加圖層失敗')
             }
         },
-        [excalidrawAPI, addLayerToCanvas, removeAllGroups, cleanupDuplicateLayers]
+        [excalidrawAPI, removeAllGroups]
     )
 
     const handleFileSelect = useCallback(

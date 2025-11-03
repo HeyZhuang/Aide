@@ -29,6 +29,9 @@ import {
     Underline,
     Bookmark,
     Star,
+    Upload,
+    Trash2,
+    ImagePlus,
 } from 'lucide-react'
 import { saveCanvas } from '@/api/canvas'
 import {
@@ -1054,12 +1057,19 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         <div
             className="text-foreground h-full w-full flex flex-col overflow-hidden"
         >
-            {/* 顶部两个类型（统一指示条与选中态） */}
-            <div className="relative grid grid-cols-2 border-b border-white/20" style={{
-                background: 'rgba(255, 255, 255, 0.4)',
-                backdropFilter: 'blur(10px) saturate(150%)',
-                WebkitBackdropFilter: 'blur(10px) saturate(150%)',
-            }}>
+            {/* 顶部两个类型（统一指示条与选中态）- 苹果风格优化 */}
+            <div 
+                className="relative grid grid-cols-2 border-b" 
+                style={{
+                    background: 'rgba(255, 255, 255, 0.5)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    borderColor: 'rgba(0, 0, 0, 0.08)',
+                    borderTopLeftRadius: '20px',
+                    borderTopRightRadius: '20px',
+                    paddingTop: '8px',
+                }}
+            >
                 {(['layers', 'assets'] as const).map(top => {
                     const isActive = uiTopTab === top
                     return (
@@ -1089,12 +1099,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                         </div>
                     )
                 })}
-                {/* 顶部滑动下划线 - 更精美的设计 */}
+                {/* 顶部滑动下划线 - 苹果风格优化 */}
                 <div
-                    className="absolute bottom-0 left-0 h-[2px] w-1/2 bg-gray-700 dark:bg-gray-300 transition-transform duration-300 ease-out rounded-full"
+                    className="absolute bottom-0 left-0 h-[3px] w-1/2 transition-transform duration-300 ease-out rounded-full"
                     style={{
                         transform: uiTopTab === 'layers' ? 'translateX(0%)' : 'translateX(100%)',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                        background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)',
+                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                     }}
                 />
             </div>
@@ -1116,7 +1127,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                             }}
                         />
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-1.5 justify-center">
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'all'
                                     ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
@@ -1482,11 +1493,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* 资产子级 Tabs */}
                     <div className="px-3 pt-3">
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center">
                             {(['templates', 'library', 'fonts'] as const).map(tab => (
                                 <div key={tab} className="flex-1 text-center">
                                     <button
-                                        className={`py-2 w-full transition-all duration-200 ${assetSubTab === tab ? 'font-semibold' : 'opacity-70 hover:opacity-100'}`}
+                                        className={`py-2 w-full text-xs transition-all duration-200 font-medium ${assetSubTab === tab ? 'font-semibold' : 'opacity-70 hover:opacity-100'}`}
                                         onClick={() => setAssetSubTab(tab)}
                                     >
                                         {tab === 'templates' ? t('sidebar.templates') : tab === 'library' ? t('sidebar.library') : t('sidebar.fonts')}
@@ -1501,11 +1512,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     {assetSubTab === 'library' && (
                         <div className="px-3 py-3 grid grid-cols-2 gap-2">
                             <div className="text-center">
-                                <button className={`py-2 w-full rounded-md border text-sm transition-all duration-200 ${assetSource === 'platform' ? 'font-medium shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('platform')}>{t('sidebar.platform')}</button>
+                                <button className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${assetSource === 'platform' ? 'font-semibold shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('platform')}>{t('sidebar.platform')}</button>
                                 <div className={`${assetSource === 'platform' ? 'bg-foreground' : 'bg-transparent'} h-0.5 w-10 mx-auto rounded mt-1 transition-colors`}></div>
                             </div>
                             <div className="text-center">
-                                <button className={`py-2 w-full rounded-md border text-sm transition-all duration-200 ${assetSource === 'uploads' ? 'font-medium shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('uploads')}>{t('sidebar.my_uploads')}</button>
+                                <button className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${assetSource === 'uploads' ? 'font-semibold shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('uploads')}>{t('sidebar.my_uploads')}</button>
                                 <div className={`${assetSource === 'uploads' ? 'bg-foreground' : 'bg-transparent'} h-0.5 w-10 mx-auto rounded mt-1 transition-colors`}></div>
                             </div>
                         </div>
@@ -1672,15 +1683,34 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 <>
                                     {/* 仅在My Uploads标签下显示上传按钮 */}
                                     {assetSource === 'uploads' && (
-                                        <div className="col-span-3">
+                                        <div className="col-span-3 mb-3">
                                             <button
                                                 onClick={() => document.getElementById('image-upload')?.click()}
-                                                className="w-full py-2 px-4 border border-dashed rounded-lg text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                                                className="w-full py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2.5 group relative overflow-hidden"
+                                                style={{
+                                                    background: 'rgba(255, 255, 255, 0.6)',
+                                                    backdropFilter: 'blur(12px) saturate(150%)',
+                                                    WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                    border: '1.5px dashed rgba(156, 163, 175, 0.4)',
+                                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)'
+                                                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)'
+                                                    e.currentTarget.style.transform = 'translateY(-1px)'
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.12)'
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)'
+                                                    e.currentTarget.style.borderColor = 'rgba(156, 163, 175, 0.4)'
+                                                    e.currentTarget.style.transform = 'translateY(0)'
+                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)'
+                                                }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                </svg>
-                                                {t('image_library.upload_image')}
+                                                <Upload className="h-4 w-4 text-gray-600 group-hover:text-indigo-600 transition-colors duration-300 flex-shrink-0" />
+                                                <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 transition-colors">
+                                                    {t('image_library.upload_image')}
+                                                </span>
                                             </button>
                                             <input
                                                 id="image-upload"
@@ -1746,15 +1776,32 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                     ) : (
                                         userUploadedImages.length > 0 ? (
                                             userUploadedImages.map((image) => {
-                                                // console.log('渲染上传图片:', image.id, image.name, image.url)
                                                 return (
-                                                    <div key={image.id} className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer relative group">
+                                                    <div 
+                                                        key={image.id} 
+                                                        className="aspect-square rounded-2xl overflow-hidden cursor-pointer relative group"
+                                                        style={{
+                                                            background: 'rgba(255, 255, 255, 0.5)',
+                                                            backdropFilter: 'blur(10px) saturate(150%)',
+                                                            WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'
+                                                            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.15)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(0) scale(1)'
+                                                            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
+                                                        }}
+                                                    >
                                                         <div className="relative w-full h-full">
                                                             <img
                                                                 src={image.url}
                                                                 alt={`My uploaded image: ${image.name}`}
-                                                                className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-80"
-                                                                // onClick={() => handleImageClick(image)}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                                 draggable
                                                                 onDragStart={(e) => {
                                                                     try {
@@ -1770,7 +1817,6 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                         e.dataTransfer.setData('application/json', JSON.stringify(dragData));
                                                                         e.dataTransfer.effectAllowed = 'copy';
 
-                                                                        // 设置拖拽时的视觉效果
                                                                         const dragImage = e.currentTarget.cloneNode(true) as HTMLImageElement;
                                                                         dragImage.style.width = '80px';
                                                                         dragImage.style.height = '80px';
@@ -1778,8 +1824,6 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                         document.body.appendChild(dragImage);
                                                                         e.dataTransfer.setDragImage(dragImage, 40, 40);
                                                                         setTimeout(() => document.body.removeChild(dragImage), 0);
-
-                                                                        // 拖拽提示已移除，避免干扰
                                                                     } catch (error) {
                                                                         console.error('Failed to set drag data:', error);
                                                                     }
@@ -1791,43 +1835,73 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                 onError={(e) => {
                                                                     console.error('图片加载失败:', image.id, image.url, e)
                                                                     const target = e.target as HTMLImageElement
-                                                                    // 设置占位图
                                                                     target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Cpath d="M50 30C60 30 68 38 68 48C68 58 60 66 50 66C40 66 32 58 32 48C32 38 40 30 50 30ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20ZM50 75C36.2 75 25 63.8 25 50C25 36.2 36.2 25 50 25C63.8 25 75 36.2 75 50C75 63.8 63.8 75 50 75Z" fill="%23dddddd"/%3E%3C/svg%3E'
-                                                                    // 尝试使用createObjectURL重新创建URL
-                                                                    try {
-                                                                        const newUrl = URL.createObjectURL(new Blob([], { type: (image as any).type || 'image/png' }))
-                                                                        console.log('尝试创建新的临时URL:', newUrl)
-                                                                        setTimeout(() => {
-                                                                            target.src = newUrl
-                                                                        }, 100)
-                                                                    } catch (retryError) {
-                                                                        console.error('重试创建URL失败:', retryError)
-                                                                    }
                                                                 }}
                                                             />
-                                                            {/* 显示图片名称 */}
-                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
-                                                                {image.name}
+                                                            {/* 渐变遮罩层 - 用于文字可读性 */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                                            
+                                                            {/* 显示图片名称 - 优化样式 */}
+                                                            <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                                <div 
+                                                                    className="text-white text-xs font-medium truncate"
+                                                                    style={{
+                                                                        textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
+                                                                    }}
+                                                                >
+                                                                    {image.name}
+                                                                </div>
                                                             </div>
-                                                            {/* 删除按钮 - 仅在悬停时显示 */}
+                                                            
+                                                            {/* 删除按钮 - 优化样式 */}
                                                             <button
-                                                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100"
+                                                                style={{
+                                                                    background: 'rgba(239, 68, 68, 0.9)',
+                                                                    backdropFilter: 'blur(8px) saturate(150%)',
+                                                                    WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                                                                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                                                                }}
                                                                 onClick={(e) => {
-                                                                    // 阻止事件冒泡，避免触发图片点击
                                                                     e.stopPropagation()
                                                                     handleImageDelete(image.id, image.name)
                                                                 }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.background = 'rgba(220, 38, 38, 1)'
+                                                                    e.currentTarget.style.transform = 'scale(1.1)'
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.9)'
+                                                                    e.currentTarget.style.transform = 'scale(1)'
+                                                                }}
                                                                 aria-label={`${t('image_library.delete_image')} ${image.name}`}
                                                             >
-                                                                <X className="w-3 h-3" />
+                                                                <Trash2 className="w-4 h-4 text-white" />
                                                             </button>
                                                         </div>
                                                     </div>
                                                 )
                                             })
                                         ) : (
-                                            <div className="col-span-3 text-center py-8 text-gray-500">
-                                                {t('image_library.no_uploaded_images')}
+                                            <div className="col-span-3 flex flex-col items-center justify-center py-16 px-4">
+                                                <div 
+                                                    className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                                                    style={{
+                                                        background: 'rgba(255, 255, 255, 0.4)',
+                                                        backdropFilter: 'blur(10px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                    }}
+                                                >
+                                                    <ImagePlus className="w-10 h-10 text-gray-400" />
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-600 mb-1">
+                                                    {t('image_library.no_uploaded_images')}
+                                                </p>
+                                                <p className="text-xs text-gray-400 text-center max-w-xs">
+                                                    上传图片后，它们将显示在这里
+                                                </p>
                                             </div>
                                         )
                                     )}

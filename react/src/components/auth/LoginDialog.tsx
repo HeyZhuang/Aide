@@ -6,6 +6,8 @@ import { startDeviceAuth, pollDeviceAuth, saveAuthData } from '../../api/auth'
 import { updateJaazApiKey } from '../../api/config'
 import { useAuth } from '../../contexts/AuthContext'
 import { useConfigs, useRefreshModels } from '../../contexts/configs'
+import { Loader2, CheckCircle2, XCircle, LogIn, Sparkles } from 'lucide-react'
+import { LOGO_URL } from '../../constants'
 
 export function LoginDialog() {
   const [authMessage, setAuthMessage] = useState('')
@@ -130,31 +132,124 @@ export function LoginDialog() {
     setShowLoginDialog(false)
   }
 
+  // 判断当前状态
+  const isPending = authMessage && !authMessage.includes('成功') && !authMessage.includes('失败') && !authMessage.includes('过期') && !authMessage.includes('错误')
+  const isSuccess = authMessage && authMessage.includes('成功')
+  const isError = authMessage && (authMessage.includes('失败') || authMessage.includes('过期') || authMessage.includes('错误'))
+
   return (
     <Dialog open={open} onOpenChange={setShowLoginDialog}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('common:auth.loginToJaaz')}</DialogTitle>
-          <DialogDescription>
-            {t('common:auth.loginDescription')}
-          </DialogDescription>
+      <DialogContent className="sm:max-w-md overflow-hidden">
+        <DialogHeader className="text-center space-y-4 pb-2">
+          {/* Logo 和标题区域 */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full blur-xl"></div>
+              <div className="relative bg-gradient-to-br from-primary/10 to-primary/5 p-4 rounded-2xl border border-primary/20">
+                <img 
+                  src={LOGO_URL} 
+                  alt="Aide Logo" 
+                  className="w-16 h-16 object-contain"
+                />
+              </div>
+              {isPending && (
+                <div className="absolute -top-1 -right-1 animate-pulse">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                {t('common:auth.loginToJaaz')}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground max-w-xs mx-auto">
+                {t('common:auth.loginDescription')}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {t('common:auth.loginDescription')}
-          </p>
+        <div className="space-y-6 py-4">
+          {/* 状态消息区域 */}
+          {authMessage && (
+            <div className={`flex items-start gap-3 p-4 rounded-xl border transition-all duration-300 ${
+              isSuccess 
+                ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' 
+                : isError
+                ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800'
+                : 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800'
+            }`}>
+              <div className="flex-shrink-0 mt-0.5">
+                {isSuccess ? (
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                ) : isError ? (
+                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                ) : (
+                  <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
+                )}
+              </div>
+              <p className={`text-sm flex-1 leading-relaxed ${
+                isSuccess 
+                  ? 'text-green-800 dark:text-green-200' 
+                  : isError
+                  ? 'text-red-800 dark:text-red-200'
+                  : 'text-blue-800 dark:text-blue-200'
+              }`}>
+                {authMessage}
+              </p>
+            </div>
+          )}
 
-          <div className="flex gap-2">
+          {/* 登录按钮区域 */}
+          <div className="flex flex-col gap-3">
             <Button
               onClick={handleLogin}
-              disabled={!!authMessage}
-              className="flex-1"
+              disabled={!!authMessage && !isError}
+              className="w-full h-12 text-base font-medium relative overflow-hidden group"
+              size="lg"
             >
-              {authMessage || t('common:auth.startLogin')}
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>{authMessage || t('common:auth.waitingForBrowser')}</span>
+                  </>
+                ) : isSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>{authMessage}</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="w-5 h-5" />
+                    <span>{t('common:auth.startLogin')}</span>
+                  </>
+                )}
+              </span>
+              {!authMessage && (
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/20 to-primary/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              )}
             </Button>
 
+            {isError && (
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                className="w-full"
+              >
+                {t('common:cancel') || '取消'}
+              </Button>
+            )}
           </div>
+
+          {/* 提示信息 */}
+          {!authMessage && (
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                {t('common:auth.loginDescription')}
+              </p>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

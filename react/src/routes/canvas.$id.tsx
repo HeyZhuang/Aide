@@ -15,6 +15,7 @@ import { Loader2, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PSDUploadResponse } from '@/api/upload'
 import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
+import { useAuth } from '@/contexts/AuthContext'
 
   export const Route = createFileRoute('/canvas/$id')({
     component: Canvas,
@@ -31,6 +32,7 @@ import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
   function CanvasContent() {
     const { id } = useParams({ from: '/canvas/$id' })
     const canvasStore = useCanvas()
+    const { authStatus } = useAuth() // 获取登录状态
     const [canvas, setCanvas] = useState<{ data: CanvasData | null; name: string; sessions: Session[] } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<Error | null>(null)
@@ -46,7 +48,7 @@ import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
     }
     const searchSessionId = search?.sessionId || ''
 
-    // 聊天窗口最小化状态 - 默认设置为true（收起状态）
+    // 聊天窗口最小化状态
     const [isChatMinimized, setIsChatMinimized] = useState(true)
 
     useEffect(() => {
@@ -179,45 +181,49 @@ import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
               </button>
             )}
 
-            {/* PSD Layer Sidebar - 苹果毛玻璃风格，从顶部导航栏下方到底部 */}
+            {/* PSD Layer Sidebar - 苹果毛玻璃风格，优雅间距设计 */}
             <div 
-              className={`absolute right-0 top-0 w-[24vw] z-10 overflow-visible transition-all duration-500 ease-out ${
+              className={`absolute right-4 top-4 bottom-4 w-[24vw] z-10 overflow-visible transition-all duration-500 ease-out ${
                 isLayerSidebarVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
               }`}
               style={{
-                height: '100%',
-                background: 'rgba(255, 255, 255, 0.7)',
-                backdropFilter: 'blur(40px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-                borderLeft: '1px solid rgba(255, 255, 255, 0.18)',
-                boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.08), inset 1px 0 0 rgba(255, 255, 255, 0.5)',
+                background: 'rgba(255, 255, 255, 0.75)',
+                backdropFilter: 'blur(40px) saturate(200%)',
+                WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                borderRadius: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: `
+                  -8px 0 32px rgba(0, 0, 0, 0.12),
+                  0 8px 32px rgba(0, 0, 0, 0.08),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                  inset -1px 0 0 rgba(255, 255, 255, 0.4)
+                `,
               }}
             >
               {/* 面板关闭按钮 - 优化位置：放在面板左侧边缘中间，作为拖拽手柄样式 */}
               <button
                 onClick={() => setIsLayerSidebarVisible(false)}
-                className="absolute -left-8 top-1/2 -translate-y-1/2 z-30 w-8 h-16 flex items-center justify-center rounded-l-lg backdrop-blur-xl transition-all duration-300 hover:scale-105 hover:bg-white/80 group"
+                className="absolute -left-10 top-1/2 -translate-y-1/2 z-30 w-9 h-20 flex items-center justify-center backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:bg-white/90 group"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.75)',
-                  backdropFilter: 'blur(20px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.4)',
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  backdropFilter: 'blur(24px) saturate(200%)',
+                  WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.5)',
                   borderRight: 'none',
-                  borderTopLeftRadius: '0.5rem',
-                  borderBottomLeftRadius: '0.5rem',
-                  boxShadow: '-2px 0 12px rgba(0, 0, 0, 0.1), inset 1px 0 0 rgba(255, 255, 255, 0.6)',
+                  boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.8)',
                 }}
                 aria-label="隐藏图层面板"
                 title="隐藏面板"
               >
-                <div className="flex flex-col items-center gap-0.5">
-                  <div className="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-gray-800 transition-colors"></div>
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
                   <PanelRightClose className="w-4 h-4 text-gray-700 group-hover:text-gray-900 transition-colors" />
-                  <div className="w-1 h-1 rounded-full bg-gray-600 group-hover:bg-gray-800 transition-colors"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
                 </div>
               </button>
 
-              <div className="h-full w-full overflow-hidden">
+              <div className="h-full w-full overflow-hidden rounded-[20px]">
                 <PSDLayerSidebar
                   psdData={psdData}
                   isVisible={isLayerSidebarVisible}
@@ -231,16 +237,19 @@ import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
           </div>
 
           {/* Chat Interface - Small floating window at the bottom center */}
-          <div className={`bottom-chat-container ${isChatMinimized ? 'minimized' : ''}`}>
-            <ChatInterface
-              canvasId={id}
-              sessionList={sessionList}
-              setSessionList={setSessionList}
-              sessionId={searchSessionId}
-              isMinimized={isChatMinimized}
-              onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
-            />
-          </div>
+          {/* 只有在用户登录成功后才显示AI助手 */}
+          {authStatus.is_logged_in && (
+            <div className={`bottom-chat-container ${isChatMinimized ? 'minimized' : ''}`}>
+              <ChatInterface
+                canvasId={id}
+                sessionList={sessionList}
+                setSessionList={setSessionList}
+                sessionId={searchSessionId}
+                isMinimized={isChatMinimized}
+                onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
+              />
+            </div>
+          )}
         </div>
     )
   }
