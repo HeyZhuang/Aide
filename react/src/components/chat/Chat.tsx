@@ -344,8 +344,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <PhotoProvider>
       <div className='flex flex-col h-full relative w-full'>
         {/* Chat header with minimize/close buttons */}
-        <div className='bottom-chat-header bg-white/50 backdrop-blur-md border border-white/30' onClick={toggleMinimize}>
-          <h3>AI 助手</h3>
+
+        <div className='bottom-chat-header' onClick={toggleMinimize}>
+          <h3>{t('chat.ai_assistant')}</h3>
           <div className='flex gap-1'>
             <button
               className='bottom-chat-collapse-btn'
@@ -481,7 +482,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     transition={{ duration: 0.5 }}
                     className='text-muted-foreground text-base'
                   >
-                    <ShinyText text='Hello, Aide!' />
+                    <ShinyText text={t('chat.greeting')} />
                   </motion.span>
                   <motion.span
                     initial={{ opacity: 0, y: 10 }}
@@ -489,7 +490,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     transition={{ duration: 0.6 }}
                     className='text-muted-foreground text-sm'
                   >
-                    <ShinyText text='How can I help you today?' />
+                    <ShinyText text={t('chat.assist_prompt')} />
                   </motion.span>
                 </motion.div>
               )}
