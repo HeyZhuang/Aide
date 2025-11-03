@@ -61,7 +61,7 @@ export default function TopMenu({
             </motion.span>
           </motion.div>
         </motion.div>
-        <Button
+        {/* <Button
           variant={window.location.pathname === '/assets' ? 'default' : 'ghost'}
           size="sm"
           className={cn(
@@ -74,7 +74,7 @@ export default function TopMenu({
         >
           <ImageIcon className="size-4 mr-1.5" />
           {t('canvas:assets', 'Library')}
-        </Button>
+        </Button> */}
       </div>
 
       <div className="flex items-center gap-3">

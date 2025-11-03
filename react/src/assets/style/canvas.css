@@ -296,8 +296,8 @@
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: 400px;
-  max-height: 300px;
+  width: 500px;
+  max-height: 400px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -319,9 +319,9 @@
 
 /* 聊天窗口最小化状态 */
 .bottom-chat-container.minimized {
-  width: 160px;
-  height: 40px;
-  max-height: 40px;
+  width: 200px;
+  height: 50px;
+  max-height: 50px;
   padding: 0;
 }
 
@@ -388,7 +388,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px 20px;
-  max-height: 260px;
+  max-height: 360px;
 }
 
 /* 聊天输入区域 */
@@ -570,7 +570,7 @@
 @media (max-width: 768px) {
   .bottom-chat-container {
     width: 90%;
-    max-width: 400px;
+    max-width: 500px;
   }
 
   .bottom-chat-input .flex.items-center.gap-1 {
