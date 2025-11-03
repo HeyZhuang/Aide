@@ -47,7 +47,6 @@ import { Share2, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import MixedContent, { MixedContentImages, MixedContentText } from './Message/MixedContent'
-import Blur from '@/components/common/Blur'
 
 
 type ChatInterfaceProps = {
