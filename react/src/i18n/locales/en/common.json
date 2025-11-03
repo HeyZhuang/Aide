@@ -114,7 +114,42 @@
     "balance": "Balance",
     "recharge": "Recharge"
   },
+  "resize": {
+    "title": "Smart Resize",
+    "ai_description": "Use AI to intelligently adjust",
+    "description": "{{selectedCount}} elements selected. Please set the target canvas size for intelligent arrangement.",
+    "custom_size": "Custom Size",
+    "width": "Width",
+    "height": "Height",
+    "current_size": "Current Size",
+    "aspect_ratio": "Aspect Ratio",
+    "preset_sizes": "Preset Sizes",
+    "recommended": "Recommended",
+    "cancel": "Cancel",
+    "arranging": "Arranging...",
+    "start_arranging": "Start Arranging",
+    "errors": {
+      "invalid_dimensions": "Please enter valid dimensions (width and height must be greater than 0)"
+    },
+    "preset": {
+      "social_recommended": "Social Media Recommended",
+      "horizontal_recommended": "Horizontal Recommended",
+      "instagram_square": "Instagram Square",
+      "instagram_story": "Instagram Story",
+      "facebook_post": "Facebook Post",
+      "twitter_post": "Twitter Post"
+    }
+  },
+  "chat": {
+    "greeting": "Hello, Aide!",
+    "assist_prompt": "How can I help you today?",
+    "ai_assistant": "AI Assistant"
+  },
   "socket": {
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "reconnecting": "Reconnecting...",
     "connectionError": "Connection error ({{current}}/{{max}}): {{error}}",
     "maxRetriesReached": "Connection failed, please restart the application"
   }

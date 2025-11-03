@@ -551,8 +551,8 @@ export function GroupToolbar() {
             >
               <Sparkles className="h-4 w-4 text-primary" />
               <div className="flex-1">
-                <div className="font-medium">智能排列</div>
-                <div className="text-gray-400 text-[10px]">使用AI智能调整</div>
+                <div className="font-medium">{t('resize.title')}</div>
+                <div className="text-gray-400 text-[10px]">{t('resize.ai_description')}</div>
               </div>
             </DropdownMenuItem>
 

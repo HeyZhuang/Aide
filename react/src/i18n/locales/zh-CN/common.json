@@ -114,8 +114,43 @@
     "balance": "余额",
     "recharge": "充值"
   },
+  "resize": {
+    "title": "智能缩放",
+    "ai_description": "使用AI智能调整",
+    "description": "已选择 {{selectedCount}} 个元素，请设置目标画布尺寸进行智能排列",
+    "custom_size": "自定义尺寸",
+    "width": "宽度",
+    "height": "高度",
+    "current_size": "当前尺寸",
+    "aspect_ratio": "宽高比",
+    "preset_sizes": "预设尺寸",
+    "recommended": "推荐",
+    "cancel": "取消",
+    "arranging": "排列中...",
+    "start_arranging": "开始排列",
+    "errors": {
+      "invalid_dimensions": "请输入有效的尺寸（宽度和高度必须大于0）"
+    },
+    "preset": {
+      "social_recommended": "社交媒体推荐",
+      "horizontal_recommended": "横版推荐",
+      "instagram_square": "Instagram 方形",
+      "instagram_story": "Instagram 故事",
+      "facebook_post": "Facebook 帖子",
+      "twitter_post": "Twitter 帖子"
+    }
+  },
+  "chat": {
+    "greeting": "你好，助手！",
+    "assist_prompt": "今天我能帮你做什么？",
+    "ai_assistant": "AI 助手"
+  },
   "socket": {
     "connectionError": "连接错误 ({{current}}/{{max}}): {{error}}",
-    "maxRetriesReached": "连接失败，请重启应用"
+    "maxRetriesReached": "连接失败，请重启应用",
+    "connecting": "正在连接...",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "reconnecting": "重新连接中..."
   }
 }

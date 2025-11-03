@@ -319,7 +319,7 @@
 
 /* 聊天窗口最小化状态 */
 .bottom-chat-container.minimized {
-  width: 160px;
+  width: 200px;
   height: 40px;
   max-height: 40px;
   padding: 0;

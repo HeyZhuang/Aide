@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Sparkles, Loader2, Ruler, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 interface LayerArrangementDialogProps {
   isOpen: boolean
@@ -21,16 +22,6 @@ interface LayerArrangementDialogProps {
   isArranging: boolean
   selectedCount: number
 }
-
-const presetSizes: Array<{ name: string; width: number; height: number; recommended?: boolean }> = [
-  { name: '推荐尺寸', width: 1200, height: 628, recommended: true },
-  { name: '推荐尺寸', width: 960, height: 270, recommended: true },
-  { name: 'Instagram 方形', width: 1080, height: 1080 },
-  { name: 'Instagram 故事', width: 1080, height: 1920 },
-  { name: 'Facebook 帖子', width: 1200, height: 630 },
-  { name: 'Twitter 帖子', width: 1200, height: 675 },
-  // { name: 'LinkedIn 帖子', width: 1200, height: 627 },
-]
 
 export function LayerArrangementDialog({
   isOpen,
@@ -41,6 +32,18 @@ export function LayerArrangementDialog({
 }: LayerArrangementDialogProps) {
   const [width, setWidth] = useState(1200)
   const [height, setHeight] = useState(628)
+  const { t } = useTranslation()
+  
+  // 将presetSizes移到组件内部，这样可以访问t函数
+  const presetSizes: Array<{ name: string; width: number; height: number; recommended?: boolean }> = [
+    { name: t('resize.preset.social_recommended'), width: 1200, height: 628, recommended: true },
+    { name: t('resize.preset.horizontal_recommended'), width: 960, height: 270, recommended: true },
+    { name: t('resize.preset.instagram_square'), width: 1080, height: 1080 },
+    { name: t('resize.preset.instagram_story'), width: 1080, height: 1920 },
+    { name: t('resize.preset.facebook_post'), width: 1200, height: 630 },
+    { name: t('resize.preset.twitter_post'), width: 1200, height: 675 },
+    // { name: 'LinkedIn 帖子', width: 1200, height: 627 },
+  ]
 
   // 重置表单当对话框打开时，使用推荐的默认尺寸
   useEffect(() => {
@@ -57,7 +60,7 @@ export function LayerArrangementDialog({
 
   const handleArrange = () => {
     if (width <= 0 || height <= 0) {
-      toast.error('请输入有效的尺寸（宽度和高度必须大于0）')
+      toast.error(t('resize.errors.invalid_dimensions'))
       return
     }
     
@@ -98,10 +101,10 @@ export function LayerArrangementDialog({
             </div>
             <div className="flex-1">
               <DialogTitle className="text-2xl font-bold tracking-tight">
-                智能缩放
+                {t('resize.title')}
               </DialogTitle>
               <DialogDescription className="mt-1.5 text-sm text-muted-foreground/80">
-                已选择 {selectedCount} 个元素，请设置目标画布尺寸进行智能排列
+                {t('resize.description', { selectedCount })}
               </DialogDescription>
             </div>
           </div>
@@ -112,12 +115,12 @@ export function LayerArrangementDialog({
           <div className="space-y-4 rounded-xl border border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-4 backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-3">
               <Ruler className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-base font-semibold">自定义尺寸</Label>
+              <Label className="text-base font-semibold">{t('resize.custom_size')}</Label>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="width" className="text-sm font-medium flex items-center gap-1.5">
-                  <span>宽度</span>
+                  <span>{t('resize.width')}</span>
                   <span className="text-xs text-muted-foreground">(px)</span>
                 </Label>
                 <Input
@@ -127,12 +130,12 @@ export function LayerArrangementDialog({
                   onChange={(e) => setWidth(Number(e.target.value))}
                   min="1"
                   className="w-full h-10 bg-background/50 border-border/50 focus:bg-background/80 transition-all"
-                  placeholder="宽度"
+                  placeholder={t('resize.width')}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="height" className="text-sm font-medium flex items-center gap-1.5">
-                  <span>高度</span>
+                  <span>{t('resize.height')}</span>
                   <span className="text-xs text-muted-foreground">(px)</span>
                 </Label>
                 <Input
@@ -142,21 +145,21 @@ export function LayerArrangementDialog({
                   onChange={(e) => setHeight(Number(e.target.value))}
                   min="1"
                   className="w-full h-10 bg-background/50 border-border/50 focus:bg-background/80 transition-all"
-                  placeholder="高度"
+                  placeholder={t('resize.height')}
                 />
               </div>
             </div>
             {/* 显示当前尺寸比例 */}
             <div className="pt-2 border-t border-border/30">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>当前尺寸:</span>
+                <span>{t('resize.current_size')}:</span>
                 <span className="font-mono font-medium">
                   {width} × {height} px
                 </span>
               </div>
               {width > 0 && height > 0 && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                  <span>宽高比:</span>
+                  <span>{t('resize.aspect_ratio')}:</span>
                   <span className="font-mono font-medium">
                     {(width / height).toFixed(2)}:1
                   </span>
@@ -169,7 +172,7 @@ export function LayerArrangementDialog({
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <ImageIcon className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-base font-semibold">预设尺寸</Label>
+              <Label className="text-base font-semibold">{t('resize.preset_sizes')}</Label>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {presetSizes.map((preset, index) => {
@@ -191,7 +194,7 @@ export function LayerArrangementDialog({
                   >
                     {isRecommended && (
                       <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
-                        推荐
+                        {t('resize.recommended')}
                       </span>
                     )}
                     <div className="space-y-1">
@@ -201,18 +204,16 @@ export function LayerArrangementDialog({
                       )}>
                         {preset.width} × {preset.height}
                         {isRecommended && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">
-                            推荐
-                          </span>
-                        )}
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium">
+                              {t('resize.recommended')}
+                            </span>
+                          )}
                       </div>
                       <div className={cn(
                         "text-xs",
                         isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
                       )}>
-                        {isRecommended 
-                          ? index === 0 ? '社交媒体推荐' : '横版推荐'
-                          : preset.name}
+                        {preset.name}
                       </div>
                     </div>
                   </Button>
@@ -228,7 +229,7 @@ export function LayerArrangementDialog({
             onClick={onClose}
             className="backdrop-blur-sm bg-background/50 hover:bg-background/80"
           >
-            取消
+            {t('resize.cancel')}
           </Button>
           <Button 
             onClick={handleArrange} 
@@ -238,12 +239,12 @@ export function LayerArrangementDialog({
             {isArranging ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                排列中...
+                {t('resize.arranging')}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                开始排列
+                {t('resize.start_arranging')}
               </>
             )}
           </Button>
