@@ -22,6 +22,46 @@
     "warning": "Warning",
     "info": "Information"
   },
+  "sidebar": {
+    "layers": "Layers",
+    "assets": "Assets",
+    "search_layers": "Search layers...",
+    "all": "All",
+    "text": "Text",
+    "image": "Image",
+    "group": "Group",
+    "text_layers": "Text Layers",
+    "image_layers": "Image Layers",
+    "group_layers": "Group Layers",
+    "no_layers_in_canvas": "No layers in canvas",
+    "upload_psd_or_add_layers": "Upload PSD file or add layers to canvas",
+    "templates": "Templates",
+    "library": "Library",
+    "fonts": "Fonts",
+    "platform": "Platform",
+    "my_uploads": "My Uploads",
+    "retry": "Retry",
+    "loading": "Loading..."
+  },
+  "templates": {
+    "no_preview": "No preview",
+    "needs_parsing": "Needs parsing",
+    "parsed": "Parsed",
+    "layers": "layers",
+    "click_to_parse": "Click to parse",
+    "no_templates": "No PSD templates",
+    "template_files_should_be_in_template_folder": "Template files should be in template folder"
+  },
+  "image_library": {
+    "upload_image": "Upload image",
+    "drag_to_replace_or_add": "Drag to replace images on canvas, or drag to blank area to add new image",
+    "no_platform_images": "No platform images",
+    "no_uploaded_images": "No uploaded images, please click the button above to upload",
+    "delete_image": "Delete image"
+  },
+  "fonts": {
+    "search_fonts": "Search fonts"
+  },
   "messages": {
     "success": "Operation completed successfully",
     "error": "An error occurred",
