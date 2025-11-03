@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
@@ -28,30 +29,32 @@ const CanvasMenuButton = ({
   const isActive = activeTool === type || active
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            'p-2 rounded-md cursor-pointer hover:bg-white/20',
-            isActive && 'bg-white/25',
-            className
-          )}
-          onMouseDown={(e) => {
-            e.preventDefault()
-            onClick?.()
-          }}
-        >
-          {React.createElement(icons[type], {
-            className: 'size-4 text-foreground',
-          })}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent className="text-white bg-black/80 border-white/20">
-        {t(`canvas:tool.${type}`)} ({toolShortcuts[type]})
-      </TooltipContent>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'p-2 rounded-md cursor-pointer hover:bg-white/20',
+              isActive && 'bg-white/25',
+              className
+            )}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              onClick?.()
+            }}
+          >
+            {React.createElement(icons[type], {
+              className: 'size-4 text-foreground',
+            })}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="text-white bg-black/80 border-white/20">
+          {t(`canvas:tool.${type}`)} ({toolShortcuts[type]})
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

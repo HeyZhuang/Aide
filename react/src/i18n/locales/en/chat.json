@@ -41,6 +41,9 @@
   "modelSelector": {
     "title": "Model",
     "auto": "Auto",
+    "autoMode": "Auto Mode",
+    "selectModel": "Select Model",
+    "selected": "Selected",
     "tabs": {
       "image": "Image",
       "video": "Video",

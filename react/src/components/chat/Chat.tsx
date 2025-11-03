@@ -1,3 +1,5 @@
+
+
 import { sendMessages } from '@/api/chat'
 import Blur from '@/components/common/Blur'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -344,7 +346,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Chat header with minimize/close buttons */}
         <div className='bottom-chat-header' onClick={toggleMinimize}>
           <h3>AI 助手</h3>
-          <div className='flex gap-1 items-center'>
+          <div className='flex gap-1'>
             <button
               className='bottom-chat-collapse-btn'
               onClick={(e) => {
@@ -355,18 +357,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             >
               {isMinimized ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
-            {!isMinimized && (
-              <button
-                className='bottom-chat-collapse-btn'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowShareDialog(true);
-                }}
-                title='分享'
-              >
-                <Share2 size={16} />
-              </button>
-            )}
+            <button
+              className='bottom-chat-collapse-btn'
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowShareDialog(true);
+              }}
+              title='分享'
+            >
+              <Share2 size={16} />
+            </button>
           </div>
         </div>
 

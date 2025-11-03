@@ -49,6 +49,9 @@
   "modelSelector": {
     "title": "模型",
     "auto": "自动",
+    "autoMode": "自动模式",
+    "selectModel": "选择模型",
+    "selected": "已选择",
     "tabs": {
       "image": "图像",
       "video": "视频",
