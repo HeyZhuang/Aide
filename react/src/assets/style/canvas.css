@@ -408,13 +408,6 @@
   padding-right: 16px;
 }
 
-/* 最小化时的按钮容器 */
-.bottom-chat-container.minimized .bottom-chat-header .flex.gap-1 {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .bottom-chat-collapse-btn {
   background: none;
   border: none;
@@ -676,30 +669,4 @@
 /* 工具栏分隔线适配主题 */
 .excalidraw .Separator {
   background-color: var(--border) !important;
-}
-
-/* 左侧工具栏容器样式 */
-.canvas-left-toolbar {
-  background: var(--glass-nav-bg, rgba(255, 255, 255, 0.85)) !important;
-  backdrop-filter: blur(24px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
-  border: var(--glass-nav-border, 1px solid rgba(0, 0, 0, 0.05)) !important;
-  box-shadow: var(--glass-nav-shadow, 0 8px 32px rgba(0, 0, 0, 0.12)) !important;
-}
-
-/* 左侧工具栏按钮样式 */
-.canvas-left-toolbar .ToolIcon__icon {
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
-}
-
-.canvas-left-toolbar .ToolIcon__icon:hover {
-  background-color: var(--accent) !important;
-  transform: scale(1.05) !important;
-}
-
-/* 工具栏分隔线 */
-.canvas-left-toolbar .Separator {
-  background-color: var(--border) !important;
-  margin: 4px 0 !important;
 }

@@ -53,7 +53,7 @@ export default function TopMenu({
             <img src={LOGO_URL} alt="logo" className="size-6 draggable={false} drop-shadow-sm" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }} />
           </div>
           <motion.div className="flex relative overflow-hidden items-center h-7">
-            <motion.span 
+            <motion.span
               className="flex items-center text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
               layout
             >
@@ -61,29 +61,14 @@ export default function TopMenu({
             </motion.span>
           </motion.div>
         </motion.div>
-        {/* <Button
-          variant={window.location.pathname === '/assets' ? 'default' : 'ghost'}
-          size="sm"
-          className={cn(
-            'flex items-center font-semibold rounded-lg transition-all duration-200',
-            window.location.pathname === '/assets' 
-              ? 'shadow-md hover:shadow-lg' 
-              : 'hover:bg-white/50 backdrop-blur-sm'
-          )}
-          onClick={() => navigate({ to: '/assets' })}
-        >
-          <ImageIcon className="size-4 mr-1.5" />
-          {t('canvas:assets', 'Library')}
-        </Button> */}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
         {middle}
       </div>
 
       <div className="flex items-center gap-2">
         {right}
-        {/* <AgentSettings /> */}
         <Button
           size={'sm'}
           variant="ghost"

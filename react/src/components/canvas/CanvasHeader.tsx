@@ -25,9 +25,9 @@ const CanvasHeader: React.FC<CanvasHeaderProps> = ({
   return (
     <TopMenu
       middle={
-        <div className="px-4 py-1.5 rounded-lg bg-white/40 backdrop-blur-sm border border-white/50 shadow-sm">
+        <div className="px-3 py-1 rounded-xl bg-white/50 backdrop-blur-md border border-white/60 shadow-sm hover:bg-white/60 transition-all duration-300 ease-in-out transform hover:scale-105">
           <Input
-            className="text-sm font-medium text-foreground text-center bg-transparent border-none shadow-none w-fit min-w-[200px] h-8 px-3 rounded-lg hover:bg-white/30 focus:bg-white/40 focus:ring-2 focus:ring-primary/20 transition-all duration-200 placeholder:text-muted-foreground/60"
+            className="text-base font-semibold text-foreground text-center bg-transparent border-none shadow-none w-fit min-w-[180px] h-7 px-2 rounded-lg focus:outline-none focus:ring-0 placeholder:text-muted-foreground/70 transition-all duration-200"
             value={canvasName}
             onChange={(e) => onNameChange(e.target.value)}
             onBlur={onNameSave}

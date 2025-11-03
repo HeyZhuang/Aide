@@ -775,7 +775,8 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               // 切换上传菜单的显示状态
               setShowUploadMenu(!showUploadMenu);
             }}
-            className="h-12 w-12 p-0 rounded-full text-foreground border border-border bg-background hover:bg-accent transition-all duration-200 hover:scale-105"
+            className="h-12 w-12 p-0 rounded-full text-white border border-border bg-black hover:bg-gray-800 transition-all duration-200 hover:scale-105"
+            iconClassName="size-5 text-white" // 设置图标为白色
           />
 
           {showUploadMenu && (
@@ -1030,6 +1031,12 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
+
+
 
 
 

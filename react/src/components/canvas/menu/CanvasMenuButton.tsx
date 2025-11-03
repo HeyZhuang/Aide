@@ -16,6 +16,7 @@ type CanvasMenuButtonProps = {
   activeTool?: ToolType
   onClick?: () => void
   className?: string
+  iconClassName?: string // 新增属性用于自定义图标样式
 }
 
 const CanvasMenuButton = ({
@@ -24,6 +25,7 @@ const CanvasMenuButton = ({
   activeTool,
   onClick,
   className,
+  iconClassName = 'size-4 text-foreground', // 默认图标样式
 }: CanvasMenuButtonProps) => {
   const { t } = useTranslation()
   const isActive = activeTool === type || active
@@ -46,7 +48,7 @@ const CanvasMenuButton = ({
             }}
           >
             {React.createElement(icons[type], {
-              className: 'size-4 text-foreground',
+              className: iconClassName, // 使用自定义图标样式
             })}
           </Button>
         </TooltipTrigger>
