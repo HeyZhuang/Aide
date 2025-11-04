@@ -413,7 +413,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
             groupIds: [] // 移除所有群组ID
         }))
 
-        if (elementsWithoutGroups.length !== currentElements.length || 
+        if (elementsWithoutGroups.length !== currentElements.length ||
             currentElements.some(el => el.groupIds && el.groupIds.length > 0)) {
             excalidrawAPI.updateScene({
                 elements: elementsWithoutGroups,
@@ -437,19 +437,19 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
             removeAllGroups()
 
             // 只清理当前PSD文件的旧图层（基于PSD文件ID），保留其他PSD的图层
-            const currentElements = excalidrawAPI.getSceneElements()
-            const elementsToKeep = currentElements.filter(element =>
-                !element.customData?.psdFileId || element.customData.psdFileId !== psdData.file_id
-            )
+            // const currentElements = excalidrawAPI.getSceneElements()
+            // const elementsToKeep = currentElements.filter(element =>
+            //     !element.customData?.psdFileId || element.customData.psdFileId !== psdData.file_id
+            // )
 
-            if (elementsToKeep.length < currentElements.length) {
-                console.log(`清理了 ${currentElements.length - elementsToKeep.length} 個當前 PSD 文件的舊圖層`)
-                excalidrawAPI.updateScene({
-                    elements: elementsToKeep,
-                })
-                // 等待清理完成
-                await new Promise(resolve => setTimeout(resolve, 100))
-            }
+            // if (elementsToKeep.length < currentElements.length) {
+            //     console.log(`清理了 ${currentElements.length - elementsToKeep.length} 個當前 PSD 文件的舊圖層`)
+            //     excalidrawAPI.updateScene({
+            //         elements: elementsToKeep,
+            //     })
+            //     // 等待清理完成
+            //     await new Promise(resolve => setTimeout(resolve, 100))
+            // }
 
             // 詳細記錄每個圖層的狀態
             psdData.layers.forEach((layer, index) => {
@@ -601,13 +601,13 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
 
                         // 添加文件到Excalidraw
                         excalidrawAPI.addFiles([fileData])
-                        
+
                         // 等待文件加载完成（增加等待时间）
                         await new Promise(resolve => setTimeout(resolve, 200))
 
                         // 获取当前画布元素（每次都要获取最新的）
                         let currentElements = excalidrawAPI.getSceneElements()
-                        
+
                         // 检查是否已存在相同ID的元素（防止重复）
                         const exists = currentElements.some(el => el.id === elementId)
                         if (exists) {
@@ -658,7 +658,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
 
                         // 再次获取最新元素（确保没有其他更新）
                         currentElements = excalidrawAPI.getSceneElements()
-                        
+
                         // 更新场景，添加新图层
                         excalidrawAPI.updateScene({
                             elements: [...currentElements, imageElement],
@@ -670,7 +670,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                         // 验证图层是否成功添加
                         const verifyElements = excalidrawAPI.getSceneElements()
                         const verified = verifyElements.some(el => el.id === elementId && !el.isDeleted)
-                        
+
                         if (verified) {
                             addedCount++
                             console.log(`✅ 已添加图层 ${i + 1}/${sortedLayers.length}: "${layer.name}" (验证通过)`)
@@ -682,7 +682,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
                                 elements: [...retryElements, imageElement],
                             })
                             await new Promise(resolve => setTimeout(resolve, 150))
-                            
+
                             const retryVerify = excalidrawAPI.getSceneElements()
                             const retryVerified = retryVerify.some(el => el.id === elementId && !el.isDeleted)
                             if (retryVerified) {
@@ -704,7 +704,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
 
                 // 檢查畫布元素
                 const finalElements = excalidrawAPI.getSceneElements()
-                const finalPsdElements = finalElements.filter(el => 
+                const finalPsdElements = finalElements.filter(el =>
                     el.customData?.psdFileId === psdData.file_id
                 )
                 console.log('畫布最終元素:', finalElements.length, '个，PSD图层:', finalPsdElements.length, '个')
@@ -819,5 +819,7 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
         </>
     )
 }
+
+
 
 
