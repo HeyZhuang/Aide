@@ -13,7 +13,10 @@ import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { FontSelector } from '../FontSelector'
 import { FontItem } from '@/api/font'
 import { toast } from 'sonner'
-import { uploadPSD, type PSDUploadResponse } from '@/api/upload'
+import { uploadPSD, updateLayerProperties, type PSDUploadResponse, type PSDLayer } from '@/api/upload'
+
+import { ExcalidrawElement, ExcalidrawTextElement } from '@excalidraw/excalidraw/element/types'
+import { BinaryFileData } from '@excalidraw/excalidraw/types'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,7 +46,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   const [selectedLayer, setSelectedLayer] = useState<PSDLayer | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'text' | 'layer' | 'group'>('all')
-  const [canvasElements, setCanvasElements] = useState<any[]>([])
+  const [canvasElements, setCanvasElements] = useState<ExcalidrawElement[]>([])
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0)
 
   // Resize功能相关状态
@@ -54,7 +57,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
   const [progress, setProgress] = useState<number>(0)
   const [currentStep, setCurrentStep] = useState<string>('')
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<PSDUploadResponse | null>(null)
   const [error, setError] = useState<string>('')
 
   // 形状工具相关状态
@@ -113,7 +116,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     setActiveTool(appState.activeTool.type as ToolType)
   })
 
-  const handlePSDUploaded = (psdData: any) => {
+  const handlePSDUploaded = (psdData: PSDUploadResponse) => {
     console.log('PSD uploaded:', psdData)
     setPsdData(psdData)
     // 可以在這裡添加額外的處理邏輯
@@ -260,7 +263,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     }
   }
 
-  const handleTextPropertyUpdate = async (layerIndex: number, property: string, value: any) => {
+  const handleTextPropertyUpdate = async (layerIndex: number, property: string, value: string | number | boolean) => {
     if (!psdData || !excalidrawAPI) return
 
     try {
@@ -270,28 +273,54 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         const currentElements = excalidrawAPI.getSceneElements()
         const updatedElements = currentElements.map(element => {
           if (element.customData?.psdLayerIndex === layerIndex) {
-            const updatedElement = { ...element }
+            // 创建更新对象，而不是直接修改属性
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const updates: Partial<ExcalidrawElement> & { [key: string]: any } = {}
 
             if (property === 'text_content') {
-              if (updatedElement.type === 'text') {
-                (updatedElement as any).text = value
+              if (element.type === 'text') {
+                // 对于只读属性，我们需要创建一个新对象而不是直接修改
+                return {
+                  ...element,
+                  text: value as string,
+                  customData: {
+                    ...element.customData,
+                    [property]: value
+                  }
+                }
               }
             } else if (property === 'font_weight') {
-              if (updatedElement.type === 'text') {
-                (updatedElement as any).fontWeight = value === 'bold' ? 600 : 400
+              if (element.type === 'text') {
+                return {
+                  ...element,
+                  fontWeight: value === 'bold' ? 600 : 400,
+                  customData: {
+                    ...element.customData,
+                    [property]: value
+                  }
+                }
               }
             } else if (property === 'font_style') {
-              if (updatedElement.type === 'text') {
-                (updatedElement as any).fontStyle = value === 'italic' ? 'italic' : 'normal'
+              if (element.type === 'text') {
+                return {
+                  ...element,
+                  fontStyle: value === 'italic' ? 'italic' : 'normal',
+                  customData: {
+                    ...element.customData,
+                    [property]: value
+                  }
+                }
+              }
+            } else {
+              // 对于其他属性，直接更新customData
+              return {
+                ...element,
+                customData: {
+                  ...element.customData,
+                  [property]: value
+                }
               }
             }
-
-            updatedElement.customData = {
-              ...updatedElement.customData,
-              [property]: value
-            }
-
-            return updatedElement
           }
           return element
         })
@@ -388,13 +417,16 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           })
 
           // 生成文件ID
-          const fileId = `psd-layer-${layer.index}-${Date.now()}`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fileId = `psd-layer-${layer.index}-${Date.now()}` as any
 
           // 创建文件数据
-          const fileData = {
+          const fileData: BinaryFileData = {
             mimeType: 'image/png' as const,
-            id: fileId,
-            dataURL: dataURL,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            id: fileId as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            dataURL: dataURL as any,
             created: Date.now()
           }
 
@@ -428,7 +460,8 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
             updated: Date.now(),
             link: null,
             locked: false,
-            fileId: fileId,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fileId: fileId as any,
             scale: [1, 1] as [number, number],
             status: 'saved' as const,
             index: null,
@@ -438,7 +471,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               psdFileId: psdData.file_id,
               layerName: layer.name
             }
-          }
+          } as any
 
           // 更新场景
           excalidrawAPI.updateScene({
@@ -488,19 +521,21 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
       })
 
       // 生成唯一的文件ID
-      const fileId = `resized-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fileId = `resized-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any
 
       // 创建 Excalidraw 文件数据
-      const fileData = {
+      const fileData: BinaryFileData = {
         mimeType: 'image/png' as const,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         id: fileId as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         dataURL: dataURL as any,
         created: Date.now()
       }
 
       // 添加到 Excalidraw 文件系统
       excalidrawAPI.addFiles([fileData])
-      console.log('文件已添加到 Excalidraw:', fileId)
 
       // 等待文件完全加载
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -527,7 +562,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         strokeColor: '#000000',
         backgroundColor: 'transparent',
         fillStyle: 'solid' as const,
-        strokeWidth: 0,
+        strokeWidth: 1,
         strokeStyle: 'solid' as const,
         roughness: 1,
         opacity: 100,
@@ -542,6 +577,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         updated: Date.now(),
         link: null,
         locked: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         fileId: fileId as any,
         scale: [1, 1] as [number, number],
         status: 'saved' as const,
@@ -567,7 +603,8 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     }
   }
 
-  // Resize功能相关函数 - 使用服务端直接处理（无需下载大文件）
+  // Resize功能相关函数
+  //  - 使用服务端直接处理（无需下载大文件）
   const handleResize = async () => {
     if (!psdData) {
       setError('没有可用的PSD数据')
@@ -660,15 +697,15 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         console.log('缩放完成:', resultData)
         toast.success('智能缩放完成！图片已添加到画布')
 
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId)
 
-        if (fetchError.name === 'AbortError') {
+        if ((fetchError as Error).name === 'AbortError') {
           throw new Error('处理超时（超过5分钟）。可能原因：\n1. Gemini API响应慢\n2. 图层数量过多\n3. 网络连接问题\n4. 后端服务器未运行\n\n请稍后重试或减少图层数量。')
         }
 
         // 处理网络错误
-        if (fetchError.message === 'Failed to fetch') {
+        if ((fetchError as Error).message === 'Failed to fetch') {
           throw new Error('无法连接到后端服务器。请确保：\n1. 后端服务器已启动\n2. API路径正确\n3. 网络连接正常')
         }
 
@@ -704,8 +741,9 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   }
 
   const downloadResult = () => {
-    if (result?.output_url) {
-      window.open(result.output_url, '_blank')
+    if (result && 'output_url' in result) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      window.open((result as any).output_url, '_blank')
     }
   }
 
@@ -1025,6 +1063,32 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 }
 
 export default CanvasToolMenu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
