@@ -66,7 +66,17 @@ app = FastAPI(lifespan=lifespan)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3001", "http://localhost:3004", "http://127.0.0.1:3001", "http://127.0.0.1:3004"],  # Vite dev server
+    allow_origins=[
+        "http://localhost:3001", 
+        "http://localhost:3004", 
+        "http://127.0.0.1:3001", 
+        "http://127.0.0.1:3004",
+        "http://54.189.143.120",
+        "http://54.189.143.120:3004",
+        "http://prototype.atcommgroup.com",
+        "https://prototype.atcommgroup.com",
+        "https://54.189.143.120",
+    ],  # Vite dev server and production domains (HTTP and HTTPS)
 
     allow_credentials=True,
     allow_methods=["*"],
