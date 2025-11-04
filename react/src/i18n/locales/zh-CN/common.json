@@ -41,7 +41,9 @@
     "platform": "平台",
     "my_uploads": "我的上传",
     "retry": "重试",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "hide_panel": "隐藏面板",
+    "reload": "重新加载"
   },
   "templates": {
     "no_preview": "暂无预览图",

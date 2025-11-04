@@ -41,7 +41,9 @@
     "platform": "Platform",
     "my_uploads": "My Uploads",
     "retry": "Retry",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "hide_panel": "Hide panel",
+    "reload": "Reload"
   },
   "templates": {
     "no_preview": "No preview",
