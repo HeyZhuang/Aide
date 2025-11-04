@@ -210,18 +210,20 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
         const containerRect = canvasContainer.getBoundingClientRect();
 
-        // 计算鼠标在画布中的场景坐标（考虑缩放和偏移）
-        const sceneX = (clientX - containerRect.left - appState.offsetLeft) / appState.zoom.value - appState.scrollX;
-        const sceneY = (clientY - containerRect.top - appState.offsetTop) / appState.zoom.value - appState.scrollY;
+        // 使用正确的坐标转换公式（参考 Excalidraw 的 viewportCoordsToSceneCoords）
+        // 注意: Excalidraw 的 scrollX/scrollY 在向右/向下滚动时是负值
+        const sceneX = (clientX - containerRect.left) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top) / appState.zoom.value - appState.scrollY;
 
         console.log('🎯 鼠标场景坐标:', { sceneX, sceneY });
         console.log('📊 画布状态:', {
           zoom: appState.zoom.value,
           scrollX: appState.scrollX,
           scrollY: appState.scrollY,
-          offsetLeft: appState.offsetLeft,
-          offsetTop: appState.offsetTop,
-          containerRect: { left: containerRect.left, top: containerRect.top }
+          clientX,
+          clientY,
+          containerLeft: containerRect.left,
+          containerTop: containerRect.top
         });
 
         // 找到鼠标位置下的图片元素 - 从后往前遍历（优先选择最上层的元素）
@@ -480,9 +482,10 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
         const containerRect = canvasContainer.getBoundingClientRect();
 
-        // 计算鼠标在画布中的场景坐标（考虑缩放和偏移）
-        const sceneX = (clientX - containerRect.left - appState.offsetLeft) / appState.zoom.value - appState.scrollX;
-        const sceneY = (clientY - containerRect.top - appState.offsetTop) / appState.zoom.value - appState.scrollY;
+        // 使用正确的坐标转换公式（参考 Excalidraw 的 viewportCoordsToSceneCoords）
+        // 注意: Excalidraw 的 scrollX/scrollY 在向右/向下滚动时是负值
+        const sceneX = (clientX - containerRect.left) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top) / appState.zoom.value - appState.scrollY;
 
         console.log('🎯 鼠标场景坐标:', { sceneX, sceneY });
 
