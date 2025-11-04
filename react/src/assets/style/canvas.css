@@ -199,24 +199,25 @@
   filter: none !important;
 }
 
-/* 为深色模式设置适当的背景色和文本颜色 */
+/* 为深色模式设置适当的背景色和文本颜色 - 苹果风格 */
 .excalidraw.theme--dark {
-  --color-canvas-background: #121212 !important;
-  background-color: #121212 !important;
-  color: #f5f5f5 !important;
+  --color-canvas-background: #000000 !important; /* 苹果风格的纯黑背景 */
+  background-color: #000000 !important;
+  color: #F5F5F7 !important; /* 苹果风格的柔和白色 */
 }
 
-/* 确保深色模式下的文本元素颜色正确 */
+/* 确保深色模式下的文本元素颜色正确 - 苹果风格 */
 .excalidraw-wrapper .excalidraw.theme--dark .Layer_textarea {
   filter: none !important;
-  color: #f5f5f5 !important;
+  color: #F5F5F7 !important;
+  background-color: #1C1C1E !important; /* 苹果风格的输入框背景 */
 }
 
-/* 确保深色模式下的UI元素颜色正确 */
+/* 确保深色模式下的UI元素颜色正确 - 苹果风格 */
 .excalidraw-wrapper .excalidraw.theme--dark .ToolIcon__icon,
 .excalidraw-wrapper .excalidraw.theme--dark .ToolIcon__label {
   filter: none !important;
-  color: #f5f5f5 !important;
+  color: #F5F5F7 !important;
 }
 
 /* 确保深色模式下的按钮颜色正确 */
@@ -224,12 +225,13 @@
   filter: none !important;
 }
 
-/* 确保深色模式下的输入框颜色正确 */
+/* 确保深色模式下的输入框颜色正确 - 苹果风格 */
 .excalidraw-wrapper .excalidraw.theme--dark input,
 .excalidraw-wrapper .excalidraw.theme--dark textarea {
   filter: none !important;
-  color: #f5f5f5 !important;
-  background-color: #333333 !important;
+  color: #F5F5F7 !important;
+  background-color: #1C1C1E !important; /* 苹果风格的输入框背景 */
+  border-color: rgba(255, 255, 255, 0.1) !important; /* 柔和的边框 */
 }
 
 /* 字体选择功能样式 */

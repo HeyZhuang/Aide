@@ -54,6 +54,13 @@ app.use('/socket.io', createProxyMiddleware({
   changeOrigin: true,
 }));
 
+// 代理认证页面路由到后端
+app.use('/auth', createProxyMiddleware({
+  target: BACKEND_URL,
+  changeOrigin: true,
+  secure: false,
+}));
+
 // 提供静态文件 - 只在非 API 路径时处理
 const distDir = join(__dirname, 'dist');
 const staticMiddleware = express.static(distDir, {
@@ -75,7 +82,7 @@ const staticMiddleware = express.static(distDir, {
 });
 
 app.use((req, res, next) => {
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io')) {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/socket.io') && !req.path.startsWith('/auth')) {
     staticMiddleware(req, res, next);
   } else {
     next();
@@ -84,7 +91,7 @@ app.use((req, res, next) => {
 
 // SPA 路由回退 - 使用 use 而不是 get
 app.use((req, res) => {
-  if (!req.path.startsWith('/api') && !req.path.startsWith('/assets') && !req.path.startsWith('/socket.io')) {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/assets') && !req.path.startsWith('/socket.io') && !req.path.startsWith('/auth')) {
     // 确保 index.html 不被缓存
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, must-revalidate');
     res.setHeader('Pragma', 'no-cache');

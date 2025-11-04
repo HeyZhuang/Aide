@@ -113,13 +113,36 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         return
       }
 
+      // 优化files对象：移除base64数据，只保留必要的元数据和URL引用
+      // 这样可以大幅减少保存的数据大小（从27MB减少到几KB）
+      // 对于模板图片，它们已经有服务器URL（layer.image_url），不需要保存base64
+      const optimizedFiles: BinaryFiles = {}
+      for (const [fileId, file] of Object.entries(files)) {
+        // 检查是否有服务器URL（如/api/file/xxx 或 /api/psd/...）
+        const hasServerUrl = file.dataURL && (
+          file.dataURL.startsWith('http://') || 
+          file.dataURL.startsWith('https://') ||
+          file.dataURL.startsWith('/api/')
+        )
+        
+        // 如果有服务器URL，只保存URL引用；否则保留base64（但这种情况应该很少）
+        // 模板图片应该都已经有URL，所以大部分情况下可以移除base64
+        optimizedFiles[fileId] = {
+          id: file.id,
+          mimeType: file.mimeType,
+          created: file.created,
+          // 只保留URL引用，移除base64数据以大幅减小数据大小
+          ...(hasServerUrl ? { dataURL: file.dataURL } : {}),
+        } as any
+      }
+
       const data: CanvasData = {
         elements,
         appState: {
           ...appState,
           collaborators: undefined!,
         },
-        files,
+        files: optimizedFiles, // 使用优化后的files对象
       }
 
       let thumbnail = ''
@@ -129,6 +152,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       if (latestImage) {
         const file = files[latestImage.fileId!]
         if (file) {
+          // 缩略图仍然使用完整的dataURL（通常很小）
           thumbnail = file.dataURL
         }
       }

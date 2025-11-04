@@ -5,6 +5,9 @@ from typing import List, Dict, Any, Optional
 import aiosqlite
 from .config_service import USER_DATA_DIR
 from .migrations.manager import MigrationManager, CURRENT_VERSION
+from utils.logger import get_logger
+
+logger = get_logger("services.db_service")
 
 DB_PATH = os.path.join(USER_DATA_DIR, "localmanus.db")
 
@@ -45,24 +48,37 @@ class DatabaseService:
 
     async def create_canvas(self, id: str, name: str):
         """Create a new canvas"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                INSERT INTO canvases (id, name)
-                VALUES (?, ?)
-            """, (id, name))
-            await db.commit()
+        logger.debug(f"[DB] 开始创建画布: canvas_id={id}, name={name}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("""
+                    INSERT INTO canvases (id, name)
+                    VALUES (?, ?)
+                """, (id, name))
+                await db.commit()
+            logger.debug(f"[DB] 成功创建画布: canvas_id={id}")
+        except Exception as e:
+            logger.error(f"[DB] 创建画布失败: canvas_id={id}, name={name}, 错误: {str(e)}", exc_info=True)
+            raise
 
     async def list_canvases(self) -> List[Dict[str, Any]]:
         """Get all canvases"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("""
-                SELECT id, name, description, thumbnail, created_at, updated_at
-                FROM canvases
-                ORDER BY updated_at DESC
-            """)
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        logger.debug("[DB] 开始查询画布列表")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = sqlite3.Row
+                cursor = await db.execute("""
+                    SELECT id, name, description, thumbnail, created_at, updated_at
+                    FROM canvases
+                    ORDER BY updated_at DESC
+                """)
+                rows = await cursor.fetchall()
+                result = [dict(row) for row in rows]
+                logger.debug(f"[DB] 成功查询画布列表，返回 {len(result)} 个画布")
+                return result
+        except Exception as e:
+            logger.error(f"[DB] 查询画布列表失败: {str(e)}", exc_info=True)
+            raise
 
     async def create_chat_session(self, id: str, model: str, provider: str, canvas_id: str, title: Optional[str] = None):
         """Save a new chat session"""
@@ -128,58 +144,88 @@ class DatabaseService:
 
     async def save_canvas_data(self, id: str, data: str, thumbnail: Optional[str] = None):
         """Save canvas data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
-                UPDATE canvases 
-                SET data = ?, thumbnail = ?, updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
-                WHERE id = ?
-            """, (data, thumbnail, id))
-            await db.commit()
+        data_size = len(data) if data else 0
+        logger.debug(f"[DB] 开始保存画布数据: canvas_id={id}, 数据大小={data_size}字符, 缩略图={bool(thumbnail)}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("""
+                    UPDATE canvases 
+                    SET data = ?, thumbnail = ?, updated_at = STRFTIME('%Y-%m-%dT%H:%M:%fZ', 'now')
+                    WHERE id = ?
+                """, (data, thumbnail, id))
+                await db.commit()
+            logger.debug(f"[DB] 成功保存画布数据: canvas_id={id}, 数据大小={data_size}字符")
+        except Exception as e:
+            logger.error(f"[DB] 保存画布数据失败: canvas_id={id}, 错误: {str(e)}", exc_info=True)
+            raise
 
     async def get_canvas_data(self, id: str) -> Dict[str, Any]:
         """Get canvas data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            db.row_factory = sqlite3.Row
-            cursor = await db.execute("""
-                SELECT data, name
-                FROM canvases
-                WHERE id = ?
-            """, (id,))
-            row = await cursor.fetchone()
+        logger.debug(f"[DB] 开始查询画布数据: canvas_id={id}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                db.row_factory = sqlite3.Row
+                cursor = await db.execute("""
+                    SELECT data, name
+                    FROM canvases
+                    WHERE id = ?
+                """, (id,))
+                row = await cursor.fetchone()
 
-            sessions = await self.list_sessions(id)
-            
-            if row:
-                try:
-                    canvas_data = json.loads(row['data']) if row['data'] else {}
-                except (json.JSONDecodeError, TypeError):
-                    # 如果JSON解析失败，使用空对象
-                    canvas_data = {}
+                sessions = await self.list_sessions(id)
                 
-                return {
-                    'data': canvas_data,
-                    'name': row['name'] or '未命名画布',
-                    'sessions': sessions
-                }
-            else:
-                # 如果画布不存在，返回默认数据而不是 None
-                return {
-                    'data': {},
-                    'name': '未命名画布',
-                    'sessions': []
-                }
+                if row:
+                    try:
+                        canvas_data = json.loads(row['data']) if row['data'] else {}
+                    except (json.JSONDecodeError, TypeError) as e:
+                        # 如果JSON解析失败，使用空对象
+                        logger.warning(f"[DB] 画布数据JSON解析失败: canvas_id={id}, 错误: {str(e)}")
+                        canvas_data = {}
+                    
+                    result = {
+                        'data': canvas_data,
+                        'name': row['name'] or '未命名画布',
+                        'sessions': sessions
+                    }
+                    data_size = len(str(canvas_data))
+                    logger.debug(f"[DB] 成功查询画布数据: canvas_id={id}, name={result['name']}, "
+                               f"数据大小={data_size}字符, 会话数={len(sessions)}")
+                    return result
+                else:
+                    # 如果画布不存在，返回默认数据而不是 None
+                    logger.debug(f"[DB] 画布不存在，返回默认数据: canvas_id={id}")
+                    return {
+                        'data': {},
+                        'name': '未命名画布',
+                        'sessions': []
+                    }
+        except Exception as e:
+            logger.error(f"[DB] 查询画布数据失败: canvas_id={id}, 错误: {str(e)}", exc_info=True)
+            raise
 
     async def delete_canvas(self, id: str):
         """Delete canvas and related data"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("DELETE FROM canvases WHERE id = ?", (id,))
-            await db.commit()
+        logger.debug(f"[DB] 开始删除画布: canvas_id={id}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("DELETE FROM canvases WHERE id = ?", (id,))
+                await db.commit()
+            logger.debug(f"[DB] 成功删除画布: canvas_id={id}")
+        except Exception as e:
+            logger.error(f"[DB] 删除画布失败: canvas_id={id}, 错误: {str(e)}", exc_info=True)
+            raise
 
     async def rename_canvas(self, id: str, name: str):
         """Rename canvas"""
-        async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("UPDATE canvases SET name = ? WHERE id = ?", (name, id))
-            await db.commit()
+        logger.debug(f"[DB] 开始重命名画布: canvas_id={id}, 新名称={name}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute("UPDATE canvases SET name = ? WHERE id = ?", (name, id))
+                await db.commit()
+            logger.debug(f"[DB] 成功重命名画布: canvas_id={id}, 新名称={name}")
+        except Exception as e:
+            logger.error(f"[DB] 重命名画布失败: canvas_id={id}, 新名称={name}, 错误: {str(e)}", exc_info=True)
+            raise
 
     async def create_comfy_workflow(self, name: str, api_json: str, description: str, inputs: str, outputs: Optional[str] = None):
         """Create a new comfy workflow"""

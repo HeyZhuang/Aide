@@ -9,3 +9,4 @@ export function TextPopbar({ selectedElement }: TextPopbarProps) {
   return <TextToolbar selectedElement={selectedElement} />
 }
 
+

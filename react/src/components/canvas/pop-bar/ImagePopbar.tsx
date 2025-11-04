@@ -9,3 +9,4 @@ export function ImagePopbar({ selectedElement }: ImagePopbarProps) {
   return <ImageToolbar selectedElement={selectedElement} />
 }
 
+

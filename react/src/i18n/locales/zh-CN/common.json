@@ -37,7 +37,7 @@
     "upload_psd_or_add_layers": "上传PSD文件或添加图层到画布",
     "templates": "模板",
     "library": "素材库",
-    "fonts": "字体",
+    "fonts": "文字",
     "platform": "平台",
     "my_uploads": "我的上传",
     "retry": "重试",
@@ -60,7 +60,11 @@
     "delete_image": "删除图片"
   },
   "fonts": {
-    "search_fonts": "搜索字体"
+    "search_fonts": "搜索艺术字",
+    "upload_artistic_font": "上传艺术字",
+    "no_artistic_fonts": "暂无艺术字",
+    "upload_artistic_font_description": "上传艺术字后，它们将显示在这里",
+    "artistic_font_uploaded": "艺术字上传成功"
   },
   "messages": {
     "success": "操作成功完成",
@@ -95,7 +99,7 @@
   "auth": {
     "login": "登录",
     "logout": "登出",
-    "loginToJaaz": "登录 Jaaz",
+    "loginToJaaz": "登录 Aide",
     "myAccount": "我的账户",
     "loginDescription": "登录以使用云AI模型",
     "startLogin": "开始登录",
@@ -112,7 +116,14 @@
     "logoutSuccessMessage": "成功登出",
     "notLoggedIn": "未登录",
     "balance": "余额",
-    "recharge": "充值"
+    "recharge": "充值",
+    "loginRequired": "需要登录",
+    "loginRequiredMessage": "请先登录以使用网站功能",
+    "username": "用户名或邮箱",
+    "usernamePlaceholder": "请输入用户名或邮箱",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "loggingIn": "登录中..."
   },
   "resize": {
     "title": "智能缩放",

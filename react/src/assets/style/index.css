@@ -84,38 +84,39 @@
 }
 
 .dark {
-  /* 使用更柔和的深灰色，而不是纯黑色 - 更适合毛玻璃效果 */
-  --background: oklch(0.22 0.008 285.823); /* 从 0.141 提升到 0.22，更亮 */
-  --foreground: oklch(0.95 0 0); /* 从 0.985 稍微降低，更柔和 */
-  --card: oklch(0.28 0.008 285.885); /* 从 0.21 提升到 0.28 */
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.28 0.008 285.885);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.65 0.15 262.1); /* 使用更柔和的紫色 */
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.35 0.008 286.033); /* 从 0.274 提升到 0.35 */
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.35 0.008 286.033);
-  --muted-foreground: oklch(0.65 0.015 285.938); /* 从 0.705 降低，更柔和 */
-  --accent: oklch(0.35 0.008 286.033);
-  --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.65 0.20 27.325); /* 更柔和的红色 */
-  --border: oklch(0.4 0.008 286.32); /* 从透明提升到可见的边框 */
-  --input: oklch(0.32 0.008 286.32); /* 更亮的输入框背景 */
-  --ring: oklch(0.65 0.15 262.1); /* 与 primary 一致 */
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  /* 苹果风格深色主题 - 使用纯黑背景和柔和的文字颜色 */
+  --background: #000000; /* 苹果风格的纯黑背景 */
+  --foreground: #F5F5F7; /* 苹果风格的柔和白色文字 */
+  --card: #1C1C1E; /* 苹果风格的次要背景色 */
+  --card-foreground: #F5F5F7;
+  --popover: #1C1C1E;
+  --popover-foreground: #F5F5F7;
+  --primary: #007AFF; /* 苹果风格的蓝色强调色 */
+  --primary-foreground: #FFFFFF;
+  --secondary: #2C2C2E; /* 稍微亮一点的深灰色 */
+  --secondary-foreground: #F5F5F7;
+  --muted: #2C2C2E;
+  --muted-foreground: #98989D; /* 苹果风格的次要文字颜色 */
+  --accent: #2C2C2E;
+  --accent-foreground: #F5F5F7;
+  --destructive: #FF3B30; /* 苹果风格的红色 */
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.1); /* 非常淡的白色边框 */
+  --input: #1C1C1E; /* 输入框使用卡片背景色 */
+  --ring: #007AFF; /* 与 primary 一致 */
+  --chart-1: #007AFF;
+  --chart-2: #34C759; /* 苹果绿色 */
+  --chart-3: #FF9500; /* 苹果橙色 */
+  --chart-4: #AF52DE; /* 苹果紫色 */
+  --chart-5: #FF2D55; /* 苹果粉红色 */
+  --sidebar: #000000;
+  --sidebar-foreground: #F5F5F7;
+  --sidebar-primary: #007AFF;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2C2C2E;
+  --sidebar-accent-foreground: #F5F5F7;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #007AFF;
 }
 
 @theme inline {
@@ -179,17 +180,21 @@
     border-radius: 16px;
   }
 
-  /* 深色模式下的毛玻璃 - 使用更柔和的颜色 */
+  /* 深色模式下的毛玻璃 - 苹果风格 */
   .dark .glass {
-    background: rgba(45, 45, 50, 0.75); /* 从 24,24,24 提升到 45,45,50 */
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    background: rgba(28, 28, 30, 0.8); /* 苹果风格的深灰色，带透明度 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   .dark .glass-card {
-    background: rgba(45, 45, 50, 0.65); /* 更亮的背景 */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    background: rgba(28, 28, 30, 0.75); /* 苹果风格的卡片背景 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
   }
 
   /* 导航栏毛玻璃效果 */
@@ -203,9 +208,11 @@
   }
 
   .dark .glass-nav {
-    background: rgba(45, 45, 50, 0.85); /* 更亮的背景 */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 1px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: rgba(28, 28, 30, 0.85); /* 苹果风格的导航栏背景 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 
   /* 为 JavaScript 样式提供 CSS 变量支持 - 必须在 utilities layer 内 */
@@ -219,12 +226,12 @@
   }
 
   .dark {
-    --glass-nav-bg: rgba(45, 45, 50, 0.85);
-    --glass-nav-border: 1px solid rgba(255, 255, 255, 0.15);
-    --glass-nav-shadow: 0 2px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    --sidebar-glass-bg: rgba(45, 45, 50, 0.85);
-    --sidebar-glass-border: 1px solid rgba(255, 255, 255, 0.3);
-    --sidebar-glass-shadow: 0 12px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    --glass-nav-bg: rgba(28, 28, 30, 0.85);
+    --glass-nav-border: 1px solid rgba(255, 255, 255, 0.1);
+    --glass-nav-shadow: 0 2px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --sidebar-glass-bg: rgba(28, 28, 30, 0.85);
+    --sidebar-glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --sidebar-glass-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   /* 悬浮效果增强 */
@@ -239,9 +246,9 @@
   }
 
   .dark .glass-hover:hover {
-    background: rgba(55, 55, 60, 0.85); /* 更亮的悬浮状态 */
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 255, 255, 0.25);
+    background: rgba(44, 44, 46, 0.85); /* 苹果风格的悬浮状态 */
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -254,24 +261,25 @@
     @apply bg-background text-foreground;
     /* 浅色模式使用纯白色 */
     background-color: #FFFFFF !important;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* 深色模式下的背景 */
+  /* 深色模式下的背景 - 苹果风格 */
   .dark body {
-    background-color: oklch(0.22 0.008 285.823) !important;
+    background-color: #000000 !important;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* 为根容器添加毛玻璃背景效果 */
   #root, .app-container {
     background-color: #FFFFFF;
     min-height: 100vh;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark #root,
   .dark .app-container {
-    background-color: oklch(0.22 0.008 285.823);
+    background-color: #000000;
   }
 
   /* 修复 rc-textarea 文本截断问题 */
@@ -329,29 +337,30 @@
   }
 
   .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --popover: 224 71.4% 4.1%;
-    --popover-foreground: 210 20% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --ring: 263.4 70% 50.4%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    /* 苹果风格深色主题 - HSL 格式 */
+    --background: 0 0% 0%; /* 纯黑 */
+    --foreground: 0 0% 96%; /* #F5F5F7 */
+    --card: 0 0% 11%; /* #1C1C1E */
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 210 100% 50%; /* #007AFF 苹果蓝 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 17%; /* #2C2C2E */
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 17%;
+    --muted-foreground: 0 0% 60%; /* #98989D */
+    --accent: 0 0% 17%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 100% 60%; /* #FF3B30 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 100% / 10%; /* rgba(255, 255, 255, 0.1) */
+    --input: 0 0% 11%;
+    --ring: 210 100% 50%;
+    --chart-1: 210 100% 50%;
+    --chart-2: 142 70% 45%; /* #34C759 */
+    --chart-3: 30 100% 50%; /* #FF9500 */
+    --chart-4: 280 60% 58%; /* #AF52DE */
+    --chart-5: 340 80% 58%; /* #FF2D55 */
   }
 }

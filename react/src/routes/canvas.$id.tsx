@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { PSDUploadResponse } from '@/api/upload'
 import { ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/hooks/use-theme'
 
   export const Route = createFileRoute('/canvas/$id')({
     component: Canvas,
@@ -33,6 +34,7 @@ import { useAuth } from '@/contexts/AuthContext'
     const { id } = useParams({ from: '/canvas/$id' })
     const canvasStore = useCanvas()
     const { authStatus } = useAuth() // 获取登录状态
+    const { theme } = useTheme() // 获取当前主题
     const [canvas, setCanvas] = useState<{ data: CanvasData | null; name: string; sessions: Session[] } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<Error | null>(null)
@@ -168,16 +170,26 @@ import { useAuth } from '@/contexts/AuthContext'
                 onClick={() => setIsLayerSidebarVisible(true)}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-3 rounded-l-2xl backdrop-blur-xl transition-all duration-300 hover:scale-110 group"
                 style={{
-                  background: 'rgba(255, 255, 255, 0.75)',
+                  background: theme === 'dark' 
+                    ? 'rgba(28, 28, 30, 0.85)' 
+                    : 'rgba(255, 255, 255, 0.75)',
                   backdropFilter: 'blur(20px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  border: theme === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.1)'
+                    : '1px solid rgba(255, 255, 255, 0.3)',
                   borderRight: 'none',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+                  boxShadow: theme === 'dark'
+                    ? '0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                    : '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
                 }}
                 aria-label="显示图层面板"
               >
-                <PanelRightOpen className="w-5 h-5 text-gray-700 group-hover:text-gray-900 transition-colors" />
+                <PanelRightOpen className={`w-5 h-5 transition-colors ${
+                  theme === 'dark' 
+                    ? 'text-foreground group-hover:text-foreground' 
+                    : 'text-gray-700 group-hover:text-gray-900'
+                }`} />
               </button>
             )}
 
@@ -187,39 +199,72 @@ import { useAuth } from '@/contexts/AuthContext'
                 isLayerSidebarVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
               }`}
               style={{
-                background: 'rgba(255, 255, 255, 0.75)',
+                background: theme === 'dark' 
+                  ? 'rgba(28, 28, 30, 0.85)' 
+                  : 'rgba(255, 255, 255, 0.75)',
                 backdropFilter: 'blur(40px) saturate(200%)',
                 WebkitBackdropFilter: 'blur(40px) saturate(200%)',
                 borderRadius: '20px',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                boxShadow: `
-                  -8px 0 32px rgba(0, 0, 0, 0.12),
-                  0 8px 32px rgba(0, 0, 0, 0.08),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.6),
-                  inset -1px 0 0 rgba(255, 255, 255, 0.4)
-                `,
+                border: theme === 'dark'
+                  ? '1px solid rgba(255, 255, 255, 0.1)'
+                  : '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: theme === 'dark'
+                  ? `
+                    -8px 0 32px rgba(0, 0, 0, 0.6),
+                    0 8px 32px rgba(0, 0, 0, 0.5),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                    inset -1px 0 0 rgba(255, 255, 255, 0.08)
+                  `
+                  : `
+                    -8px 0 32px rgba(0, 0, 0, 0.12),
+                    0 8px 32px rgba(0, 0, 0, 0.08),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+                    inset -1px 0 0 rgba(255, 255, 255, 0.4)
+                  `,
               }}
             >
               {/* 面板关闭按钮 - 优化位置：放在面板左侧边缘中间，作为拖拽手柄样式 */}
               <button
                 onClick={() => setIsLayerSidebarVisible(false)}
-                className="absolute -left-10 top-1/2 -translate-y-1/2 z-30 w-9 h-20 flex items-center justify-center backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:bg-white/90 group"
+                className={`absolute -left-10 top-1/2 -translate-y-1/2 z-30 w-9 h-20 flex items-center justify-center backdrop-blur-xl transition-all duration-300 hover:scale-110 group ${
+                  theme === 'dark' 
+                    ? 'hover:bg-white/10' 
+                    : 'hover:bg-white/90'
+                }`}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.85)',
+                  background: theme === 'dark'
+                    ? 'rgba(28, 28, 30, 0.85)'
+                    : 'rgba(255, 255, 255, 0.85)',
                   backdropFilter: 'blur(24px) saturate(200%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(200%)',
                   borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.5)',
+                  border: theme === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.1)'
+                    : '1px solid rgba(255, 255, 255, 0.5)',
                   borderRight: 'none',
-                  boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.8)',
+                  boxShadow: theme === 'dark'
+                    ? '-4px 0 20px rgba(0, 0, 0, 0.6), inset 1px 0 0 rgba(255, 255, 255, 0.08)'
+                    : '-4px 0 20px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.8)',
                 }}
                 aria-label="隐藏图层面板"
                 title="隐藏面板"
               >
                 <div className="flex flex-col items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
-                  <PanelRightClose className="w-4 h-4 text-gray-700 group-hover:text-gray-900 transition-colors" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
+                  <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                    theme === 'dark' 
+                      ? 'bg-foreground/40 group-hover:bg-foreground/60' 
+                      : 'bg-gray-500 group-hover:bg-gray-700'
+                  }`}></div>
+                  <PanelRightClose className={`w-4 h-4 transition-colors ${
+                    theme === 'dark' 
+                      ? 'text-foreground group-hover:text-foreground' 
+                      : 'text-gray-700 group-hover:text-gray-900'
+                  }`} />
+                  <div className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                    theme === 'dark' 
+                      ? 'bg-foreground/40 group-hover:bg-foreground/60' 
+                      : 'bg-gray-500 group-hover:bg-gray-700'
+                  }`}></div>
                 </div>
               </button>
 
