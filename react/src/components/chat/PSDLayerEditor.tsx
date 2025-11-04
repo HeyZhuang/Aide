@@ -132,9 +132,9 @@ export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerE
 
                     // 添加新图片文件到 Excalidraw
                     excalidrawAPI.addFiles([{
-                        id: newFileId,
-                        dataURL: dataURL,
-                        mimeType: file.type,
+                        id: newFileId as any,
+                        dataURL: dataURL as any,
+                        mimeType: (file.type || 'image/png') as any,
                         created: Date.now()
                     }])
 
@@ -146,7 +146,7 @@ export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerE
                     const imageElements = currentElements.filter(el => el.type === 'image')
                     console.log('🖼️ 画布上的图片元素:', imageElements.map(el => ({
                         id: el.id,
-                        fileId: el.fileId,
+                        fileId: (el as any).fileId,
                         customData: el.customData,
                         psdLayerIndex: el.customData?.psdLayerIndex,
                         layerName: el.customData?.layerName
@@ -163,22 +163,22 @@ export function PSDLayerEditor({ psdData, isOpen, onClose, onUpdate }: PSDLayerE
                     if (targetElement) {
                         console.log('🎯 找到目标图片元素:', {
                             id: targetElement.id,
-                            fileId: targetElement.fileId,
+                            fileId: (targetElement as any).fileId,
                             customData: targetElement.customData
                         })
 
                         // 创建更新后的元素（保持位置、大小等属性，只更新图片）
                         const updatedElement = {
                             ...targetElement,
-                            fileId: newFileId,
+                            fileId: newFileId as any,
                             updated: Date.now(),
                             version: (targetElement.version || 0) + 1
-                        }
+                        } as any
 
                         // 更新场景
                         const updatedElements = currentElements.map(el =>
                             el.id === targetElement.id ? updatedElement : el
-                        )
+                        ) as any
 
                         excalidrawAPI.updateScene({
                             elements: updatedElements

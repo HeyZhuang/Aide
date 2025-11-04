@@ -216,3 +216,11 @@
 // }
 
 // export default ModelSelector
+
+import React from 'react'
+
+const ModelSelectorV2: React.FC = () => {
+  return null
+}
+
+export default ModelSelectorV2

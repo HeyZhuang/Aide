@@ -583,28 +583,49 @@ class CanvasLayerArrangementService:
                             
                             logger.info(f"📏 元素 {arr_id} 尺寸超出目标画布 ({current_width:.2f}x{current_height:.2f})，已按比例缩放至 {new_coords['width']:.2f}x{new_coords['height']:.2f} (缩放因子: {scale_factor:.3f})")
                         
-                        # 检查边界并调整位置
-                        right_edge = current_x + new_coords['width']
-                        bottom_edge = current_y + new_coords['height']
-                        
-                        # 调整X坐标：如果右边界超出，向左移动
-                        if right_edge > target_width:
-                            new_coords['x'] = max(0, target_width - new_coords['width'])
-                            logger.info(f"📍 元素 {arr_id} 右边界超出，X坐标已调整: {current_x:.2f} -> {new_coords['x']:.2f}")
-                        
-                        # 调整Y坐标：如果下边界超出，向上移动
-                        if bottom_edge > target_height:
-                            new_coords['y'] = max(0, target_height - new_coords['height'])
-                            logger.info(f"📍 元素 {arr_id} 下边界超出，Y坐标已调整: {current_y:.2f} -> {new_coords['y']:.2f}")
-                        
-                        # 确保坐标不为负数
+                        # 首先确保坐标不为负数（必须在边界检查之前）
                         if new_coords.get('x', 0) < 0:
                             new_coords['x'] = 0
-                            logger.info(f"📍 元素 {arr_id} X坐标小于0，已调整为0")
+                            logger.info(f"📍 元素 {arr_id} X坐标小于0，已调整为0: {current_x:.2f} -> 0")
                         
                         if new_coords.get('y', 0) < 0:
                             new_coords['y'] = 0
-                            logger.info(f"📍 元素 {arr_id} Y坐标小于0，已调整为0")
+                            logger.info(f"📍 元素 {arr_id} Y坐标小于0，已调整为0: {current_y:.2f} -> 0")
+                        
+                        # 检查边界并调整位置（使用调整后的坐标和尺寸）
+                        right_edge = new_coords.get('x', 0) + new_coords['width']
+                        bottom_edge = new_coords.get('y', 0) + new_coords['height']
+                        
+                        # 调整X坐标：如果右边界超出，向左移动
+                        if right_edge > target_width:
+                            new_x = max(0, target_width - new_coords['width'])
+                            logger.info(f"📍 元素 {arr_id} 右边界超出，X坐标已调整: {new_coords.get('x', 0):.2f} -> {new_x:.2f}")
+                            new_coords['x'] = new_x
+                        
+                        # 调整Y坐标：如果下边界超出，向上移动
+                        if bottom_edge > target_height:
+                            new_y = max(0, target_height - new_coords['height'])
+                            logger.info(f"📍 元素 {arr_id} 下边界超出，Y坐标已调整: {new_coords.get('y', 0):.2f} -> {new_y:.2f}")
+                            new_coords['y'] = new_y
+                        
+                        # 最终验证：确保尺寸不超出目标画布（双重保险）
+                        if new_coords['width'] > target_width:
+                            new_coords['width'] = target_width
+                            logger.warning(f"⚠️ 元素 {arr_id} 宽度仍超出目标画布，强制设置为 {target_width}")
+                        
+                        if new_coords['height'] > target_height:
+                            new_coords['height'] = target_height
+                            logger.warning(f"⚠️ 元素 {arr_id} 高度仍超出目标画布，强制设置为 {target_height}")
+                        
+                        # 最终验证：确保坐标在有效范围内
+                        if new_coords.get('x', 0) < 0:
+                            new_coords['x'] = 0
+                        if new_coords.get('y', 0) < 0:
+                            new_coords['y'] = 0
+                        if new_coords.get('x', 0) + new_coords['width'] > target_width:
+                            new_coords['x'] = max(0, target_width - new_coords['width'])
+                        if new_coords.get('y', 0) + new_coords['height'] > target_height:
+                            new_coords['y'] = max(0, target_height - new_coords['height'])
                         
                         # 更新warnings信息
                         if needs_resize:

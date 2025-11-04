@@ -4,7 +4,6 @@ import { useCanvas } from '@/contexts/canvas'
 import { useKeyPress } from 'ahooks'
 import { memo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { LayerArrangementDialog } from '../LayerArrangementDialog'
 import { arrangeCanvasElements, ElementArrangement } from '@/api/upload'
 import { OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types'
@@ -15,7 +14,7 @@ type CanvasSmartArrangeButtonProps = {
 
 const CanvasSmartArrangeButton = ({ selectedElements }: CanvasSmartArrangeButtonProps) => {
   const { t } = useTranslation()
-  const { excalidrawAPI } = useCanvas()
+  const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isArranging, setIsArranging] = useState(false)
 
@@ -30,13 +29,8 @@ const CanvasSmartArrangeButton = ({ selectedElements }: CanvasSmartArrangeButton
     // 立即关闭弹窗，允许用户继续操作
     setIsDialogOpen(false)
     
-    // 显示加载中的Toast通知，允许用户在后台继续操作
-    const toastId = toast.loading(
-      `正在智能排列 ${selectedElements.length} 个图层，您可以在后台继续操作...`,
-      {
-        duration: Infinity, // 不自动关闭
-      }
-    )
+    // 显示加载中的提示在画布中央
+    setOverlay(true, t('canvas:messages.layerArrangement.arranging', { count: selectedElements.length }), 'loading')
 
     try {
       setIsArranging(true)
@@ -328,35 +322,30 @@ const CanvasSmartArrangeButton = ({ selectedElements }: CanvasSmartArrangeButton
           
           console.log(`成功创建 ${newElements.length} 个新的排列图层，原图层保持不变`);
           
-          // 更新Toast为成功状态
-          toast.success(
-            `智能排列完成！已创建 ${newElements.length} 个新图层`,
-            { id: toastId }
-          )
+          // 显示成功提示在画布中央，2秒后自动关闭
+          setOverlay(true, t('canvas:messages.layerArrangement.arrangementCompleted', { count: newElements.length }), 'success')
+          setTimeout(() => clearOverlay(), 2000)
         } else {
           console.warn('没有创建任何新元素');
-          // 更新Toast为失败状态
-          toast.error(
-            t('canvas:messages.layerArrangement.arrangementFailed'),
-            { id: toastId }
-          )
+          // 显示失败提示
+          setOverlay(true, t('canvas:messages.layerArrangement.arrangementFailed'), 'error')
+          setTimeout(() => clearOverlay(), 2000)
         }
       } else {
         console.log('排列失败:', response);
-        // 更新Toast为失败状态
-        toast.error(
-          t('canvas:messages.layerArrangement.arrangementFailed'),
-          { id: toastId }
-        )
+        // 显示失败提示
+        setOverlay(true, t('canvas:messages.layerArrangement.arrangementFailed'), 'error')
+        setTimeout(() => clearOverlay(), 2000)
       }
     } catch (error) {
       console.error('图层排列失败:', error);
-      // 更新Toast为错误状态
+      // 显示错误提示
       let errorMessage = t('canvas:messages.layerArrangement.arrangementError')
       if (error instanceof Error && error.message.includes('overloaded')) {
         errorMessage = t('canvas:messages.layerArrangement.modelOverloaded')
       }
-      toast.error(errorMessage, { id: toastId })
+      setOverlay(true, errorMessage, 'error')
+      setTimeout(() => clearOverlay(), 2000)
     } finally {
       setIsArranging(false)
     }

@@ -22,7 +22,24 @@
     "nothingSelected": "No assets selected",
     "exportingAssets": "Exporting assets...",
     "failedToExportImages": "Failed to export images",
-    "gptImagePermissionRequired": "You must enable gpt-image-1 model permissions to use this feature!"
+    "gptImagePermissionRequired": "You must enable gpt-image-1 model permissions to use this feature!",
+    "layerArrangement": {
+      "minElementsRequired": "At least 2 elements must be selected for intelligent arrangement",
+      "arranging": "Arranging {{count}} layers...",
+      "arrangementCompleted": "Arrangement completed! Created {{count}} new layers",
+      "arrangementFailed": "Arrangement failed, please try again",
+      "arrangementError": "An error occurred during arrangement",
+      "modelOverloaded": "Model overloaded, please try again later"
+    },
+    "templateLoading": {
+      "loadingTemplate": "Loading template \"{{name}}\"...",
+      "parsingPSD": "Parsing PSD file \"{{name}}\"...",
+      "loadingParsed": "Loading parsed template...",
+      "fallbackLoading": "Loading with traditional method...",
+      "addingLayers": "Adding {{count}} layers to canvas...",
+      "templateApplied": "Template \"{{name}}\" applied to canvas",
+      "noDisplayableLayers": "This PSD file has no displayable layers"
+    }
   },
   "deleteDialog": {
     "title": "Delete Canvas",

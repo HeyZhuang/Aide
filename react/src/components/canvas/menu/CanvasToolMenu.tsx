@@ -13,10 +13,9 @@ import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { FontSelector } from '../FontSelector'
 import { FontItem } from '@/api/font'
 import { toast } from 'sonner'
-import { uploadPSD, updateLayerProperties, type PSDUploadResponse, type PSDLayer } from '@/api/upload'
 
-import { ExcalidrawElement, ExcalidrawTextElement } from '@excalidraw/excalidraw/element/types'
-import { BinaryFileData } from '@excalidraw/excalidraw/types'
+import { uploadPSD, uploadImage, updateLayerProperties, type PSDUploadResponse, type PSDLayer } from '@/api/upload'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -122,25 +121,114 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
     // 可以在這裡添加額外的處理邏輯
   }
 
-  // const handleImageUploaded = async (file: File) => {
-  //   try {
-  //     const result = await uploadImage(file);
-  //     console.log('Image uploaded:', result);
-  //     // 将图片添加到画布
-  //     if (excalidrawAPI) {
-  //       excalidrawAPI?.addImageElement({
-  //         fileId: result.file_id,
-  //         width: result.width,
-  //         height: result.height,
-  //         url: result.url
-  //       });
-  //     }
-  //     toast.success('图片上传成功');
-  //   } catch (error) {
-  //     console.error('Image upload failed:', error);
-  //     toast.error('图片上传失败');
-  //   }
-  // }
+  // 处理图片上传并添加到画布
+  const handleImageUploaded = async (file: File) => {
+    if (!excalidrawAPI) {
+      toast.error('画布API不可用')
+      return
+    }
+
+    try {
+      // 先转换为Base64（使用本地文件，更快）
+      const dataURL = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // 获取图片尺寸
+      const imageDimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height })
+        }
+        img.onerror = reject
+        img.src = dataURL
+      })
+
+      // 同时上传图片到服务器（异步，不阻塞添加画布）
+      uploadImage(file).then(result => {
+        console.log('图片已上传到服务器:', result)
+      }).catch(error => {
+        console.warn('图片上传到服务器失败（不影响画布显示）:', error)
+      })
+
+      // 生成唯一的文件ID
+      const fileId = `uploaded-image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any
+
+      // 创建Excalidraw文件数据
+      const fileData = {
+        mimeType: (file.type || 'image/png') as any,
+        id: fileId,
+        dataURL: dataURL as any,
+        created: Date.now()
+      }
+
+      // 添加到Excalidraw文件系统
+      excalidrawAPI.addFiles([fileData])
+      console.log('文件已添加到Excalidraw:', fileId)
+
+      // 等待文件完全加载
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // 获取当前画布元素和状态
+      const currentElements = excalidrawAPI.getSceneElements()
+      const appState = excalidrawAPI.getAppState()
+      const canvasWidth = appState.width || 800
+      const canvasHeight = appState.height || 600
+
+      // 计算居中位置
+      const centerX = (canvasWidth - imageDimensions.width) / 2
+      const centerY = (canvasHeight - imageDimensions.height) / 2
+
+      // 创建图片元素
+      const imageElement = {
+        type: 'image' as const,
+        id: `uploaded-image-element-${Date.now()}`,
+        x: centerX > 0 ? centerX : 100,
+        y: centerY > 0 ? centerY : 100,
+        width: imageDimensions.width,
+        height: imageDimensions.height,
+        angle: 0,
+        strokeColor: '#000000',
+        backgroundColor: 'transparent',
+        fillStyle: 'solid' as const,
+        strokeWidth: 0,
+        strokeStyle: 'solid' as const,
+        roughness: 1,
+        opacity: 100,
+        groupIds: [],
+        frameId: null,
+        roundness: null,
+        seed: Math.floor(Math.random() * 1000000),
+        version: 1,
+        versionNonce: Math.floor(Math.random() * 1000000),
+        isDeleted: false,
+        boundElements: null,
+        updated: Date.now(),
+        link: null,
+        locked: false,
+        fileId: fileId as any,
+        scale: [1, 1] as [number, number],
+        status: 'saved' as const,
+        index: null,
+        crop: null,
+      } as any
+
+      // 更新场景，添加新图片元素
+      excalidrawAPI.updateScene({
+        elements: [...currentElements, imageElement],
+      })
+
+      console.log('图片已添加到画布')
+      toast.success('图片上传成功并已添加到画布')
+    } catch (error) {
+      console.error('图片上传失败:', error)
+      const errorMessage = error instanceof Error ? error.message : '未知错误'
+      toast.error(`图片上传失败: ${errorMessage}`)
+    }
+  }
 
   const handleFontSelect = (font: FontItem | string) => {
     let fontFamily: string
@@ -393,17 +481,21 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
       const offsetX = canvasCenterX - psdCenterX
       const offsetY = canvasCenterY - psdCenterY
 
-      // 获取当前画布元素
-      const currentElements = excalidrawAPI.getSceneElements()
+      // 收集所有要添加的图片元素和文件数据
+      const newImageElements: any[] = []
+      const newFileData: any[] = []
 
-      // 添加每个图层到画布
+      // 准备所有图层数据
       for (const layer of visibleLayers) {
         if (!layer.image_url) continue
 
         try {
           // 获取图片数据
           const response = await fetch(layer.image_url)
-          if (!response.ok) continue
+          if (!response.ok) {
+            console.warn(`获取图层 "${layer.name}" 图片失败: ${response.status}`)
+            continue
+          }
 
           const blob = await response.blob()
           const file = new File([blob], `${layer.name}.png`, { type: 'image/png' })
@@ -417,26 +509,31 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           })
 
           // 生成文件ID
+<<<<<<< HEAD
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const fileId = `psd-layer-${layer.index}-${Date.now()}` as any
+=======
+          const fileId = `psd-layer-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+>>>>>>> b1f46578d018559363a59918f36e72f87b92998c
 
           // 创建文件数据
           const fileData: BinaryFileData = {
             mimeType: 'image/png' as const,
+<<<<<<< HEAD
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             id: fileId as any,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+=======
+            id: fileId as any,
+>>>>>>> b1f46578d018559363a59918f36e72f87b92998c
             dataURL: dataURL as any,
             created: Date.now()
           }
 
-          // 添加文件到Excalidraw
-          excalidrawAPI.addFiles([fileData])
-
           // 创建图片元素
           const imageElement = {
             type: 'image' as const,
-            id: `psd-layer-element-${layer.index}-${Date.now()}`,
+            id: `psd-layer-element-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             x: layer.left + offsetX,
             y: layer.top + offsetY,
             width: layer.width,
@@ -460,7 +557,10 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
             updated: Date.now(),
             link: null,
             locked: false,
+<<<<<<< HEAD
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+=======
+>>>>>>> b1f46578d018559363a59918f36e72f87b92998c
             fileId: fileId as any,
             scale: [1, 1] as [number, number],
             status: 'saved' as const,
@@ -472,16 +572,73 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               layerName: layer.name
             }
           } as any
+<<<<<<< HEAD
+=======
 
-          // 更新场景
-          excalidrawAPI.updateScene({
-            elements: [...currentElements, imageElement],
-          })
-
-          // 等待一小段时间避免过快请求
-          await new Promise(resolve => setTimeout(resolve, 50))
+          newFileData.push(fileData)
+          newImageElements.push(imageElement)
         } catch (error) {
-          console.error(`添加图层 "${layer.name}" 失败:`, error)
+          console.error(`准备图层 "${layer.name}" 失败:`, error)
+        }
+      }
+
+      // 逐个添加图层，确保每个图层都正确添加到画布
+      if (newFileData.length > 0 && newImageElements.length > 0) {
+        try {
+          let successfullyAdded = 0
+
+          // 逐个添加文件和图层
+          for (let i = 0; i < newFileData.length && i < newImageElements.length; i++) {
+            try {
+              const fileData = newFileData[i]
+              const imageElement = newImageElements[i]
+
+              // 添加文件
+              excalidrawAPI.addFiles([fileData])
+              
+              // 等待文件加载完成
+              await new Promise(resolve => setTimeout(resolve, 100))
+
+              // 获取当前画布元素（每次都获取最新的）
+              const currentElements = excalidrawAPI.getSceneElements()
+
+              // 检查是否已存在相同ID的元素（防止重复添加）
+              const exists = currentElements.some(el => el.id === imageElement.id)
+              if (exists) {
+                console.warn(`图层 "${imageElement.customData?.layerName}" 已存在，跳过`)
+                continue
+              }
+
+              // 添加图层元素
+              excalidrawAPI.updateScene({
+                elements: [...currentElements, imageElement],
+              })
+
+              successfullyAdded++
+              console.log(`✅ 已添加图层 ${i + 1}/${newImageElements.length}: "${imageElement.customData?.layerName || '未知'}"`)
+
+              // 添加小延迟，确保图层正确添加
+              await new Promise(resolve => setTimeout(resolve, 50))
+            } catch (error) {
+              console.error(`添加图层 ${i + 1} 失败:`, error)
+            }
+          }
+>>>>>>> b1f46578d018559363a59918f36e72f87b92998c
+
+          // 验证最终添加的元素
+          const finalElements = excalidrawAPI.getSceneElements()
+          const psdElements = finalElements.filter(el => 
+            el.customData?.psdFileId === psdData.file_id
+          )
+          
+          console.log(`成功添加 ${psdElements.length} 个图层到画布 (预期: ${newImageElements.length})`)
+          
+          if (psdElements.length < newImageElements.length) {
+            console.warn(`警告: 只添加了 ${psdElements.length}/${newImageElements.length} 个图层`)
+          }
+        } catch (error) {
+          console.error('批量添加图层失败:', error)
+          toast.error('添加图层到画布失败')
         }
       }
 
@@ -1052,8 +1209,11 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            //将图片上传到画布上 Todo
-            // handleImageUploaded(file);
+            handleImageUploaded(file);
+          }
+          // 清空文件输入，允许重复选择同一个文件
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
           }
         }}
         className="hidden"

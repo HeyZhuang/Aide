@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import {
     Layers,
     Eye,
@@ -30,6 +29,9 @@ import {
     Underline,
     Bookmark,
     Star,
+    Upload,
+    Trash2,
+    ImagePlus,
 } from 'lucide-react'
 import { saveCanvas } from '@/api/canvas'
 import {
@@ -60,7 +62,7 @@ interface PSDLayerSidebarProps {
 
 export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLayerSidebarProps) {
     const { t } = useTranslation()
-    const { excalidrawAPI } = useCanvas()
+    const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
 
     // 状态管理
     const [selectedLayer, setSelectedLayer] = useState<PSDLayer | null>(null)
@@ -151,7 +153,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             })
 
             if (newImages.length > 0) {
-                toast.success(`成功上传 ${newImages.length} 张图片`)
+                // 图片上传成功，但不显示overlay（因为是侧边栏操作，不需要画布中央提示）
             } else {
                 setError('无法上传图片，请确保选择的是有效的图片文件')
             }
@@ -180,7 +182,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             console.log('🖱️ 点击图片:', imageInfo.name)
 
             if (!excalidrawAPI) {
-                toast.error('画布未初始化')
+                setOverlay(true, '画布未初始化', 'error')
+                setTimeout(() => clearOverlay(), 2000)
                 return
             }
 
@@ -256,10 +259,12 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 elements: [...currentElements, newImageElement as any]
             })
 
-            toast.success(`图片 "${imageInfo.name}" 已添加到画布`)
+            setOverlay(true, `图片 "${imageInfo.name}" 已添加到画布`, 'success')
+            setTimeout(() => clearOverlay(), 2000)
         } catch (err) {
             console.error('添加图片到画布失败:', err)
-            toast.error('添加图片失败，请重试')
+            setOverlay(true, '添加图片失败，请重试', 'error')
+            setTimeout(() => clearOverlay(), 2000)
         }
     }
 
@@ -280,11 +285,10 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 return updated
             })
 
-            // 显示删除成功提示
-            toast.success(`图片 "${imageName}" 已成功删除`)
+            // 删除成功，不显示提示（侧边栏操作）
         } catch (err) {
             console.error('删除图片失败:', err)
-            toast.error('删除图片失败，请重试')
+            // 删除失败也不显示提示，避免干扰用户
         }
     }
 
@@ -354,7 +358,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     '60000000211457 舒酸定專業抗敏護齦強化琺瑯質牙膏_tube.png',
                     'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_正面立體圖.png',
                     'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_直式立體圖.png',
-                    '主圖測試.jpg'
+                    '主圖測試.jpg',
+                    // 新增的图片
+                    '1.5倍渗透.png',
+                    '3重焕齿.png',
+                    '多效呵护.png'
                 ]
 
                 setPlatformImages(mockPlatformImages)
@@ -429,7 +437,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
             // 如果模板已解析，直接从数据库加载（快速）
             if (template.is_parsed && template.template_id) {
-                toast.loading(`正在加载模板 "${template.display_name}"...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.loadingTemplate', { name: template.display_name }), 'loading')
 
                 try {
                     // 从数据库快速获取已解析的数据
@@ -438,7 +446,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 } catch (error) {
                     console.warn('从数据库加载失败，回退到解析模式:', error)
                     // 如果从数据库加载失败，回退到解析模式
-                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    setOverlay(true, t('canvas:messages.templateLoading.fallbackLoading'), 'loading')
 
                     // 从template文件夹获取PSD文件
                     const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
@@ -454,7 +462,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
             } else {
                 // 如果模板未解析，先解析再加载
-                toast.loading(`正在解析PSD文件 "${template.name}"...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.parsingPSD', { name: template.name }), 'loading')
 
                 try {
                     // 先解析PSD文件并存储到数据库
@@ -465,14 +473,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                         result = await getPSDTemplateById(parseResult.template_id)
                     } else {
                         // 如果刚刚解析完成，直接使用解析结果（需要再次获取）
-                        toast.loading(`正在加载已解析的模板...`, { id: 'loading-template' })
+                        setOverlay(true, t('canvas:messages.templateLoading.loadingParsed'), 'loading')
                         result = await getPSDTemplateById(parseResult.template_id)
                     }
                     console.log('✅ PSD模板解析完成并已加载:', result)
                 } catch (error) {
                     // 如果解析失败，回退到传统的上传解析方式
                     console.warn('解析失败，回退到传统方式:', error)
-                    toast.loading(`正在使用传统方式加载...`, { id: 'loading-template' })
+                    setOverlay(true, t('canvas:messages.templateLoading.fallbackLoading'), 'loading')
 
                     // 从template文件夹获取PSD文件
                     const response = await fetch(`/api/psd/templates/${encodeURIComponent(template.name)}`)
@@ -534,8 +542,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 console.log('有效图层数量:', validLayers.length)
 
                 if (validLayers.length === 0) {
-                    toast.dismiss('loading-template')
-                    toast.warning('该PSD文件没有可显示的图层')
+                    setOverlay(true, t('canvas:messages.templateLoading.noDisplayableLayers'), 'error')
+                    setTimeout(() => clearOverlay(), 3000)
                     setSelectedPsdTemplate(null)
                     setLoadingPsd(false)
                     return
@@ -629,7 +637,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
 
                 // 批量添加所有文件到Excalidraw
-                toast.loading(`正在添加 ${totalLayers} 个图层到画布...`, { id: 'loading-template' })
+                setOverlay(true, t('canvas:messages.templateLoading.addingLayers', { count: totalLayers }), 'loading')
 
                 // 验证文件条目有效后再添加
                 const validFileEntries = fileEntries.filter(entry => {
@@ -756,21 +764,17 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 }
 
                 // 关闭加载提示并显示成功消息
-                toast.dismiss('loading-template')
-                toast.success(`✅ 模板 "${template.display_name}" 已成功添加到画布（${newElements.length}个图层）`, {
-                    duration: 3000,
-                })
+                setOverlay(true, t('canvas:messages.templateLoading.templateApplied', { name: template.display_name }), 'success')
+                setTimeout(() => clearOverlay(), 2000)
             }
 
             // 重置状态
             setSelectedPsdTemplate(null)
         } catch (err) {
             console.error('加载PSD模板失败:', err)
-            toast.dismiss('loading-template')
             const errorMessage = err instanceof Error ? err.message : '加载PSD模板失败'
-            toast.error(`❌ ${errorMessage}`, {
-                duration: 5000,
-            })
+            setOverlay(true, errorMessage, 'error')
+            setTimeout(() => clearOverlay(), 3000)
             setSelectedPsdTemplate(null)
         } finally {
             setLoadingPsd(false)
@@ -1051,48 +1055,69 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     // 仅参照布局UI：顶部两类（Layers/Assets）+ 对应内容
     return (
         <div
-            className="bg-background text-foreground h-full w-full flex flex-col overflow-hidden"
+            className="text-foreground h-full w-full flex flex-col overflow-hidden"
         >
-            {/* 顶部两个类型（统一指示条与选中态） */}
-            <div className="relative grid grid-cols-2 border-b border-white/20 bg-background">
-                {(['layers', 'assets'] as const).map(top => (
-                    <div key={top} className="flex items-center justify-center py-3">
-                        <button
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${uiTopTab === top
-                                ? 'font-semibold text-foreground scale-105'
-                                : 'opacity-60 hover:opacity-100 hover:bg-white/30'
+            {/* 顶部两个类型（统一指示条与选中态）- 苹果风格优化 */}
+            <div 
+                className="relative grid grid-cols-2 border-b" 
+                style={{
+                    background: 'rgba(255, 255, 255, 0.5)',
+                    backdropFilter: 'blur(16px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                    borderColor: 'rgba(0, 0, 0, 0.08)',
+                    borderTopLeftRadius: '20px',
+                    borderTopRightRadius: '20px',
+                    paddingTop: '8px',
+                }}
+            >
+                {(['layers', 'assets'] as const).map(top => {
+                    const isActive = uiTopTab === top
+                    return (
+                        <div key={top} className="flex items-center justify-center py-3">
+                            <button
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${
+                                    isActive
+                                        ? 'font-semibold text-gray-900 scale-105'
+                                        : 'opacity-70 hover:opacity-100 hover:bg-white/30 text-gray-600'
                                 }`}
-                            onClick={() => setUiTopTab(top)}
-                        // style={{
-                        //     background: uiTopTab === top ? 'rgba(255, 255, 255, 0.4)' : 'transparent',
-                        // }}
-                        >
-                            {top === 'layers' ? (
-                                <Layers className={`h-4 w-4 transition-all ${uiTopTab === top ? 'text-gray-200 scale-110' : ''}`} />
-                            ) : (
-                                <span className={`inline-block transition-all ${uiTopTab === top ? 'text-gray-200 scale-110' : ''}`}>
-                                    <svg t="1762142146696" class="icon w-4 h-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4880">
-                                        <path d="M137.216 512c0 16.865882 24.696471 46.260706 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.792471 81.92-58.187294 81.92-75.053176V395.023059C798.479059 449.957647 663.311059 485.074824 512 485.074824c-151.371294 0-286.479059-35.177412-374.784-90.051765V512z m749.568 152.455529c-88.304941 54.994824-223.472941 90.051765-374.784 90.051765-151.371294 0-286.479059-35.117176-374.784-90.051765v117.037177c0 16.865882 24.696471 46.200471 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.852706 81.92-58.187294 81.92-75.053176V664.395294zM30.117647 781.492706V242.507294C30.117647 108.604235 245.880471 0 512 0s481.882353 108.604235 481.882353 242.507294v538.985412C993.882353 915.395765 778.119529 1024 512 1024s-481.882353-108.604235-481.882353-242.507294z m481.882353-404.178824c113.664 0 218.774588-22.407529 292.864-59.693176 57.223529-28.852706 81.92-58.247529 81.92-75.113412 0-16.865882-24.696471-46.200471-81.92-75.053176-74.089412-37.345882-179.2-59.632941-292.864-59.632942s-218.774588 22.287059-292.864 59.632942c-57.223529 28.852706-81.92 58.187294-81.92 75.053176s24.696471 46.260706 81.92 75.113412c74.089412 37.285647 179.2 59.632941 292.864 59.632941z" fill="currentColor" p-id="4881"></path>
-                                    </svg>
-                                </span>
-                            )}
-                            <span className="text-sm font-medium">{top === 'layers' ? t('sidebar.layers') : t('sidebar.assets')}</span>
-                        </button>
-                    </div>
-                ))}
-                {/* 顶部滑动下划线 - 更精美的设计 */}
+                                onClick={() => setUiTopTab(top)}
+                                style={{
+                                    background: isActive ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+                                }}
+                            >
+                                {top === 'layers' ? (
+                                    <Layers className={`h-4 w-4 transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`} />
+                                ) : (
+                                    <span className={`inline-block transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`}>
+                                        <svg className="icon w-4 h-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M137.216 512c0 16.865882 24.696471 46.260706 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.792471 81.92-58.187294 81.92-75.053176V395.023059C798.479059 449.957647 663.311059 485.074824 512 485.074824c-151.371294 0-286.479059-35.177412-374.784-90.051765V512z m749.568 152.455529c-88.304941 54.994824-223.472941 90.051765-374.784 90.051765-151.371294 0-286.479059-35.117176-374.784-90.051765v117.037177c0 16.865882 24.696471 46.200471 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.852706 81.92-58.187294 81.92-75.053176V664.395294zM30.117647 781.492706V242.507294C30.117647 108.604235 245.880471 0 512 0s481.882353 108.604235 481.882353 242.507294v538.985412C993.882353 915.395765 778.119529 1024 512 1024s-481.882353-108.604235-481.882353-242.507294z m481.882353-404.178824c113.664 0 218.774588-22.407529 292.864-59.693176 57.223529-28.852706 81.92-58.247529 81.92-75.113412 0-16.865882-24.696471-46.200471-81.92-75.053176-74.089412-37.345882-179.2-59.632941-292.864-59.632942s-218.774588 22.287059-292.864 59.632942c-57.223529 28.852706-81.92 58.187294-81.92 75.053176s24.696471 46.260706 81.92 75.113412c74.089412 37.285647 179.2 59.632941 292.864 59.632941z" fill="currentColor" />
+                                        </svg>
+                                    </span>
+                                )}
+                                <span className="text-sm font-medium">{top === 'layers' ? t('sidebar.layers') : t('sidebar.assets')}</span>
+                            </button>
+                        </div>
+                    )
+                })}
+                {/* 顶部滑动下划线 - 苹果风格优化 */}
                 <div
-                    className="absolute bottom-0 left-0 h-[2px] w-1/2 bg-black dark:bg-white transition-transform duration-300 ease-out rounded-full"
+                    className="absolute bottom-0 left-0 h-[3px] w-1/2 transition-transform duration-300 ease-out rounded-full"
                     style={{
                         transform: uiTopTab === 'layers' ? 'translateX(0%)' : 'translateX(100%)',
+                        background: 'linear-gradient(90deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%)',
+                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
                     }}
                 />
             </div>
 
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
-                <div className="flex-1 flex flex-col overflow-hidden bg-background">
-                    <div className="p-4 border-b border-white/10 space-y-3 bg-background">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="p-4 border-b border-white/10 space-y-3" style={{
+                        background: 'rgba(255, 255, 255, 0.3)',
+                        backdropFilter: 'blur(8px) saturate(150%)',
+                        WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                    }}>
                         <Input
                             placeholder={t('sidebar.search_layers')}
                             value={searchTerm}
@@ -1102,7 +1127,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                             }}
                         />
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-1.5 justify-center">
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'all'
                                     ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
@@ -1465,14 +1490,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     </div>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col overflow-hidden bg-background">
+                <div className="flex-1 flex flex-col overflow-hidden">
                     {/* 资产子级 Tabs */}
                     <div className="px-3 pt-3">
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center">
                             {(['templates', 'library', 'fonts'] as const).map(tab => (
                                 <div key={tab} className="flex-1 text-center">
                                     <button
-                                        className={`py-2 w-full transition-all duration-200 ${assetSubTab === tab ? 'font-semibold' : 'opacity-70 hover:opacity-100'}`}
+                                        className={`py-2 w-full text-xs transition-all duration-200 font-medium ${assetSubTab === tab ? 'font-semibold' : 'opacity-70 hover:opacity-100'}`}
                                         onClick={() => setAssetSubTab(tab)}
                                     >
                                         {tab === 'templates' ? t('sidebar.templates') : tab === 'library' ? t('sidebar.library') : t('sidebar.fonts')}
@@ -1487,11 +1512,11 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     {assetSubTab === 'library' && (
                         <div className="px-3 py-3 grid grid-cols-2 gap-2">
                             <div className="text-center">
-                                <button className={`py-2 w-full rounded-md border text-sm transition-all duration-200 ${assetSource === 'platform' ? 'font-medium shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('platform')}>{t('sidebar.platform')}</button>
+                                <button className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${assetSource === 'platform' ? 'font-semibold shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('platform')}>{t('sidebar.platform')}</button>
                                 <div className={`${assetSource === 'platform' ? 'bg-foreground' : 'bg-transparent'} h-0.5 w-10 mx-auto rounded mt-1 transition-colors`}></div>
                             </div>
                             <div className="text-center">
-                                <button className={`py-2 w-full rounded-md border text-sm transition-all duration-200 ${assetSource === 'uploads' ? 'font-medium shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('uploads')}>{t('sidebar.my_uploads')}</button>
+                                <button className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${assetSource === 'uploads' ? 'font-semibold shadow-sm' : 'opacity-80 hover:opacity-100'}`} onClick={() => setAssetSource('uploads')}>{t('sidebar.my_uploads')}</button>
                                 <div className={`${assetSource === 'uploads' ? 'bg-foreground' : 'bg-transparent'} h-0.5 w-10 mx-auto rounded mt-1 transition-colors`}></div>
                             </div>
                         </div>
@@ -1658,15 +1683,34 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 <>
                                     {/* 仅在My Uploads标签下显示上传按钮 */}
                                     {assetSource === 'uploads' && (
-                                        <div className="col-span-3">
+                                        <div className="col-span-3 mb-3">
                                             <button
                                                 onClick={() => document.getElementById('image-upload')?.click()}
-                                                className="w-full py-2 px-4 border border-dashed rounded-lg text-primary hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                                                className="w-full py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2.5 group relative overflow-hidden"
+                                                style={{
+                                                    background: 'rgba(255, 255, 255, 0.6)',
+                                                    backdropFilter: 'blur(12px) saturate(150%)',
+                                                    WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                                                    border: '1.5px dashed rgba(156, 163, 175, 0.4)',
+                                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)'
+                                                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.5)'
+                                                    e.currentTarget.style.transform = 'translateY(-1px)'
+                                                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(99, 102, 241, 0.12)'
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)'
+                                                    e.currentTarget.style.borderColor = 'rgba(156, 163, 175, 0.4)'
+                                                    e.currentTarget.style.transform = 'translateY(0)'
+                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)'
+                                                }}
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                </svg>
-                                                {t('image_library.upload_image')}
+                                                <Upload className="h-4 w-4 text-gray-600 group-hover:text-indigo-600 transition-colors duration-300 flex-shrink-0" />
+                                                <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 transition-colors">
+                                                    {t('image_library.upload_image')}
+                                                </span>
                                             </button>
                                             <input
                                                 id="image-upload"
@@ -1713,7 +1757,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                 e.dataTransfer.setDragImage(dragImage, 40, 40);
                                                                 setTimeout(() => document.body.removeChild(dragImage), 0);
 
-                                                                toast.info(t('image_library.drag_to_replace_or_add'));
+                                                                // 拖拽提示已移除，避免干扰
                                                             } catch (error) {
                                                                 console.error('Failed to set drag data:', error);
                                                             }
@@ -1732,15 +1776,32 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                     ) : (
                                         userUploadedImages.length > 0 ? (
                                             userUploadedImages.map((image) => {
-                                                // console.log('渲染上传图片:', image.id, image.name, image.url)
                                                 return (
-                                                    <div key={image.id} className="aspect-square rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer relative group">
+                                                    <div 
+                                                        key={image.id} 
+                                                        className="aspect-square rounded-2xl overflow-hidden cursor-pointer relative group"
+                                                        style={{
+                                                            background: 'rgba(255, 255, 255, 0.5)',
+                                                            backdropFilter: 'blur(10px) saturate(150%)',
+                                                            WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                                                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
+                                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)'
+                                                            e.currentTarget.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.15)'
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.transform = 'translateY(0) scale(1)'
+                                                            e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'
+                                                        }}
+                                                    >
                                                         <div className="relative w-full h-full">
                                                             <img
                                                                 src={image.url}
                                                                 alt={`My uploaded image: ${image.name}`}
-                                                                className="w-full h-full object-cover transition-opacity duration-200 hover:opacity-80"
-                                                                // onClick={() => handleImageClick(image)}
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                                 draggable
                                                                 onDragStart={(e) => {
                                                                     try {
@@ -1756,7 +1817,6 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                         e.dataTransfer.setData('application/json', JSON.stringify(dragData));
                                                                         e.dataTransfer.effectAllowed = 'copy';
 
-                                                                        // 设置拖拽时的视觉效果
                                                                         const dragImage = e.currentTarget.cloneNode(true) as HTMLImageElement;
                                                                         dragImage.style.width = '80px';
                                                                         dragImage.style.height = '80px';
@@ -1764,8 +1824,6 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                         document.body.appendChild(dragImage);
                                                                         e.dataTransfer.setDragImage(dragImage, 40, 40);
                                                                         setTimeout(() => document.body.removeChild(dragImage), 0);
-
-                                                                        toast.info(t('image_library.drag_to_replace_or_add'));
                                                                     } catch (error) {
                                                                         console.error('Failed to set drag data:', error);
                                                                     }
@@ -1777,43 +1835,73 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                 onError={(e) => {
                                                                     console.error('图片加载失败:', image.id, image.url, e)
                                                                     const target = e.target as HTMLImageElement
-                                                                    // 设置占位图
                                                                     target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Cpath d="M50 30C60 30 68 38 68 48C68 58 60 66 50 66C40 66 32 58 32 48C32 38 40 30 50 30ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20ZM50 75C36.2 75 25 63.8 25 50C25 36.2 36.2 25 50 25C63.8 25 75 36.2 75 50C75 63.8 63.8 75 50 75Z" fill="%23dddddd"/%3E%3C/svg%3E'
-                                                                    // 尝试使用createObjectURL重新创建URL
-                                                                    try {
-                                                                        const newUrl = URL.createObjectURL(new Blob([], { type: (image as any).type || 'image/png' }))
-                                                                        console.log('尝试创建新的临时URL:', newUrl)
-                                                                        setTimeout(() => {
-                                                                            target.src = newUrl
-                                                                        }, 100)
-                                                                    } catch (retryError) {
-                                                                        console.error('重试创建URL失败:', retryError)
-                                                                    }
                                                                 }}
                                                             />
-                                                            {/* 显示图片名称 */}
-                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 truncate">
-                                                                {image.name}
+                                                            {/* 渐变遮罩层 - 用于文字可读性 */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                                            
+                                                            {/* 显示图片名称 - 优化样式 */}
+                                                            <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                                <div 
+                                                                    className="text-white text-xs font-medium truncate"
+                                                                    style={{
+                                                                        textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
+                                                                    }}
+                                                                >
+                                                                    {image.name}
+                                                                </div>
                                                             </div>
-                                                            {/* 删除按钮 - 仅在悬停时显示 */}
+                                                            
+                                                            {/* 删除按钮 - 优化样式 */}
                                                             <button
-                                                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                                                className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100"
+                                                                style={{
+                                                                    background: 'rgba(239, 68, 68, 0.9)',
+                                                                    backdropFilter: 'blur(8px) saturate(150%)',
+                                                                    WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                                                                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                                                                }}
                                                                 onClick={(e) => {
-                                                                    // 阻止事件冒泡，避免触发图片点击
                                                                     e.stopPropagation()
                                                                     handleImageDelete(image.id, image.name)
                                                                 }}
+                                                                onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.background = 'rgba(220, 38, 38, 1)'
+                                                                    e.currentTarget.style.transform = 'scale(1.1)'
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.9)'
+                                                                    e.currentTarget.style.transform = 'scale(1)'
+                                                                }}
                                                                 aria-label={`${t('image_library.delete_image')} ${image.name}`}
                                                             >
-                                                                <X className="w-3 h-3" />
+                                                                <Trash2 className="w-4 h-4 text-white" />
                                                             </button>
                                                         </div>
                                                     </div>
                                                 )
                                             })
                                         ) : (
-                                            <div className="col-span-3 text-center py-8 text-gray-500">
-                                                {t('image_library.no_uploaded_images')}
+                                            <div className="col-span-3 flex flex-col items-center justify-center py-16 px-4">
+                                                <div 
+                                                    className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+                                                    style={{
+                                                        background: 'rgba(255, 255, 255, 0.4)',
+                                                        backdropFilter: 'blur(10px) saturate(150%)',
+                                                        WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                                    }}
+                                                >
+                                                    <ImagePlus className="w-10 h-10 text-gray-400" />
+                                                </div>
+                                                <p className="text-sm font-medium text-gray-600 mb-1">
+                                                    {t('image_library.no_uploaded_images')}
+                                                </p>
+                                                <p className="text-xs text-gray-400 text-center max-w-xs">
+                                                    上传图片后，它们将显示在这里
+                                                </p>
                                             </div>
                                         )
                                     )}
@@ -1844,7 +1932,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 onClose={() => setShowTemplateManager(false)}
                 onApplyTemplate={(template) => {
                     console.log('应用模板:', template)
-                    toast.success(`模板 "${template.name}" 已应用到画布`)
+                    setOverlay(true, t('canvas:messages.templateLoading.templateApplied', { name: template.name }), 'success')
+                    setTimeout(() => clearOverlay(), 2000)
                 }}
             />
         </div>
