@@ -118,7 +118,7 @@ function Home() {
         <div className='px-4 pb-4'>
           <Button
             onClick={handleCreateNew}
-            className='w-full bg-black hover:bg-black-700 text-white gap-2'
+            className='w-full bg-gray-900 hover:bg-gray-800 text-white gap-2'
           >
             <Lightbulb className='w-4 h-4' />
             Create with AI
@@ -246,15 +246,15 @@ function Home() {
                   className={cn(
                     'flex-shrink-0 w-48 h-40 rounded-lg border transition-all cursor-pointer flex flex-col items-center justify-center group',
                     isDark
-                      ? 'bg-[#2a2a2a] border-gray-700 hover:border-black-500'
-                      : 'bg-white border-gray-200 hover:border-black-500 shadow-sm hover:shadow-md'
+                      ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
+                      : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
                   )}
                 >
                   <div className={cn(
                     'w-12 h-12 rounded-full transition-colors flex items-center justify-center mb-3',
                     isDark
-                      ? 'bg-gray-700 group-hover:bg-black-600'
-                      : 'bg-gray-100 group-hover:bg-black-600'
+                      ? 'bg-gray-700 group-hover:bg-gray-900'
+                      : 'bg-gray-100 group-hover:bg-gray-800'
                   )}>
                     <Plus className='w-6 h-6' />
                   </div>
@@ -275,15 +275,15 @@ function Home() {
                     className={cn(
                       'flex-shrink-0 w-48 h-40 rounded-lg border transition-all cursor-pointer overflow-hidden group',
                       isDark
-                        ? 'bg-[#2a2a2a] border-gray-700 hover:border-black-500'
-                        : 'bg-white border-gray-200 hover:border-black-500 shadow-sm hover:shadow-md'
+                        ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
+                        : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
                     )}
                   >
                     <div className={cn(
                       'h-32 flex items-center justify-center',
                       isDark
-                        ? 'bg-gradient-to-br from-black-500/20 to-blue-500/20'
-                        : 'bg-gradient-to-br from-black-100 to-blue-100'
+                        ? 'bg-gradient-to-br from-gray-500/20 to-blue-500/20'
+                        : 'bg-gradient-to-br from-gray-100 to-blue-100'
                     )}>
                       <span className={cn(
                         'text-xs',
