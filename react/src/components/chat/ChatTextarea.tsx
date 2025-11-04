@@ -28,7 +28,7 @@ import {
   Layers,
   FileImage,
 } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence, color, motion } from 'motion/react'
 import Textarea, { TextAreaRef } from 'rc-textarea'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -566,7 +566,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
       />
 
       <div className="flex items-center justify-between gap-2 w-full">
-        <div className="flex items-center gap-1 max-w-[calc(100%-50px)] flex-nowrap overflow-x-auto">
+        <div className="flex items-center gap-1 max-w-[calc(100%-50px)] flex-nowrap overflow-x-hidden bg-transparent">
           <input
             ref={imageInputRef}
             type="file"
@@ -587,16 +587,19 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             size="sm"
             onClick={() => imageInputRef.current?.click()}
             title="上传图片"
+            className="shadow-none bg-white transition-colors hover:bg-gray-50"
           >
-            <PlusIcon className="size-4" />
+            <PlusIcon className="size-4 text-black" />
           </Button>
           {/* <Button
             variant="outline"
             size="sm"
             onClick={() => psdInputRef.current?.click()}
             title="上传PSD文件"
+            className="shadow-none bg-white transition-colors hover:bg-gray-50"
+            style={{ border: '1px solid #9ca3af' }}
           >
-            <Layers className="size-4" />
+            <Layers className="size-4 text-black" />
           </Button> */}
 
           <ModelSelectorV3 />
@@ -606,10 +609,10 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1"
+                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
                 size={'sm'}
               >
-                <RectangleVertical className="size-4" />
+                <RectangleVertical className="size-4 text-black" />
                 <span className="text-sm">{selectedAspectRatio}</span>
                 <ChevronDown className="size-3 opacity-50" />
               </Button>
@@ -634,8 +637,12 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           {/* Quantity Selector 使用 DropdownMenu（portal）避免被裁剪 */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-1" size={'sm'}>
-                <Hash className="size-4" />
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
+                size={'sm'}
+              >
+                <Hash className="size-4 text-black" />
                 <span className="text-sm">{quantity}</span>
                 <ChevronDown className="size-3 opacity-50" />
               </Button>
@@ -670,23 +677,25 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 
         {pending ? (
           <Button
-            className="shrink-0 relative"
+            className="shrink-0 relative shadow-none bg-white transition-colors hover:bg-gray-50"
             variant="default"
             size="icon"
             onClick={handleCancelChat}
+            style={{ border: '1px solid #9ca3af' }}
           >
             <Loader2 className="size-5.5 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black" />
           </Button>
         ) : (
           <Button
-            className="shrink-0"
+            className="shrink-0 shadow-none bg-white transition-colors hover:bg-gray-50"
             variant="default"
             size="icon"
             onClick={handleSendPrompt}
             disabled={!textModel || !selectedTools || prompt.length === 0}
+            style={{ border: '1px solid #9ca3af' }}
           >
-            <ArrowUp className="size-4" />
+            <ArrowUp className="size-4 text-black" />
           </Button>
         )}
       </div>

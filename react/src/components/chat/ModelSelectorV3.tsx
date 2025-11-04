@@ -247,6 +247,7 @@ const ModelSelectorV3: React.FC<ModelSelectorV3Props> = ({
             ? 'bg-background border-border text-muted-foreground'
             : 'text-primary border-green-200 bg-green-50'
             }`}
+          
         >
           <div className="flex items-center gap-2">
             {autoMode ? (
