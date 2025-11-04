@@ -509,23 +509,12 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
           })
 
           // 生成文件ID
-<<<<<<< HEAD
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fileId = `psd-layer-${layer.index}-${Date.now()}` as any
-=======
           const fileId = `psd-layer-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
->>>>>>> b1f46578d018559363a59918f36e72f87b92998c
 
           // 创建文件数据
           const fileData: BinaryFileData = {
             mimeType: 'image/png' as const,
-<<<<<<< HEAD
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             id: fileId as any,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-=======
-            id: fileId as any,
->>>>>>> b1f46578d018559363a59918f36e72f87b92998c
             dataURL: dataURL as any,
             created: Date.now()
           }
@@ -557,10 +546,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
             updated: Date.now(),
             link: null,
             locked: false,
-<<<<<<< HEAD
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-=======
->>>>>>> b1f46578d018559363a59918f36e72f87b92998c
+
             fileId: fileId as any,
             scale: [1, 1] as [number, number],
             status: 'saved' as const,
@@ -572,8 +558,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               layerName: layer.name
             }
           } as any
-<<<<<<< HEAD
-=======
+
 
           newFileData.push(fileData)
           newImageElements.push(imageElement)
@@ -623,7 +608,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
               console.error(`添加图层 ${i + 1} 失败:`, error)
             }
           }
->>>>>>> b1f46578d018559363a59918f36e72f87b92998c
+
 
           // 验证最终添加的元素
           const finalElements = excalidrawAPI.getSceneElements()

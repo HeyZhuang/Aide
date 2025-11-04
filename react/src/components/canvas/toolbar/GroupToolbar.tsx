@@ -439,20 +439,20 @@ export function GroupToolbar() {
 
   // 预设尺寸
   const presetSizes = [
-    { name: 'Instagram Post', width: 1080, height: 1080 },
-    { name: 'Instagram Story', width: 1080, height: 1920 },
-    { name: 'Facebook Post', width: 1200, height: 630 },
-    { name: 'Facebook Cover', width: 851, height: 315 },
-    { name: 'Twitter Post', width: 1024, height: 512 }
+    { name: t('canvas:toolbar.group.preset.instagram_square'), width: 1080, height: 1080 },
+    { name: t('canvas:toolbar.group.preset.instagram_story'), width: 1080, height: 1920 },
+    { name: t('canvas:toolbar.group.preset.facebook_post'), width: 1200, height: 630 },
+    { name: t('canvas:toolbar.group.preset.facebook_cover'), width: 851, height: 315 },
+    { name: t('canvas:toolbar.group.preset.twitter_post'), width: 1024, height: 512 }
   ]
 
   const alignments = [
-    { icon: AlignStartVertical, label: 'Align Left', value: 'left' },
-    { icon: AlignCenterHorizontal, label: 'Horizontal Center', value: 'horizontal-center' },
-    { icon: AlignEndVertical, label: 'Align Right', value: 'right' },
-    { icon: AlignStartHorizontal, label: 'Align Top', value: 'top' },
-    { icon: AlignCenterVertical, label: 'Vertical Center', value: 'vertical-center' },
-    { icon: AlignEndHorizontal, label: 'Align Bottom', value: 'bottom' }
+    { icon: AlignStartVertical, label: t('canvas:toolbar.group.alignLeft'), value: 'left' },
+    { icon: AlignCenterHorizontal, label: t('canvas:toolbar.group.alignCenterHorizontal'), value: 'horizontal-center' },
+    { icon: AlignEndVertical, label: t('canvas:toolbar.group.alignRight'), value: 'right' },
+    { icon: AlignStartHorizontal, label: t('canvas:toolbar.group.alignTop'), value: 'top' },
+    { icon: AlignCenterVertical, label: t('canvas:toolbar.group.alignCenterVertical'), value: 'vertical-center' },
+    { icon: AlignEndHorizontal, label: t('canvas:toolbar.group.alignBottom'), value: 'bottom' }
   ]
 
   return (
@@ -465,7 +465,7 @@ export function GroupToolbar() {
         onClick={handleGroup}
       >
         <Layers className="h-4 w-4 mr-1" />
-        <span className="text-xs">Group</span>
+        <span className="text-xs">{t('canvas:toolbar.group.group')}</span>
       </Button>
 
       {/* Merge按钮 */}
@@ -476,7 +476,7 @@ export function GroupToolbar() {
         onClick={handleUngroup}
       >
         <Merge className="h-4 w-4 mr-1" />
-        <span className="text-xs">Ungroup</span>
+        <span className="text-xs">{t('canvas:toolbar.group.ungroup')}</span>
       </Button>
 
       <Separator orientation="vertical" className="h-5 bg-white/30" />
@@ -486,6 +486,7 @@ export function GroupToolbar() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg">
             <AlignCenterHorizontal className="h-4 w-4 mr-1" />
+            <span className="text-xs">{t('canvas:toolbar.group.align')}</span>
             <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
@@ -522,7 +523,7 @@ export function GroupToolbar() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-white/30 backdrop-blur-sm rounded-lg">
             <Edit3 className="h-4 w-4 mr-1" />
-            <span className="text-xs">Resize</span>
+            <span className="text-xs">{t('canvas:toolbar.group.resize')}</span>
             <ChevronDown className="h-3 w-3 ml-1" />
           </Button>
         </DropdownMenuTrigger>
@@ -541,14 +542,14 @@ export function GroupToolbar() {
             >
               <Sparkles className="h-4 w-4 text-primary" />
               <div className="flex-1">
-                <div className="font-medium">{t('resize.title')}</div>
-                <div className="text-gray-400 text-[10px]">{t('resize.ai_description')}</div>
+                <div className="font-medium">{t('canvas:toolbar.group.resize')}</div>
+                <div className="text-gray-400 text-[10px]">{t('canvas:messages.layerArrangement.minElementsRequired')}</div>
               </div>
             </DropdownMenuItem>
 
             <DropdownMenuSeparator className="bg-white/30" />
 
-            <div className="text-xs font-medium text-foreground/70 uppercase">{t('resize.preset_sizes')}</div>
+            <div className="text-xs font-medium text-foreground/70 uppercase">{t('canvas:toolbar.group.presetSizes')}</div>
             {presetSizes.map((preset) => (
               <DropdownMenuItem
                 key={preset.name}
@@ -570,12 +571,12 @@ export function GroupToolbar() {
             <DropdownMenuSeparator className="bg-white/30" />
 
             {/* 自定义尺寸 */}
-            <div className="text-xs font-medium text-foreground uppercase mb-2">{t('resize.custom_size')}</div>
+            <div className="text-xs font-medium text-foreground uppercase mb-2">{t('canvas:toolbar.group.customSize')}</div>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <Input
                   type="number"
-                  placeholder="W"
+                  placeholder={t('canvas:toolbar.group.width')}
                   className="h-7 bg-white/50 backdrop-blur-sm border border-white/30 text-foreground text-xs rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
@@ -596,7 +597,7 @@ export function GroupToolbar() {
               <div className="flex-1">
                 <Input
                   type="number"
-                  placeholder="H"
+                  placeholder={t('canvas:toolbar.group.height')}
                   className="h-7 bg-white/50 backdrop-blur-sm border border-white/30 text-foreground text-xs rounded-lg"
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => {
@@ -629,7 +630,7 @@ export function GroupToolbar() {
                   }
                 }}
               >
-                {t('resize.apply')}
+                {t('canvas:toolbar.group.apply')}
               </Button>
             </div>
           </div>

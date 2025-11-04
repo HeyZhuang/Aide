@@ -106,6 +106,30 @@
       "circle": "圆形",
       "arrow": "箭头",
       "line": "直线"
+    },
+    "group": {
+      "group": "分组",
+      "ungroup": "取消分组",
+      "align": "对齐",
+      "alignLeft": "左对齐",
+      "alignCenterHorizontal": "水平居中",
+      "alignRight": "右对齐",
+      "alignTop": "顶部对齐",
+      "alignCenterVertical": "垂直居中",
+      "alignBottom": "底部对齐",
+      "resize": "智能缩放",
+      "presetSizes": "预设尺寸",
+      "customSize": "自定义尺寸",
+      "width": "宽",
+      "height": "高",
+      "apply": "应用",
+      "preset": {
+        "instagram_square": "Instagram方形",
+        "instagram_story": "Instagram故事",
+        "facebook_post": "Facebook帖子",
+        "facebook_cover": "Facebook封面",
+        "twitter_post": "Twitter帖子"
+      }
     }
   },
   "popbar": {

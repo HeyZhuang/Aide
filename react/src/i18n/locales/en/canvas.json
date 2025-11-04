@@ -106,6 +106,30 @@
       "circle": "Circle",
       "arrow": "Arrow",
       "line": "Line"
+    },
+    "group": {
+      "group": "Group",
+      "ungroup": "Ungroup",
+      "align": "Align",
+      "alignLeft": "Align Left",
+      "alignCenterHorizontal": "Horizontal Center",
+      "alignRight": "Align Right",
+      "alignTop": "Align Top",
+      "alignCenterVertical": "Vertical Center",
+      "alignBottom": "Align Bottom",
+      "resize": "Resize",
+      "presetSizes": "Preset Sizes",
+      "customSize": "Custom Size",
+      "width": "w",
+      "height": "h",
+      "apply": "Apply",
+      "preset": {
+        "instagram_square": "Instagram Square",
+        "instagram_story": "Instagram Story",
+        "facebook_post": "Facebook Post",
+        "facebook_cover": "Facebook Cover",
+        "twitter_post": "Twitter Post"
+      }
     }
   },
   "popbar": {
