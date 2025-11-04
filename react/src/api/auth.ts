@@ -39,54 +39,97 @@ export interface ApiResponse {
 }
 
 export async function startDeviceAuth(): Promise<DeviceAuthResponse> {
-  const response = await fetch(`${BASE_API_URL}/api/device/auth`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-  })
+  // 使用 AbortController 实现超时控制
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+  
+  try {
+    const response = await fetch(`${BASE_API_URL}/api/device/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    })
+    
+    clearTimeout(timeoutId)
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
-
-  const data = await response.json()
-
-  // Open browser for user authentication using Electron API
-  const authUrl = `${BASE_API_URL}/auth/device?code=${data.code}`
-
-  // Check if we're in Electron environment
-  if (window.electronAPI?.openBrowserUrl) {
-    try {
-      await window.electronAPI.openBrowserUrl(authUrl)
-    } catch (error) {
-      console.error('Failed to open browser via Electron:', error)
-      // Fallback to window.open if Electron API fails
-      window.open(authUrl, '_blank')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
-  } else {
-    // Fallback for web environment
-    window.open(authUrl, '_blank')
-  }
 
-  return {
-    status: data.status,
-    code: data.code,
-    expires_at: data.expires_at,
-    message: i18n.t('common:auth.browserLoginMessage'),
+    const data = await response.json()
+
+    // 不再打开新窗口，而是返回设备码供弹窗内登录表单使用
+    // 登录表单将在弹窗中直接显示，用户可以在弹窗中输入用户名和密码
+
+    return {
+      status: data.status,
+      code: data.code,
+      expires_at: data.expires_at,
+      message: i18n.t('common:auth.browserLoginMessage') || '请输入用户名和密码',
+    }
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    // 处理网络错误
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      const errorMessage = `无法连接到服务器 ${BASE_API_URL}。请检查：
+1. 服务器是否正在运行
+2. 网络连接是否正常
+3. 防火墙设置是否正确
+4. 服务器地址是否正确配置`
+      console.error('Connection error:', errorMessage)
+      throw new Error(`连接失败: 无法连接到 ${BASE_API_URL}。请检查服务器是否运行以及网络连接。`)
+    }
+    
+    // 处理超时错误
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      throw new Error(`请求超时: 服务器 ${BASE_API_URL} 响应时间过长。请检查网络连接。`)
+    }
+    
+    // 其他错误
+    throw error
   }
 }
 
 export async function pollDeviceAuth(
   deviceCode: string
 ): Promise<DeviceAuthPollResponse> {
-  const response = await fetch(
-    `${BASE_API_URL}/api/device/poll?code=${deviceCode}`
-  )
+  // 使用 AbortController 实现超时控制
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 5000) // 5秒超时
+  
+  try {
+    const response = await fetch(
+      `${BASE_API_URL}/api/device/poll?code=${deviceCode}`,
+      {
+        signal: controller.signal,
+      }
+    )
+    
+    clearTimeout(timeoutId)
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    // 处理网络错误
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Poll connection error:', error)
+      throw new Error('网络连接失败，请检查服务器状态')
+    }
+    
+    // 处理超时错误
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      throw new Error('请求超时，请检查网络连接')
+    }
+    
+    // 其他错误
+    throw error
   }
-
-  return await response.json()
 }
 
 export async function getAuthStatus(): Promise<AuthStatus> {
@@ -128,7 +171,7 @@ export async function getAuthStatus(): Promise<AuthStatus> {
         try {
           await clearJaazApiKey()
         } catch (clearError) {
-          console.error('Failed to clear jaaz api key:', clearError)
+          console.error('Failed to clear aide api key:', clearError)
         }
 
         const loggedOutStatus = {
@@ -159,6 +202,65 @@ export async function getAuthStatus(): Promise<AuthStatus> {
   }
   console.log('Returning logged out status:', loggedOutStatus)
   return loggedOutStatus
+}
+
+export async function loginWithCredentials(
+  username: string,
+  password: string
+): Promise<{ token: string; user_info: UserInfo }> {
+  // 创建设备码
+  const deviceAuthResult = await startDeviceAuth()
+  
+  // 直接授权设备码（包含用户名和密码验证）
+  const response = await fetch(`${BASE_API_URL}/api/device/authorize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      code: deviceAuthResult.code,
+      username: username,
+      password: password,
+    }),
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: '登录失败' }))
+    throw new Error(errorData.detail || '用户名或密码错误')
+  }
+
+  const data = await response.json()
+  
+  // 如果后端直接返回了token和user_info，直接使用
+  if (data.token && data.user_info) {
+    return {
+      token: data.token,
+      user_info: data.user_info,
+    }
+  }
+
+  // 否则轮询获取token（向后兼容）
+  let attempts = 0
+  const maxAttempts = 10
+  
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 500)) // 等待500ms
+    
+    const pollResult = await pollDeviceAuth(deviceAuthResult.code)
+    
+    if (pollResult.status === 'authorized' && pollResult.token && pollResult.user_info) {
+      return {
+        token: pollResult.token,
+        user_info: pollResult.user_info,
+      }
+    }
+    
+    if (pollResult.status === 'error' || pollResult.status === 'expired') {
+      throw new Error(pollResult.message || '认证失败')
+    }
+    
+    attempts++
+  }
+  
+  throw new Error('登录超时，请重试')
 }
 
 export async function logout(): Promise<{ status: string; message: string }> {

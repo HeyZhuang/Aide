@@ -17,6 +17,14 @@ from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WE
 print('Importing routers')
 from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, layer_arrangement_router, template_router
 
+# 导入认证路由器
+try:
+    from routers import auth_router
+    print('✅ Auth router imported')
+except ImportError as e:
+    print(f'⚠️  Auth router import failed: {e}')
+    auth_router = None
+
 # 条件导入PSD相关路由器，以支持在没有psd-tools的环境中运行
 psd_router = None
 psd_resize_router = None
@@ -88,6 +96,18 @@ app.include_router(tool_confirmation.router)
 
 # 为模板路由器添加前缀
 app.include_router(template_router.router, prefix="/api/templates")
+
+# 包含认证路由器
+if auth_router:
+    app.include_router(auth_router.router)
+    print('✅ Auth router included')
+    
+    # 添加认证页面路由（不包含 /api 前缀，因为前端访问的是 /auth/device）
+    @app.get("/auth/device")
+    async def auth_device_page(code: str):
+        """认证页面路由，重定向到 auth_router 的处理函数"""
+        from routers.auth_router import auth_device_page as auth_page_handler
+        return await auth_page_handler(code)
 
 # Mount the React build directory
 react_build_dir = os.environ.get('UI_DIST_DIR', os.path.join(

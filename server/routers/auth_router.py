@@ -1,4 +1,5 @@
 """
+
 Authentication Router - 认证路由模块
 提供设备认证相关的 API 端点
 """

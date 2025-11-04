@@ -62,7 +62,11 @@
     "delete_image": "Delete image"
   },
   "fonts": {
-    "search_fonts": "Search fonts"
+    "search_fonts": "Search artistic fonts",
+    "upload_artistic_font": "Upload Artistic Font",
+    "no_artistic_fonts": "No artistic fonts",
+    "upload_artistic_font_description": "After uploading artistic fonts, they will appear here",
+    "artistic_font_uploaded": "Artistic font uploaded successfully"
   },
   "messages": {
     "success": "Operation completed successfully",
@@ -97,7 +101,7 @@
   "auth": {
     "login": "Login",
     "logout": "Logout",
-    "loginToJaaz": "Login to Jaaz",
+    "loginToJaaz": "Login to Aide",
     "myAccount": "My Account",
     "loginDescription": "Login to use cloud AI models",
     "startLogin": "Start Login",
@@ -114,7 +118,14 @@
     "logoutSuccessMessage": "Successfully logged out",
     "notLoggedIn": "Not logged in",
     "balance": "Balance",
-    "recharge": "Recharge"
+    "recharge": "Recharge",
+    "loginRequired": "Login Required",
+    "loginRequiredMessage": "Please login to use website features",
+    "username": "Username or Email",
+    "usernamePlaceholder": "Enter username or email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "loggingIn": "Logging in..."
   },
   "resize": {
     "title": "Smart Resize",

@@ -1,8 +1,16 @@
 import type { LLMConfig, ToolCallFunctionName } from '@/types/types'
 
 // API Configuration
+// BASE_API_URL 用于 Jaaz 认证服务
+// 如果设置了 VITE_JAAZ_BASE_API_URL 且不为空，使用它
+// 如果为空字符串，使用相对路径（通过前端服务器代理到本地后端）
+// 如果未设置，使用默认的 https://jaaz.app（用于生产环境的外部服务）
 export const BASE_API_URL =
-  import.meta.env.VITE_JAAZ_BASE_API_URL || 'https://jaaz.app'
+  import.meta.env.VITE_JAAZ_BASE_API_URL !== undefined
+    ? import.meta.env.VITE_JAAZ_BASE_API_URL || '' // 如果设置为空字符串，使用相对路径
+    : import.meta.env.MODE === 'development'
+    ? 'http://localhost:57988'
+    : 'https://jaaz.app'
 
 export const PROVIDER_NAME_MAPPING: {
   [key: string]: { name: string; icon: string }

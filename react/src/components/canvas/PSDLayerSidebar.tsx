@@ -47,6 +47,10 @@ import {
 import { useCanvas } from '@/contexts/canvas'
 import { TemplateManager } from '@/components/template/TemplateManager'
 import { createTemplateFromPSDLayer } from '@/api/template'
+import { FontUploadDialog } from '@/components/font/FontUploadDialog'
+import { getFonts, getFontCategories, type FontItem, type FontCategory, searchFonts } from '@/api/font'
+import { toast } from 'sonner'
+import { Search } from 'lucide-react'
 
 interface PSDLayerSidebarProps {
     psdData: {
@@ -90,6 +94,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
     const [psdTemplateData, setPsdTemplateData] = useState<PSDUploadResponse | null>(null)
     const [loadingPsd, setLoadingPsd] = useState(false)
     const [thumbnailLoadErrors, setThumbnailLoadErrors] = useState<Set<string>>(new Set())
+
+    // 艺术字相关状态
+    const [artisticFonts, setArtisticFonts] = useState<FontItem[]>([])
+    const [fontCategories, setFontCategories] = useState<FontCategory[]>([])
+    const [loadingFonts, setLoadingFonts] = useState(false)
+    const [showFontUploadDialog, setShowFontUploadDialog] = useState(false)
+    const [fontSearchQuery, setFontSearchQuery] = useState('')
 
     // 处理图片上传
     const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,6 +437,60 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
         fetchPsdTemplates()
     }, [assetSubTab])
 
+    // 加载艺术字列表和分类
+    const loadArtisticFonts = useCallback(async () => {
+        if (assetSubTab !== 'fonts') return
+
+        setLoadingFonts(true)
+        try {
+            const [fonts, categories] = await Promise.all([
+                getFonts(),
+                getFontCategories()
+            ])
+            setArtisticFonts(fonts)
+            setFontCategories(categories)
+        } catch (error) {
+            console.error('加载艺术字失败:', error)
+            toast.error('加载艺术字失败')
+        } finally {
+            setLoadingFonts(false)
+        }
+    }, [assetSubTab])
+
+    // 搜索艺术字
+    const handleFontSearch = useCallback(async (query: string) => {
+        setFontSearchQuery(query)
+        if (!query.trim()) {
+            await loadArtisticFonts()
+            return
+        }
+
+        setLoadingFonts(true)
+        try {
+            const results = await searchFonts(query)
+            setArtisticFonts(results)
+        } catch (error) {
+            console.error('搜索艺术字失败:', error)
+            toast.error('搜索艺术字失败')
+        } finally {
+            setLoadingFonts(false)
+        }
+    }, [loadArtisticFonts])
+
+    // 当切换到fonts标签页时加载艺术字
+    useEffect(() => {
+        if (assetSubTab === 'fonts') {
+            loadArtisticFonts()
+        }
+    }, [assetSubTab, loadArtisticFonts])
+
+    // 处理艺术字上传成功
+    const handleFontUploadSuccess = useCallback(() => {
+        setShowFontUploadDialog(false)
+        loadArtisticFonts()
+        toast.success(t('fonts.artistic_font_uploaded'))
+    }, [loadArtisticFonts, t])
+
     // 处理PSD模板点击 - 直接上传到画布
     const handlePsdTemplateClick = async (template: PSDTemplateInfo) => {
         try {
@@ -636,7 +701,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     newElements.push(imageElement)
                 }
 
-                // 批量添加所有文件到Excalidraw
+                // 批量添加所有文件到Excalidraw - 使用分批处理优化性能
                 setOverlay(true, t('canvas:messages.templateLoading.addingLayers', { count: totalLayers }), 'loading')
 
                 // 验证文件条目有效后再添加
@@ -657,28 +722,38 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                 })
 
                 if (validFileEntries.length > 0) {
-                    // 确保只传递有效的文件对象，避免WeakMap错误
+                    // 使用分批处理，每批处理20个文件，避免一次性处理过多导致阻塞
+                    const BATCH_SIZE = 20
+                    const batches = []
+                    for (let i = 0; i < validFileEntries.length; i += BATCH_SIZE) {
+                        batches.push(validFileEntries.slice(i, i + BATCH_SIZE))
+                    }
+
+                    // 批量添加所有文件（一次性添加所有文件，性能更好）
                     try {
-                        excalidrawAPI.addFiles(validFileEntries.map(entry => ({
+                        const allFileEntries = validFileEntries.map(entry => ({
                             id: entry.id,
                             dataURL: entry.dataURL,
                             mimeType: entry.mimeType || 'image/png',
                             created: entry.created || Date.now()
-                        })))
+                        }))
+                        excalidrawAPI.addFiles(allFileEntries)
                     } catch (error) {
                         console.error('Error adding files to Excalidraw:', error)
-                        // 如果批量添加失败，尝试逐个添加
-                        console.log('Falling back to adding files one by one')
-                        for (const entry of validFileEntries) {
+                        // 如果批量添加失败，尝试分批添加
+                        console.log('Falling back to batch adding files')
+                        for (const batch of batches) {
                             try {
-                                excalidrawAPI.addFiles([{
+                                excalidrawAPI.addFiles(batch.map(entry => ({
                                     id: entry.id,
                                     dataURL: entry.dataURL,
                                     mimeType: entry.mimeType || 'image/png',
                                     created: entry.created || Date.now()
-                                }])
-                            } catch (singleError) {
-                                console.error('Error adding single file:', entry.id, singleError)
+                                })))
+                                // 批次之间短暂延迟，避免阻塞
+                                await new Promise(resolve => setTimeout(resolve, 10))
+                            } catch (batchError) {
+                                console.error('Error adding batch:', batchError)
                             }
                         }
                     }
@@ -687,13 +762,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     throw new Error('没有有效的图层数据')
                 }
 
-                // 更新画布 - 一次性添加所有元素
+                // 更新画布 - 一次性添加所有元素（使用requestAnimationFrame优化）
+                await new Promise(resolve => requestAnimationFrame(resolve))
                 excalidrawAPI.updateScene({
                     elements: [...currentElements, ...newElements]
                 })
 
-                // 等待画布更新完成
-                await new Promise(resolve => setTimeout(resolve, 200))
+                // 减少等待时间，使用requestAnimationFrame确保DOM更新
+                await new Promise(resolve => requestAnimationFrame(resolve))
 
                 // 自动聚焦到新添加的内容
                 if (newElements.length > 0) {
@@ -1077,18 +1153,22 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                             <button
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${
                                     isActive
-                                        ? 'font-semibold text-gray-900 scale-105'
-                                        : 'opacity-70 hover:opacity-100 hover:bg-white/30 text-gray-600'
+                                        ? 'font-semibold text-foreground scale-105'
+                                        : 'opacity-70 hover:opacity-100 hover:bg-white/30 dark:hover:bg-white/10 text-foreground/70'
                                 }`}
                                 onClick={() => setUiTopTab(top)}
                                 style={{
-                                    background: isActive ? 'rgba(255, 255, 255, 0.5)' : 'transparent',
+                                    background: isActive 
+                                        ? (document.documentElement.classList.contains('dark') 
+                                            ? 'rgba(255, 255, 255, 0.1)' 
+                                            : 'rgba(255, 255, 255, 0.5)')
+                                        : 'transparent',
                                 }}
                             >
                                 {top === 'layers' ? (
-                                    <Layers className={`h-4 w-4 transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`} />
+                                    <Layers className={`h-4 w-4 transition-all ${isActive ? 'text-foreground scale-110' : 'text-foreground/70'}`} />
                                 ) : (
-                                    <span className={`inline-block transition-all ${isActive ? 'text-gray-900 scale-110' : 'text-gray-600'}`}>
+                                    <span className={`inline-block transition-all ${isActive ? 'text-foreground scale-110' : 'text-foreground/70'}`}>
                                         <svg className="icon w-4 h-4" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M137.216 512c0 16.865882 24.696471 46.260706 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.792471 81.92-58.187294 81.92-75.053176V395.023059C798.479059 449.957647 663.311059 485.074824 512 485.074824c-151.371294 0-286.479059-35.177412-374.784-90.051765V512z m749.568 152.455529c-88.304941 54.994824-223.472941 90.051765-374.784 90.051765-151.371294 0-286.479059-35.117176-374.784-90.051765v117.037177c0 16.865882 24.696471 46.200471 81.92 75.053176 74.089412 37.345882 179.2 59.632941 292.864 59.632942s218.774588-22.287059 292.864-59.632942c57.223529-28.852706 81.92-58.187294 81.92-75.053176V664.395294zM30.117647 781.492706V242.507294C30.117647 108.604235 245.880471 0 512 0s481.882353 108.604235 481.882353 242.507294v538.985412C993.882353 915.395765 778.119529 1024 512 1024s-481.882353-108.604235-481.882353-242.507294z m481.882353-404.178824c113.664 0 218.774588-22.407529 292.864-59.693176 57.223529-28.852706 81.92-58.247529 81.92-75.113412 0-16.865882-24.696471-46.200471-81.92-75.053176-74.089412-37.345882-179.2-59.632941-292.864-59.632942s-218.774588 22.287059-292.864 59.632942c-57.223529 28.852706-81.92 58.187294-81.92 75.053176s24.696471 46.260706 81.92 75.113412c74.089412 37.285647 179.2 59.632941 292.864 59.632941z" fill="currentColor" />
                                         </svg>
@@ -1113,16 +1193,12 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
                 <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-white/10 space-y-3" style={{
-                        background: 'rgba(255, 255, 255, 0.3)',
-                        backdropFilter: 'blur(8px) saturate(150%)',
-                        WebkitBackdropFilter: 'blur(8px) saturate(150%)',
-                    }}>
+                    <div className="p-4 border-b border-border space-y-3 bg-card/50 backdrop-blur-sm">
                         <Input
                             placeholder={t('sidebar.search_layers')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="h-9 text-xs bg-white/60 border-white/40 backdrop-blur-sm focus:bg-white/80 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200 rounded-lg"
+                            className="h-9 text-xs bg-white/60 dark:bg-white/10 border-white/40 dark:border-white/10 backdrop-blur-sm focus:bg-white/80 dark:focus:bg-white/20 focus:border-primary/30 focus:ring-2 focus:ring-primary/10 transition-all duration-200 rounded-lg text-foreground placeholder:text-muted-foreground"
                             style={{
                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
                             }}
@@ -1130,8 +1206,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                         <div className="flex gap-1.5 justify-center">
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'all'
-                                    ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
-                                    : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
+                                    ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                                    : 'bg-white/50 dark:bg-white/10 hover:bg-white/70 dark:hover:bg-white/20 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 dark:border-white/10 hover:scale-105'
                                     }`}
                                 onClick={() => setFilterType('all')}
                             >
@@ -1139,8 +1215,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                             </button>
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'text'
-                                    ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
-                                    : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
+                                    ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                                    : 'bg-white/50 dark:bg-white/10 hover:bg-white/70 dark:hover:bg-white/20 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 dark:border-white/10 hover:scale-105'
                                     }`}
                                 onClick={() => setFilterType('text')}
                             >
@@ -1148,8 +1224,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                             </button>
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'layer'
-                                    ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
-                                    : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
+                                    ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                                    : 'bg-white/50 dark:bg-white/10 hover:bg-white/70 dark:hover:bg-white/20 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 dark:border-white/10 hover:scale-105'
                                     }`}
                                 onClick={() => setFilterType('layer')}
                             >
@@ -1157,8 +1233,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                             </button>
                             <button
                                 className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-200 font-medium ${filterType === 'group'
-                                    ? 'bg-gray-700 text-gray-200 shadow-md scale-105'
-                                    : 'bg-white/50 hover:bg-white/70 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 hover:scale-105'
+                                    ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                                    : 'bg-white/50 dark:bg-white/10 hover:bg-white/70 dark:hover:bg-white/20 backdrop-blur-sm text-foreground/70 hover:text-foreground border border-white/40 dark:border-white/10 hover:scale-105'
                                     }`}
                                 onClick={() => setFilterType('group')}
                             >
@@ -1168,10 +1244,10 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     </div>
                     <div className="flex-1 overflow-auto p-3 space-y-2">
                         {canvasLayerList.all.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500">
+                            <div className="text-center py-8 text-muted-foreground">
                                 <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />
                                 <p className="text-sm">{t('sidebar.no_layers_in_canvas')}</p>
-                                <p className="text-xs text-gray-400 mt-1">{t('sidebar.upload_psd_or_add_layers')}</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">{t('sidebar.upload_psd_or_add_layers')}</p>
                             </div>
                         ) : (
                             <>
@@ -1183,13 +1259,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                             <div className="mb-4">
                                                 <div className="flex items-center gap-2 mb-2 px-2">
                                                     <Type className="h-3 w-3 text-blue-500" />
-                                                    <span className="text-xs font-semibold text-gray-600">{t('sidebar.text_layers')} ({canvasLayerList.text.length})</span>
+                                                    <span className="text-xs font-semibold text-foreground">{t('sidebar.text_layers')} ({canvasLayerList.text.length})</span>
                                                 </div>
                                                 <div className="space-y-1">
                                                     {canvasLayerList.text.map((layer) => (
                                                         <div
                                                             key={layer.elementId || `text-${layer.index}`}
-                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-800/50 transition-colors cursor-pointer gap-2"
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
                                                                 if (excalidrawAPI) {
                                                                     if (layer.elementId) {
@@ -1238,9 +1314,9 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                             </div>
                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                 {layer.visible ? (
-                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                    <Eye className="h-4 w-4 text-muted-foreground" />
                                                                 ) : (
-                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                    <EyeOff className="h-4 w-4 text-muted-foreground/60" />
                                                                 )}
                                                             </div>
                                                         </div>
@@ -1254,13 +1330,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                             <div className="mb-4">
                                                 <div className="flex items-center gap-2 mb-2 px-2">
                                                     <ImageIcon className="h-3 w-3 text-green-500" />
-                                                    <span className="text-xs font-semibold text-gray-600">{t('sidebar.image_layers')} ({canvasLayerList.layer.length})</span>
+                                                    <span className="text-xs font-semibold text-foreground">{t('sidebar.image_layers')} ({canvasLayerList.layer.length})</span>
                                                 </div>
                                                 <div className="space-y-1">
                                                     {canvasLayerList.layer.map((layer) => (
                                                         <div
                                                             key={layer.elementId || `layer-${layer.index}`}
-                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-800/50 transition-colors cursor-pointer gap-2"
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
                                                                 if (excalidrawAPI) {
                                                                     if (layer.elementId) {
@@ -1288,7 +1364,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                             }}
                                                         >
                                                             {/* 图像缩略图 */}
-                                                            <div className="w-12 h-12 flex-shrink-0 rounded border bg-gray-800/40 overflow-hidden relative">
+                                                            <div className="w-12 h-12 flex-shrink-0 rounded border border-border bg-muted/40 overflow-hidden relative">
                                                                 {layer.thumbnailUrl ? (
                                                                     <img
                                                                         src={layer.thumbnailUrl}
@@ -1299,13 +1375,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                             const target = e.target as HTMLImageElement
                                                                             target.style.display = 'none'
                                                                             if (target.parentElement) {
-                                                                                target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
+                                                                                target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg class="w-6 h-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
                                                                             }
                                                                         }}
                                                                     />
                                                                 ) : (
                                                                     <div className="w-full h-full flex items-center justify-center">
-                                                                        <ImageIcon className="h-6 w-6 text-gray-400" />
+                                                                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1318,9 +1394,9 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                             </div>
                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                 {layer.visible ? (
-                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                    <Eye className="h-4 w-4 text-muted-foreground" />
                                                                 ) : (
-                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                    <EyeOff className="h-4 w-4 text-muted-foreground/60" />
                                                                 )}
                                                             </div>
                                                         </div>
@@ -1334,13 +1410,13 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                             <div className="mb-4">
                                                 <div className="flex items-center gap-2 mb-2 px-2">
                                                     <FolderOpen className="h-3 w-3 text-yellow-500" />
-                                                    <span className="text-xs font-semibold text-gray-600">{t('sidebar.group_layers')} ({canvasLayerList.group.length})</span>
+                                                    <span className="text-xs font-semibold text-foreground">{t('sidebar.group_layers')} ({canvasLayerList.group.length})</span>
                                                 </div>
                                                 <div className="space-y-1">
                                                     {canvasLayerList.group.map((layer) => (
                                                         <div
                                                             key={layer.elementId || `group-${layer.index}`}
-                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-800/50 transition-colors cursor-pointer gap-2"
+                                                            className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer gap-2"
                                                             onClick={() => {
                                                                 if (excalidrawAPI) {
                                                                     if (layer.elementId) {
@@ -1379,9 +1455,9 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                             </div>
                                                             <div className="flex items-center gap-2 flex-shrink-0">
                                                                 {layer.visible ? (
-                                                                    <Eye className="h-4 w-4 text-gray-500" />
+                                                                    <Eye className="h-4 w-4 text-muted-foreground" />
                                                                 ) : (
-                                                                    <EyeOff className="h-4 w-4 text-gray-300" />
+                                                                    <EyeOff className="h-4 w-4 text-muted-foreground/60" />
                                                                 )}
                                                             </div>
                                                         </div>
@@ -1398,7 +1474,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                         {canvasLayerList.all.map((layer) => (
                                             <div
                                                 key={layer.elementId || `${layer.type}-${layer.index}`}
-                                                className="flex items-center justify-between px-3 py-2 rounded-lg border hover:bg-gray-800/50 transition-colors cursor-pointer gap-2"
+                                                className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer gap-2"
                                                 onClick={() => {
                                                     if (excalidrawAPI) {
                                                         if (layer.elementId) {
@@ -1426,7 +1502,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                             >
                                                 {/* 缩略图 - 根据类型显示不同的预览 */}
                                                 {layer.type === 'layer' ? (
-                                                    <div className="w-12 h-12 flex-shrink-0 rounded border bg-gray-800/40 overflow-hidden relative">
+                                                    <div className="w-12 h-12 flex-shrink-0 rounded border border-border bg-muted/40 overflow-hidden relative">
                                                         {layer.thumbnailUrl ? (
                                                             <img
                                                                 src={layer.thumbnailUrl}
@@ -1476,9 +1552,9 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0">
                                                     {layer.visible ? (
-                                                        <Eye className="h-4 w-4 text-gray-500" />
+                                                        <Eye className="h-4 w-4 text-muted-foreground" />
                                                     ) : (
-                                                        <EyeOff className="h-4 w-4 text-gray-300" />
+                                                        <EyeOff className="h-4 w-4 text-muted-foreground/60" />
                                                     )}
                                                 </div>
                                             </div>
@@ -1911,15 +1987,67 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     )}
                     {assetSubTab === 'fonts' && (
                         <div className="flex-1 flex flex-col overflow-hidden">
-                            <div className="px-3 pt-3">
-                                <Input placeholder={t('fonts.search_fonts')} className="h-9 text-sm" />
+                            <div className="px-3 pt-3 space-y-2">
+                                <div className="relative">
+                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input 
+                                        placeholder={t('fonts.search_fonts')} 
+                                        className="h-9 text-sm pl-8" 
+                                        value={fontSearchQuery}
+                                        onChange={(e) => handleFontSearch(e.target.value)}
+                                    />
+                                </div>
+                                <Button
+                                    onClick={() => setShowFontUploadDialog(true)}
+                                    className="w-full h-9 text-sm"
+                                    variant="outline"
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    {t('fonts.upload_artistic_font')}
+                                </Button>
                             </div>
-                            <div className="p-3 space-y-2 overflow-auto">
-                                {['Roboto', 'Lato', 'Montserrat', 'Open Sans', 'Playfair Display', 'Inter', 'Noto Sans', 'Poppins'].map((font, idx) => (
-                                    <button key={idx} className="w-full text-left px-4 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-colors">
-                                        <span className="text-base">{font}</span>
-                                    </button>
-                                ))}
+                            <div className="flex-1 overflow-auto p-3">
+                                {loadingFonts ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <p className="text-sm text-muted-foreground">{t('sidebar.loading')}</p>
+                                    </div>
+                                ) : artisticFonts.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <Type className="h-12 w-12 text-muted-foreground mb-3 opacity-50" />
+                                        <p className="text-sm text-muted-foreground mb-1">
+                                            {t('fonts.no_artistic_fonts')}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground max-w-xs">
+                                            {t('fonts.upload_artistic_font_description')}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {artisticFonts.map((font) => (
+                                            <button
+                                                key={font.id}
+                                                className="w-full text-left px-4 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-colors"
+                                                onClick={() => {
+                                                    // TODO: 应用艺术字到画布
+                                                    console.log('选择艺术字:', font.name)
+                                                    toast.success(`已选择艺术字: ${font.name}`)
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <span className="text-base font-medium">{font.name}</span>
+                                                        {font.description && (
+                                                            <p className="text-xs text-muted-foreground mt-1">{font.description}</p>
+                                                        )}
+                                                    </div>
+                                                    {font.is_favorite && (
+                                                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1935,6 +2063,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     setOverlay(true, t('canvas:messages.templateLoading.templateApplied', { name: template.name }), 'success')
                     setTimeout(() => clearOverlay(), 2000)
                 }}
+            />
+
+            {/* 艺术字上传对话框 */}
+            <FontUploadDialog
+                isOpen={showFontUploadDialog}
+                onClose={() => setShowFontUploadDialog(false)}
+                onSuccess={handleFontUploadSuccess}
+                categories={fontCategories}
             />
         </div>
     )
