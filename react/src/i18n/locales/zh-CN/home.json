@@ -1,7 +1,7 @@
 {
   "title": "你好，Aide！",
   "subtitle": "准备好将你的想法变成艺术吗？",
-  "allProjects": "所有项目",
+  "allProjects": "我的项目",
   "noCanvases": "还没有画布",
   "newCanvas": "未命名",
   "sidebar": {
@@ -9,12 +9,12 @@
     "createWithAI": "AI创作",
     "recents": "最近",
     "starred": "星标",
-    "allMaps": "所有图幅",
+    "allMaps": "所有模板",
     "shared": "已分享",
     "trash": "回收站"
   },
   "header": {
-    "allMaps": "所有图幅",
+    "allMaps": "所有模板",
     "themeSwitch": {
       "light": "切换到白天模式",
       "dark": "切换到暗夜模式"
@@ -27,10 +27,18 @@
     "logicChart": "逻辑图",
     "braceMap": "括号图",
     "orgChart": "组织结构图",
-    "preview": "预览"
+    "preview": "预览",
+    "loading": "加载中...",
+    "noTemplates": "暂无模板"
   },
   "aiCreation": {
     "title": "AI创作",
     "close": "关闭"
+  },
+  "userMenu": {
+    "myWorks": "我的作品",
+    "settings": "设置",
+    "accountSettings": "账户设置",
+    "signOut": "退出登录"
   }
 }

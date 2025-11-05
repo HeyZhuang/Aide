@@ -10,10 +10,12 @@ import { useMutation } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { nanoid } from 'nanoid'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useTheme } from '@/hooks/use-theme'
+import { useAuth } from '@/contexts/AuthContext'
+import { logout } from '@/api/auth'
 import {
   ChevronDown,
   Plus,
@@ -28,11 +30,14 @@ import {
   Grid3x3,
   Moon,
   Sun,
-  Languages
+  Languages,
+  FileImage
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import i18n from '@/i18n'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { listPSDTemplates, type PSDTemplateInfo } from '@/api/upload'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -43,10 +48,26 @@ function Home() {
   const { t, i18n: translationI18n } = useTranslation()
   const { setInitCanvas } = useConfigs()
   const { theme, setTheme } = useTheme()
+  const { authStatus, refreshAuth } = useAuth()
   const [activeTab, setActiveTab] = useState('all-maps')
   const [showChatTextarea, setShowChatTextarea] = useState(false)
+  const [psdTemplates, setPsdTemplates] = useState<PSDTemplateInfo[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [thumbnailLoadErrors, setThumbnailLoadErrors] = useState<Set<string>>(new Set())
 
   const isDark = theme === 'dark'
+
+  // 处理登出
+  const handleLogout = async () => {
+    try {
+      await logout()
+      await refreshAuth()
+      toast.success(t('common:auth.logoutSuccessMessage'))
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error('退出登录失败')
+    }
+  }
 
   // 语言切换函数
   const changeLanguage = (lng: string) => {
@@ -93,12 +114,62 @@ function Home() {
     })
   }
 
-  const templates = [
-    { name: t('home:templates.mindMap'), preview: '/templates/mindmap.png' },
-    { name: t('home:templates.logicChart'), preview: '/templates/logic.png' },
-    { name: t('home:templates.braceMap'), preview: '/templates/brace.png' },
-    { name: t('home:templates.orgChart'), preview: '/templates/org.png' },
-  ]
+  // 获取PSD模板列表
+  useEffect(() => {
+    const fetchPsdTemplates = async () => {
+      setLoadingTemplates(true)
+      try {
+        const templates = await listPSDTemplates()
+
+        // 前端去重：基于文件名去重，保留最新的模板
+        const templatesMap = new Map<string, PSDTemplateInfo>()
+        templates.forEach(template => {
+          const existing = templatesMap.get(template.name)
+          if (!existing) {
+            templatesMap.set(template.name, template)
+          } else {
+            const existingDate = existing.created_at ? new Date(existing.created_at).getTime() : 0
+            const currentDate = template.created_at ? new Date(template.created_at).getTime() : 0
+            if (currentDate > existingDate) {
+              templatesMap.set(template.name, template)
+            }
+          }
+        })
+
+        const uniqueTemplates = Array.from(templatesMap.values())
+        setPsdTemplates(uniqueTemplates)
+      } catch (err) {
+        console.error('获取PSD模板失败:', err)
+        toast.error('获取PSD模板失败')
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+
+    fetchPsdTemplates()
+  }, [])
+
+  // 处理缩略图加载错误
+  const handleThumbnailError = (templateName: string) => {
+    setThumbnailLoadErrors(prev => new Set(prev).add(templateName))
+  }
+
+  // 处理PSD模板点击 - 创建新画布并导航
+  const handlePsdTemplateClick = (template: PSDTemplateInfo) => {
+    createCanvasMutation({
+      name: template.display_name || template.name,
+      canvas_id: nanoid(),
+      messages: [],
+      session_id: nanoid(),
+      text_model: {
+        provider: 'openai',
+        model: 'gpt-4',
+        url: ''
+      },
+      tool_list: [],
+      system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
+    })
+  }
 
   // 获取当前语言的显示名称
   const getCurrentLanguageName = () => {
@@ -121,17 +192,71 @@ function Home() {
         isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200'
       )}>
         <div className='p-4'>
-          <Button
-            variant="ghost"
-            className={cn(
-              'w-full justify-start gap-2',
-              isDark ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-100'
-            )}
-          >
-            <LayoutGrid className='w-5 h-5' />
-            <span>{t('home:sidebar.myWorks')}</span>
-            <ChevronDown className='w-4 h-4 ml-auto' />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  'w-full justify-start gap-2',
+                  isDark ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-100'
+                )}
+              >
+                <LayoutGrid className='w-5 h-5' />
+                <span>{t('home:userMenu.myWorks')}</span>
+                <ChevronDown className='w-4 h-4 ml-auto' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className={cn(
+                'w-56',
+                isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200'
+              )}
+            >
+              <DropdownMenuItem
+                className={cn(
+                  'cursor-pointer',
+                  isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                )}
+              >
+                <LayoutGrid className='w-4 h-4 mr-2' />
+                {t('home:userMenu.myWorks')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className={cn(
+                  'cursor-pointer',
+                  isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                )}
+              >
+                <Settings className='w-4 h-4 mr-2' />
+                {t('home:userMenu.settings')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className={cn(
+                  'cursor-pointer',
+                  isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                )}
+              >
+                <Crown className='w-4 h-4 mr-2' />
+                {t('home:userMenu.accountSettings')}
+              </DropdownMenuItem>
+              {authStatus.is_logged_in && (
+                <>
+                  <div className={cn('my-1 h-px', isDark ? 'bg-gray-800' : 'bg-gray-200')} />
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className={cn(
+                      'cursor-pointer text-red-600 dark:text-red-400',
+                      isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                    )}
+                  >
+                    <ArrowRight className='w-4 h-4 mr-2' />
+                    {t('home:userMenu.signOut')}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className='px-4 pb-4'>
@@ -276,74 +401,78 @@ function Home() {
         </header>
 
         <ScrollArea className='flex-1'>
-          <div className='p-6'>
+          <div className='p-6 pr-0'>
             {/* 模板横幅 */}
-            <div className='mb-8 overflow-hidden'>
-              <div className='flex gap-4 overflow-x-auto pb-4 -mx-6 px-6'>
-                {/* Create New 卡片 */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                  onClick={handleCreateNew}
-                  className={cn(
-                    'flex-shrink-0 w-48 h-40 rounded-lg border transition-all cursor-pointer flex flex-col items-center justify-center group',
-                    isDark
-                      ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
-                      : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
-                  )}
-                >
-                  <div className={cn(
-                    'w-12 h-12 rounded-full transition-colors flex items-center justify-center mb-3',
-                    isDark
-                      ? 'bg-gray-700 group-hover:bg-gray-900'
-                      : 'bg-gray-100 group-hover:bg-gray-800'
-                  )}>
-                    <Plus className='w-6 h-6' />
+            <div className='mb-8 pr-6'>
+              <div className='flex gap-4 overflow-x-auto pb-4'>
+                {/* PSD 模板卡片 */}
+                {loadingTemplates ? (
+                  // 加载中状态
+                  <div className='flex-shrink-0 w-48 h-40 rounded-lg border flex items-center justify-center'>
+                    <span className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      {t('home:templates.loading')}
+                    </span>
                   </div>
-                  <span className={cn(
-                    'text-sm',
-                    isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
-                  )}>{t('home:templates.createNew')}</span>
-                </motion.div>
-
-                {/* 模板卡片 */}
-                {templates.map((template, index) => (
-                  <motion.div
-                    key={template.name}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    onClick={() => handleCreateWithTemplate(template.name)}
-                    className={cn(
-                      'flex-shrink-0 w-48 h-40 rounded-lg border transition-all cursor-pointer overflow-hidden group',
-                      isDark
-                        ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
-                        : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
-                    )}
-                  >
-                    <div className={cn(
-                      'h-32 flex items-center justify-center',
-                      isDark
-                        ? 'bg-gradient-to-br from-gray-500/20 to-blue-500/20'
-                        : 'bg-gradient-to-br from-gray-100 to-blue-100'
-                    )}>
-                      <span className={cn(
-                        'text-xs',
-                        isDark ? 'text-gray-500' : 'text-gray-400'
-                      )}>{t('home:templates.preview')}</span>
-                    </div>
-                    <div className='h-8 px-3 flex items-center justify-center'>
-                      <span className={cn(
-                        'text-xs',
-                        isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
-                      )}>{template.name}</span>
-                    </div>
-                  </motion.div>
-                ))}
+                ) : psdTemplates.length === 0 ? (
+                  // 空状态
+                  <div className='flex-shrink-0 w-48 h-40 rounded-lg border flex flex-col items-center justify-center'>
+                    <FileImage className={cn('w-8 h-8 mb-2', isDark ? 'text-gray-600' : 'text-gray-300')} />
+                    <span className={cn('text-xs', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      {t('home:templates.noTemplates')}
+                    </span>
+                  </div>
+                ) : (
+                  psdTemplates.slice(0, 4).map((template, index) => {
+                    const hasThumbnailError = thumbnailLoadErrors.has(template.name)
+                    return (
+                      <motion.div
+                        key={template.name}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        onClick={() => handlePsdTemplateClick(template)}
+                        className={cn(
+                          'flex-shrink-0 w-48 h-40 rounded-lg border transition-all cursor-pointer overflow-hidden group',
+                          isDark
+                            ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
+                            : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
+                        )}
+                      >
+                        <div className={cn(
+                          'h-32 flex items-center justify-center overflow-hidden',
+                          isDark
+                            ? 'bg-gradient-to-br from-gray-500/20 to-blue-500/20'
+                            : 'bg-gradient-to-br from-gray-100 to-blue-100'
+                        )}>
+                          {template.thumbnail_url && !hasThumbnailError ? (
+                            <img
+                              src={template.thumbnail_url}
+                              alt={template.display_name || template.name}
+                              className='w-full h-full object-cover'
+                              onError={() => handleThumbnailError(template.name)}
+                            />
+                          ) : (
+                            <FileImage className={cn(
+                              'w-12 h-12',
+                              isDark ? 'text-gray-600' : 'text-gray-300'
+                            )} />
+                          )}
+                        </div>
+                        <div className='h-8 px-3 flex items-center justify-center'>
+                          <span className={cn(
+                            'text-xs truncate w-full text-center',
+                            isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
+                          )}>
+                            {template.display_name || template.name}
+                          </span>
+                        </div>
+                      </motion.div>
+                    )
+                  })
+                )}
 
                 {/* See All */}
-                <div className='flex-shrink-0 w-32 h-40 flex items-center justify-center'>
+                {/* <div className='flex-shrink-0 w-32 h-40 flex items-center justify-center'>
                   <Button
                     variant="ghost"
                     className={cn(
@@ -354,51 +483,59 @@ function Home() {
                     {t('home:templates.seeAll')}
                     <ArrowRight className='w-4 h-4' />
                   </Button>
-                </div>
+                </div> */}
               </div>
             </div>
 
-            {/* AI 创建对话框 */}
-            {showChatTextarea && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
+            {/* AI 创建弹窗 */}
+            <Dialog open={showChatTextarea} onOpenChange={setShowChatTextarea}>
+              <DialogContent
                 className={cn(
-                  'mb-8 p-6 rounded-lg border',
+                  'max-w-2xl',
                   isDark
-                    ? 'bg-[#2a2a2a] border-gray-700'
-                    : 'bg-white border-gray-200 shadow-sm'
+                    ? 'bg-[#2a2a2a] border-gray-700 text-white'
+                    : 'bg-white border-gray-200 text-gray-900'
                 )}
+                style={{
+                  background: isDark
+                    ? 'rgba(42, 42, 42, 0.95)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  border: isDark
+                    ? '1px solid rgba(75, 75, 75, 0.5)'
+                    : '1px solid rgba(229, 229, 229, 0.5)',
+                  boxShadow: isDark
+                    ? '0 8px 32px rgba(0, 0, 0, 0.5)'
+                    : '0 8px 32px rgba(0, 0, 0, 0.12)',
+                }}
               >
-                <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-semibold'>{t('home:aiCreation.title')}</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowChatTextarea(false)}
-                  >
-                    {t('home:aiCreation.close')}
-                  </Button>
+                <DialogHeader>
+                  <DialogTitle className={isDark ? 'text-white' : 'text-gray-900'}>
+                    {t('home:aiCreation.title')}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className='mt-4'>
+                  <ChatTextarea
+                    className='w-full'
+                    messages={[]}
+                    onSendMessages={(messages, configs) => {
+                      createCanvasMutation({
+                        name: t('home:newCanvas'),
+                        canvas_id: nanoid(),
+                        messages: messages,
+                        session_id: nanoid(),
+                        text_model: configs.textModel,
+                        tool_list: configs.toolList,
+                        system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
+                      })
+                      setShowChatTextarea(false)
+                    }}
+                    pending={isPending}
+                  />
                 </div>
-                <ChatTextarea
-                  className='w-full'
-                  messages={[]}
-                  onSendMessages={(messages, configs) => {
-                    createCanvasMutation({
-                      name: t('home:newCanvas'),
-                      canvas_id: nanoid(),
-                      messages: messages,
-                      session_id: nanoid(),
-                      text_model: configs.textModel,
-                      tool_list: configs.toolList,
-                      system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
-                    })
-                    setShowChatTextarea(false)
-                  }}
-                  pending={isPending}
-                />
-              </motion.div>
-            )}
+              </DialogContent>
+            </Dialog>
 
             {/* 画布列表 */}
             <div className='mb-4'>
