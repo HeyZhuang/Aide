@@ -1,7 +1,7 @@
 {
   "title": "Hello, Aide!",
   "subtitle": "Ready to turn your ideas into art?",
-  "allProjects": "All Projects",
+  "allProjects": "My Projects",
   "noCanvases": "No canvases yet",
   "newCanvas": "Untitled",
   "sidebar": {
@@ -9,12 +9,12 @@
     "createWithAI": "Create with AI",
     "recents": "Recents",
     "starred": "Starred",
-    "allMaps": "All Maps",
+    "allMaps": "All Templates",
     "shared": "Shared",
     "trash": "Trash"
   },
   "header": {
-    "allMaps": "All Maps",
+    "allMaps": "All Templates",
     "themeSwitch": {
       "light": "Switch to light mode",
       "dark": "Switch to dark mode"
@@ -27,10 +27,18 @@
     "logicChart": "Logic Chart",
     "braceMap": "Brace Map",
     "orgChart": "Org Chart",
-    "preview": "Preview"
+    "preview": "Preview",
+    "loading": "Loading...",
+    "noTemplates": "No templates"
   },
   "aiCreation": {
     "title": "Create with AI",
     "close": "Close"
+  },
+  "userMenu": {
+    "myWorks": "My Works",
+    "settings": "Settings",
+    "accountSettings": "Account Settings",
+    "signOut": "Sign Out"
   }
 }

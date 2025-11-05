@@ -15,9 +15,13 @@ import io
 # 创建路由器实例
 router = APIRouter()
 
+# 确保数据库目录存在
+DB_DIR = "user_data"
+os.makedirs(DB_DIR, exist_ok=True)
+
 # 数据库配置
-DATABASE_URL = "sqlite:///./user_data/templates.db"
-engine = create_engine(DATABASE_URL)
+DATABASE_URL = f"sqlite:///{DB_DIR}/templates.db"
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -110,8 +114,13 @@ class TemplateCollectionUpdate(BaseModel):
     template_ids: Optional[List[str]] = None
     is_public: Optional[bool] = None
 
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
+# 初始化函数
+def init_db():
+    """初始化数据库表"""
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Database initialization error: {e}")
 
 # 依赖注入
 def get_db():
@@ -154,9 +163,6 @@ def generate_thumbnail(image_path: str, size: tuple = (200, 200)) -> str:
     except Exception as e:
         print(f"Error generating thumbnail: {e}")
         return image_path
-
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
 
 # 路由
 
@@ -779,6 +785,9 @@ async def get_uploaded_file(subfolder: str, filename: str):
             "Access-Control-Allow-Origin": "*",
         }
     )
+
+# 初始化数据库
+init_db()
 
 # 导出路由器
 __all__ = ['router']
