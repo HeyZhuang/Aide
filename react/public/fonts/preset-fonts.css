@@ -1,0 +1,9 @@
+/* 预设艺术字字体的CSS定义 */
+
+
+@font-face {
+  font-family: 'ZiHunJianQiShouShu';
+  src: url('/fonts/ZiHunJianQiShouShu-2.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

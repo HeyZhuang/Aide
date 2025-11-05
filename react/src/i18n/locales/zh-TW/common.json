@@ -79,7 +79,21 @@
         "logoutSuccessMessage": "已成功登出",
         "notLoggedIn": "未登入",
         "balance": "餘額",
-        "recharge": "儲值"
+        "recharge": "儲值",
+        "userManagement": "用戶管理",
+        "accountManagement": "帳戶管理",
+        "accountManagementDescription": "管理您的帳戶設定和個人資訊",
+        "usage": "用量",
+        "usageDescription": "查看您的使用統計和限制",
+        "usageComingSoon": "使用統計即將推出",
+        "billing": "帳單",
+        "billingDescription": "管理您的帳單資訊和付款方式",
+        "billingComingSoon": "帳單管理即將推出",
+        "personalInfo": "個人資訊",
+        "username": "使用者名稱",
+        "email": "電子信箱",
+        "accountCreated": "帳戶建立時間",
+        "notProvided": "未提供"
     },
     "resize": {
         "title": "智能縮放",

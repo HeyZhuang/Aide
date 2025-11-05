@@ -120,11 +120,11 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       for (const [fileId, file] of Object.entries(files)) {
         // 检查是否有服务器URL（如/api/file/xxx 或 /api/psd/...）
         const hasServerUrl = file.dataURL && (
-          file.dataURL.startsWith('http://') || 
+          file.dataURL.startsWith('http://') ||
           file.dataURL.startsWith('https://') ||
           file.dataURL.startsWith('/api/')
         )
-        
+
         // 如果有服务器URL，只保存URL引用；否则保留base64（但这种情况应该很少）
         // 模板图片应该都已经有URL，所以大部分情况下可以移除base64
         optimizedFiles[fileId] = {
@@ -205,9 +205,183 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
     // 获取拖拽的数据
     const dragData = e.dataTransfer.getData('application/json');
+    const fontData = e.dataTransfer.getData('application/font-data');
 
     if (!excalidrawAPI) return;
 
+    // 优先处理字体拖拽数据
+    if (fontData) {
+      try {
+        const parsedFontData = JSON.parse(fontData);
+
+        // 获取鼠标位置
+        const { clientX, clientY } = e;
+        const elements = excalidrawAPI.getSceneElements();
+        const appState = excalidrawAPI.getAppState();
+
+        // 获取画布容器
+        const canvasContainer = document.querySelector('.excalidraw') as HTMLElement;
+        if (!canvasContainer) {
+          console.error('❌ 未找到画布容器');
+          return;
+        }
+
+        const containerRect = canvasContainer.getBoundingClientRect();
+
+        // 使用正确的坐标转换公式
+        const sceneX = (clientX - containerRect.left) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top) / appState.zoom.value - appState.scrollY;
+
+        // 找到鼠标位置下的文字元素 - 从后往前遍历（优先选择最上层的元素）
+        let targetElement = null;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+
+          if (el.type !== 'text' || el.isDeleted) continue;
+
+          // 计算元素的边界框
+          const elementLeft = el.x;
+          const elementTop = el.y;
+          const elementRight = el.x + el.width;
+          const elementBottom = el.y + el.height;
+
+          // 判断鼠标是否在文字元素范围内
+          if (sceneX >= elementLeft &&
+            sceneX <= elementRight &&
+            sceneY >= elementTop &&
+            sceneY <= elementBottom) {
+            targetElement = el;
+            break;
+          }
+        }
+
+        // 如果找到了目标文字元素，则更改其字体
+        if (targetElement) {
+          console.log('✅ 找到目标文字元素，开始更改字体');
+
+          // 根据字体类型处理
+          if (parsedFontData.type === 'system-font') {
+            // 系统字体
+            const updatedElement = {
+              ...targetElement,
+              fontFamily: parsedFontData.fontValue,
+              versionNonce: targetElement.versionNonce + 1
+            };
+            
+            // 更新场景
+            const updatedElements = elements.map(el =>
+              el.id === targetElement.id ? updatedElement : el
+            );
+            
+            excalidrawAPI.updateScene({ 
+              elements: updatedElements,
+              commitToHistory: true
+            });
+            
+            console.log('✅ 系统字体应用成功！');
+          } else if (parsedFontData.type === 'custom-font') {
+            // 自定义字体
+            // 确保字体已加载
+            const fontFace = new FontFace(parsedFontData.fontFamily, `url(${parsedFontData.fontFileUrl})`);
+            fontFace.load().then(() => {
+              document.fonts.add(fontFace);
+              console.log(`字体 ${parsedFontData.fontName} 已加载`);
+
+              const updatedElement = {
+                ...targetElement,
+                fontFamily: parsedFontData.fontFamily,
+                versionNonce: targetElement.versionNonce + 1
+              };
+
+              // 更新场景
+              const updatedElements = elements.map(el =>
+                el.id === targetElement.id ? updatedElement : el
+              );
+
+              excalidrawAPI.updateScene({
+                elements: updatedElements,
+                commitToHistory: true
+              });
+
+              console.log('✅ 自定义字体应用成功！');
+            }).catch((error) => {
+              console.error('字体加载失败:', error);
+              alert('字体加载失败');
+            });
+          }
+        } else {
+          // 如果没有找到文字元素，在鼠标位置创建新的文字元素
+          console.log('📍 鼠标位置下没有文字元素，将在此位置添加新的文字元素');
+
+          // 根据字体类型创建文字元素
+          let fontFamily, textContent;
+          if (parsedFontData.type === 'system-font') {
+            fontFamily = parsedFontData.fontValue;
+            textContent = parsedFontData.fontName;
+          } else if (parsedFontData.type === 'custom-font') {
+            fontFamily = parsedFontData.fontFamily;
+            textContent = parsedFontData.fontName;
+
+            // 确保自定义字体已加载
+            const fontFace = new FontFace(parsedFontData.fontFamily, `url(${parsedFontData.fontFileUrl})`);
+            fontFace.load().then(() => {
+              document.fonts.add(fontFace);
+              console.log(`字体 ${parsedFontData.fontName} 已加载`);
+            }).catch((error) => {
+              console.error('字体加载失败:', error);
+            });
+          }
+
+          // 使用Excalidraw的convertToExcalidrawElements函数创建文字元素
+          const textElements = convertToExcalidrawElements([{
+            type: 'text',
+            x: sceneX,
+            y: sceneY,
+            width: 100,
+            height: 30,
+            strokeColor: '#000000',
+            backgroundColor: 'transparent',
+            fillStyle: 'hachure',
+            strokeWidth: 1,
+            strokeStyle: 'solid',
+            roughness: 1,
+            opacity: 100,
+            angle: 0,
+            seed: Math.floor(Math.random() * 1000000000),
+            version: 1,
+            versionNonce: Math.floor(Math.random() * 1000000000),
+            isDeleted: false,
+            groupIds: [],
+            boundElements: [],
+            updated: Date.now(),
+            link: null,
+            locked: false,
+            fontSize: 20,
+            fontFamily: fontFamily,
+            text: textContent,
+            textAlign: 'left',
+            verticalAlign: 'top',
+            containerId: null,
+            originalText: textContent,
+            lineCount: 1
+          }]);
+
+          // 添加到画布
+          excalidrawAPI.updateScene({
+            elements: [...elements, ...textElements],
+            commitToHistory: true
+          });
+
+          console.log('✅ 新文字元素已添加到画布');
+        }
+      } catch (error) {
+        console.error('❌ 处理字体拖拽数据失败:', error);
+      }
+      // 处理完字体数据后直接返回，不再处理其他数据
+      return;
+    }
+
+    // 如果没有字体数据，再处理其他拖拽数据
     if (!dragData) {
       console.log('⚠️ 未检测到拖拽数据');
       return;
@@ -423,11 +597,9 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             let finalHeight: number;
 
             if (newImageWidth > maxWidth) {
-              // 图片较大，需要缩放
               finalWidth = maxWidth;
               finalHeight = maxWidth / newImageRatio;
             } else {
-              // 使用原始尺寸
               finalWidth = newImageWidth;
               finalHeight = newImageHeight;
             }
@@ -1028,6 +1200,20 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
 export { CanvasExcali }
 export default CanvasExcali
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

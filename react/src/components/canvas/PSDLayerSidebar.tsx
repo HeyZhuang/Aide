@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -1988,66 +1990,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     {assetSubTab === 'fonts' && (
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <div className="px-3 pt-3 space-y-2">
-                                <div className="relative">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input 
-                                        placeholder={t('fonts.search_fonts')} 
-                                        className="h-9 text-sm pl-8" 
-                                        value={fontSearchQuery}
-                                        onChange={(e) => handleFontSearch(e.target.value)}
-                                    />
-                                </div>
-                                <Button
-                                    onClick={() => setShowFontUploadDialog(true)}
-                                    className="w-full h-9 text-sm"
-                                    variant="outline"
-                                >
-                                    <Upload className="h-4 w-4 mr-2" />
-                                    {t('fonts.upload_artistic_font')}
-                                </Button>
-                            </div>
-                            <div className="flex-1 overflow-auto p-3">
-                                {loadingFonts ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <p className="text-sm text-muted-foreground">{t('sidebar.loading')}</p>
-                                    </div>
-                                ) : artisticFonts.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                                        <Type className="h-12 w-12 text-muted-foreground mb-3 opacity-50" />
-                                        <p className="text-sm text-muted-foreground mb-1">
-                                            {t('fonts.no_artistic_fonts')}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground max-w-xs">
-                                            {t('fonts.upload_artistic_font_description')}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {artisticFonts.map((font) => (
-                                            <button
-                                                key={font.id}
-                                                className="w-full text-left px-4 py-3 rounded-lg border bg-gray-50/40 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-colors"
-                                                onClick={() => {
-                                                    // TODO: 应用艺术字到画布
-                                                    console.log('选择艺术字:', font.name)
-                                                    toast.success(`已选择艺术字: ${font.name}`)
-                                                }}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex-1">
-                                                        <span className="text-base font-medium">{font.name}</span>
-                                                        {font.description && (
-                                                            <p className="text-xs text-muted-foreground mt-1">{font.description}</p>
-                                                        )}
-                                                    </div>
-                                                    {font.is_favorite && (
-                                                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
+                                
                             </div>
                         </div>
                     )}
@@ -2079,3 +2022,4 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
 
 
+ 

@@ -236,22 +236,22 @@
 
 /* 字体选择功能样式 */
 .excalidraw {
-  font-family: var(--excalidraw-font-family, 'Arial') !important;
+  font-family: var(--excalidraw-font-family, 'Arial', 'Microsoft YaHei', 'SimHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif) !important;
 }
 
 /* 确保文本元素使用选择的字体 */
 .excalidraw .excalidraw-element[data-type="text"] {
-  font-family: var(--excalidraw-font-family, 'Arial') !important;
+  font-family: var(--excalidraw-font-family, 'Arial', 'Microsoft YaHei', 'SimHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif) !important;
 }
 
 /* 确保文本输入框使用选择的字体 */
 .excalidraw .Layer_textarea {
-  font-family: var(--excalidraw-font-family, 'Arial') !important;
+  font-family: var(--excalidraw-font-family, 'Arial', 'Microsoft YaHei', 'SimHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif) !important;
 }
 
 /* 确保文本编辑时的字体正确 */
 .excalidraw .text-editor {
-  font-family: var(--excalidraw-font-family, 'Arial') !important;
+  font-family: var(--excalidraw-font-family, 'Arial', 'Microsoft YaHei', 'SimHei', 'PingFang SC', 'Hiragino Sans GB', sans-serif) !important;
 }
 
 /* 字体选择器滚动条样式 */
