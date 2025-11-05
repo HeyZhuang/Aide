@@ -54,6 +54,18 @@ import { getFonts, getFontCategories, type FontItem, type FontCategory, searchFo
 import { toast } from 'sonner'
 import { Search } from 'lucide-react'
 
+interface Slogan {
+    text: string;
+    style: string;
+    font: string;
+}
+
+interface TextTemplate {
+    id: string;
+    name: string;
+    slogans: Slogan[];
+}
+
 interface PSDLayerSidebarProps {
     psdData: {
         file_id: string
@@ -2046,6 +2058,24 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                 // 这里可以添加创建文字元素的逻辑
                                                 console.log('添加广告语模板:', template.name);
                                                 // 可以调用创建文字元素的函数
+                                            }}
+                                            draggable
+                                            onDragStart={(e) => {
+                                                // 设置拖拽数据
+                                                const dragData = {
+                                                    type: 'text-template',
+                                                    template: {
+                                                        id: template.id,
+                                                        name: template.name,
+                                                        slogans: template.slogans
+                                                    }
+                                                };
+                                                e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                                                e.dataTransfer.effectAllowed = 'copy';
+                                                console.log('开始拖拽文字模板:', template.name);
+                                            }}
+                                            onDragEnd={() => {
+                                                console.log('结束拖拽文字模板:', template.name);
                                             }}
                                         >
                                             <div className="flex items-start gap-2 mb-2">

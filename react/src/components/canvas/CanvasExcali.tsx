@@ -55,6 +55,20 @@ interface DragPsdLayerData {
   psdFileId: string;
 }
 
+// 文字模板拖拽数据接口
+interface DragTextTemplateData {
+  type: string;
+  template: {
+    id: string;
+    name: string;
+    slogans: Array<{
+      text: string;
+      style: string;
+      font: string;
+    }>;
+  };
+}
+
 type LastImagePosition = {
   x: number
   y: number
@@ -267,17 +281,17 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
               fontFamily: parsedFontData.fontValue,
               versionNonce: targetElement.versionNonce + 1
             };
-            
+
             // 更新场景
             const updatedElements = elements.map(el =>
               el.id === targetElement.id ? updatedElement : el
             );
-            
-            excalidrawAPI.updateScene({ 
+
+            excalidrawAPI.updateScene({
               elements: updatedElements,
               commitToHistory: true
             });
-            
+
             console.log('✅ 系统字体应用成功！');
           } else if (parsedFontData.type === 'custom-font') {
             // 自定义字体
@@ -388,7 +402,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     }
 
     try {
-      const parsedData = JSON.parse(dragData) as DragImageData | DragPsdLayerData;
+      const parsedData = JSON.parse(dragData) as DragImageData | DragPsdLayerData | DragTextTemplateData;
 
       // 处理Library图片拖拽
       if (parsedData.type === 'library-image' && 'image' in parsedData && parsedData.image && parsedData.image.url) {
@@ -879,6 +893,87 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             console.error('❌ 添加PSD图层失败:', error);
           }
         }
+      }
+      // 处理文字模板拖拽
+      else if (parsedData.type === 'text-template' && 'template' in parsedData && parsedData.template) {
+        console.log('📝 从文字模板拖拽:', parsedData.template);
+
+        // 获取鼠标位置
+        const { clientX, clientY } = e;
+        const elements = excalidrawAPI.getSceneElements();
+        const appState = excalidrawAPI.getAppState();
+
+        // 获取画布容器
+        const canvasContainer = document.querySelector('.excalidraw') as HTMLElement;
+        if (!canvasContainer) {
+          console.error('❌ 未找到画布容器');
+          return;
+        }
+
+        const containerRect = canvasContainer.getBoundingClientRect();
+
+        // 使用正确的坐标转换公式
+        const sceneX = (clientX - containerRect.left) / appState.zoom.value - appState.scrollX;
+        const sceneY = (clientY - containerRect.top) / appState.zoom.value - appState.scrollY;
+
+        console.log('🎯 鼠标场景坐标:', { sceneX, sceneY });
+
+        // 创建文字元素数组
+        const textElements = [];
+        let yOffset = 0;
+
+        // 为每个标语创建文字元素
+        for (let i = 0; i < parsedData.template.slogans.length; i++) {
+          const slogan = parsedData.template.slogans[i];
+
+          // 创建文字元素
+          const textElement = {
+            type: 'text' as const,
+            x: sceneX,
+            y: sceneY + yOffset,
+            width: 200, // 初始宽度，后续会根据内容调整
+            height: 30, // 初始高度，后续会根据内容调整
+            strokeColor: '#000000',
+            backgroundColor: 'transparent',
+            fillStyle: 'hachure',
+            strokeWidth: 1,
+            strokeStyle: 'solid',
+            roughness: 1,
+            opacity: 100,
+            angle: 0,
+            seed: Math.floor(Math.random() * 1000000000),
+            version: 1,
+            versionNonce: Math.floor(Math.random() * 1000000000),
+            isDeleted: false,
+            groupIds: [],
+            boundElements: [],
+            updated: Date.now(),
+            link: null,
+            locked: false,
+            fontSize: 20,
+            fontFamily: slogan.font.split(',')[0].replace(/['"]/g, '').trim(), // 提取字体名称
+            text: slogan.text,
+            textAlign: 'left' as const,
+            verticalAlign: 'top' as const,
+            containerId: null,
+            originalText: slogan.text,
+            lineCount: 1
+          };
+
+          textElements.push(textElement);
+          yOffset += 35; // 每个标语之间的垂直间距
+        }
+
+        // 使用Excalidraw的convertToExcalidrawElements函数转换文字元素
+        const convertedElements = convertToExcalidrawElements(textElements);
+
+        // 添加到画布
+        excalidrawAPI.updateScene({
+          elements: [...elements, ...convertedElements],
+          commitToHistory: true
+        });
+
+        console.log('✅ 文字模板已添加到画布');
       }
     } catch (error) {
       console.error('❌ 处理拖拽数据失败:', error);
