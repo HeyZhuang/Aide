@@ -3,5 +3,34 @@
     "subtitle": "準備好將你的想法變成藝術嗎？",
     "allProjects": "所有專案",
     "noCanvases": "還沒有畫布",
-    "newCanvas": "未命名"
+    "newCanvas": "未命名",
+    "sidebar": {
+        "myWorks": "我的作品",
+        "createWithAI": "AI創作",
+        "recents": "最近",
+        "starred": "星標",
+        "allMaps": "所有地圖",
+        "shared": "已分享",
+        "trash": "回收站"
+    },
+    "header": {
+        "allMaps": "所有地圖",
+        "themeSwitch": {
+            "light": "切換到白天模式",
+            "dark": "切換到暗夜模式"
+        }
+    },
+    "templates": {
+        "createNew": "創建新項目",
+        "seeAll": "查看全部",
+        "mindMap": "思維導圖",
+        "logicChart": "邏輯圖",
+        "braceMap": "括號圖",
+        "orgChart": "組織結構圖",
+        "preview": "預覽"
+    },
+    "aiCreation": {
+        "title": "AI創作",
+        "close": "關閉"
+    }
 }

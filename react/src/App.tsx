@@ -5,7 +5,7 @@ import { LoginDialog } from '@/components/auth/LoginDialog'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
 import { ConfigsProvider } from '@/contexts/configs'
 import { AuthProvider } from '@/contexts/AuthContext'
-import { useTheme } from '@/hooks/use-theme'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister'
@@ -65,8 +65,6 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const { theme } = useTheme()
-
   // Auto-start ComfyUI on app startup
   useEffect(() => {
     const autoStartComfyUI = async () => {
@@ -99,7 +97,7 @@ function App() {
   }, [])
 
   return (
-    <ThemeProvider defaultTheme={theme} storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <PersistQueryClientProvider
         client={queryClient}
         persistOptions={{ persister }}

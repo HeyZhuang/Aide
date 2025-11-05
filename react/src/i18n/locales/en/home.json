@@ -3,5 +3,34 @@
   "subtitle": "Ready to turn your ideas into art?",
   "allProjects": "All Projects",
   "noCanvases": "No canvases yet",
-  "newCanvas": "Untitled"
+  "newCanvas": "Untitled",
+  "sidebar": {
+    "myWorks": "My Works",
+    "createWithAI": "Create with AI",
+    "recents": "Recents",
+    "starred": "Starred",
+    "allMaps": "All Maps",
+    "shared": "Shared",
+    "trash": "Trash"
+  },
+  "header": {
+    "allMaps": "All Maps",
+    "themeSwitch": {
+      "light": "Switch to light mode",
+      "dark": "Switch to dark mode"
+    }
+  },
+  "templates": {
+    "createNew": "Create New",
+    "seeAll": "See All",
+    "mindMap": "Mind Map",
+    "logicChart": "Logic Chart",
+    "braceMap": "Brace Map",
+    "orgChart": "Org Chart",
+    "preview": "Preview"
+  },
+  "aiCreation": {
+    "title": "Create with AI",
+    "close": "Close"
+  }
 }
