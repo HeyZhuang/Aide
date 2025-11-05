@@ -1136,8 +1136,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             className="text-foreground h-full w-full flex flex-col overflow-hidden"
         >
             {/* 顶部两个类型（统一指示条与选中态）- 苹果风格优化 */}
-            <div 
-                className="relative grid grid-cols-2 border-b" 
+            <div
+                className="relative grid grid-cols-2 border-b"
                 style={{
                     background: 'rgba(255, 255, 255, 0.5)',
                     backdropFilter: 'blur(16px) saturate(180%)',
@@ -1153,16 +1153,15 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     return (
                         <div key={top} className="flex items-center justify-center py-3">
                             <button
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${
-                                    isActive
-                                        ? 'font-semibold text-foreground scale-105'
-                                        : 'opacity-70 hover:opacity-100 hover:bg-white/30 dark:hover:bg-white/10 text-foreground/70'
-                                }`}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 relative ${isActive
+                                    ? 'font-semibold text-foreground scale-105'
+                                    : 'opacity-70 hover:opacity-100 hover:bg-white/30 dark:hover:bg-white/10 text-foreground/70'
+                                    }`}
                                 onClick={() => setUiTopTab(top)}
                                 style={{
-                                    background: isActive 
-                                        ? (document.documentElement.classList.contains('dark') 
-                                            ? 'rgba(255, 255, 255, 0.1)' 
+                                    background: isActive
+                                        ? (document.documentElement.classList.contains('dark')
+                                            ? 'rgba(255, 255, 255, 0.1)'
                                             : 'rgba(255, 255, 255, 0.5)')
                                         : 'transparent',
                                 }}
@@ -1724,7 +1723,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                     </svg>
                                     <p className="text-sm">{t('templates.no_templates')}</p>
-                                <p className="text-xs text-gray-400 mt-1">{t('templates.template_files_should_be_in_template_folder')}</p>
+                                    <p className="text-xs text-gray-400 mt-1">{t('templates.template_files_should_be_in_template_folder')}</p>
                                 </div>
                             )}
                         </div>
@@ -1745,14 +1744,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 <div className="col-span-3 text-center py-8 text-red-500">
                                     {error}
                                     <button
-                                            className="mt-2 text-sm text-primary hover:underline"
-                                            onClick={() => {
-                                                setError(null)
-                                                setPlatformImages([])
-                                            }}
-                                        >
-                                            {t('sidebar.retry')}
-                                        </button>
+                                        className="mt-2 text-sm text-primary hover:underline"
+                                        onClick={() => {
+                                            setError(null)
+                                            setPlatformImages([])
+                                        }}
+                                    >
+                                        {t('sidebar.retry')}
+                                    </button>
                                 </div>
                             )}
 
@@ -1855,8 +1854,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                         userUploadedImages.length > 0 ? (
                                             userUploadedImages.map((image) => {
                                                 return (
-                                                    <div 
-                                                        key={image.id} 
+                                                    <div
+                                                        key={image.id}
                                                         className="aspect-square rounded-2xl overflow-hidden cursor-pointer relative group"
                                                         style={{
                                                             background: 'rgba(255, 255, 255, 0.5)',
@@ -1918,10 +1917,10 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                             />
                                                             {/* 渐变遮罩层 - 用于文字可读性 */}
                                                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                                                            
+
                                                             {/* 显示图片名称 - 优化样式 */}
                                                             <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                                <div 
+                                                                <div
                                                                     className="text-white text-xs font-medium truncate"
                                                                     style={{
                                                                         textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
@@ -1930,7 +1929,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                                                     {image.name}
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             {/* 删除按钮 - 优化样式 */}
                                                             <button
                                                                 className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100"
@@ -1963,7 +1962,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                             })
                                         ) : (
                                             <div className="col-span-3 flex flex-col items-center justify-center py-16 px-4">
-                                                <div 
+                                                <div
                                                     className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
                                                     style={{
                                                         background: 'rgba(255, 255, 255, 0.4)',
@@ -1990,7 +1989,83 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                     {assetSubTab === 'fonts' && (
                         <div className="flex-1 flex flex-col overflow-hidden">
                             <div className="px-3 pt-3 space-y-2">
-                                
+                                {/* 文字模板标题 */}
+                                <div className="px-2 py-2">
+                                    <h3 className="text-sm font-semibold text-foreground">{t('sidebar.text_templates')}</h3>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('sidebar.click_to_add_text_template')}</p>
+                                </div>
+
+                                {/* 广告语文字模板 - 分两列展示 */}
+                                <div className="grid grid-cols-2 gap-3 px-2">
+                                    {[
+                                        {
+                                            id: 'ad-template-1',
+                                            name: t('sidebar.ad_templates.template_1_name'),
+                                            slogans: [
+                                                { text: t('sidebar.ad_templates.slogan_1_1'), style: 'font-bold text-lg', font: 'Arial, sans-serif' },
+                                                { text: t('sidebar.ad_templates.slogan_1_2'), style: 'font-light text-base italic', font: 'Georgia, serif' },
+                                                { text: t('sidebar.ad_templates.slogan_1_3'), style: 'font-semibold text-sm', font: 'Helvetica, sans-serif' }
+                                            ],
+                                            containerStyle: 'p-3 rounded-lg border border-border hover:bg-accent/50 transition-all duration-300 cursor-pointer group hover:shadow-md'
+                                        },
+                                        {
+                                            id: 'ad-template-2',
+                                            name: t('sidebar.ad_templates.template_2_name'),
+                                            slogans: [
+                                                { text: t('sidebar.ad_templates.slogan_2_1'), style: 'font-extrabold text-xl', font: 'Impact, sans-serif' },
+                                                { text: t('sidebar.ad_templates.slogan_2_2'), style: 'font-medium text-base', font: 'Times New Roman, serif' },
+                                                { text: t('sidebar.ad_templates.slogan_2_3'), style: 'font-light text-sm', font: 'Courier New, monospace' }
+                                            ],
+                                            containerStyle: 'p-3 rounded-lg border border-border hover:bg-accent/50 transition-all duration-300 cursor-pointer group hover:shadow-md'
+                                        },
+                                        {
+                                            id: 'ad-template-3',
+                                            name: t('sidebar.ad_templates.template_3_name'),
+                                            slogans: [
+                                                { text: t('sidebar.ad_templates.slogan_3_1'), style: 'font-bold text-lg text-blue-600', font: 'Verdana, sans-serif' },
+                                                { text: t('sidebar.ad_templates.slogan_3_2'), style: 'font-semibold text-base', font: 'Trebuchet MS, sans-serif' },
+                                                { text: t('sidebar.ad_templates.slogan_3_3'), style: 'font-thin text-sm italic', font: 'Palatino, serif' }
+                                            ],
+                                            containerStyle: 'p-3 rounded-lg border border-border hover:bg-accent/50 transition-all duration-300 cursor-pointer group hover:shadow-md'
+                                        },
+                                        {
+                                            id: 'ad-template-4',
+                                            name: t('sidebar.ad_templates.template_4_name'),
+                                            slogans: [
+                                                { text: t('sidebar.ad_templates.slogan_4_1'), style: 'font-black text-lg', font: 'Arial Black, sans-serif' },
+                                                { text: t('sidebar.ad_templates.slogan_4_2'), style: 'font-medium text-base text-green-600', font: 'Garamond, serif' },
+                                                { text: t('sidebar.ad_templates.slogan_4_3'), style: 'font-light text-sm', font: 'Lucida Console, monospace' }
+                                            ],
+                                            containerStyle: 'p-3 rounded-lg border border-border hover:bg-accent/50 transition-all duration-300 cursor-pointer group hover:shadow-md'
+                                        }
+                                    ].map((template) => (
+                                        <div
+                                            key={template.id}
+                                            className={template.containerStyle}
+                                            onClick={() => {
+                                                // 这里可以添加创建文字元素的逻辑
+                                                console.log('添加广告语模板:', template.name);
+                                                // 可以调用创建文字元素的函数
+                                            }}
+                                        >
+                                            <div className="flex items-start gap-2 mb-2">
+                                                <Type className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                                                <h4 className="font-semibold text-foreground text-sm">{template.name}</h4>
+                                            </div>
+                                            <div className="space-y-1.5 pl-1">
+                                                {template.slogans.map((slogan, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={`${slogan.style} text-foreground truncate`}
+                                                        style={{ fontFamily: slogan.font }}
+                                                    >
+                                                        {slogan.text}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -2022,4 +2097,4 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
 
 
- 
+

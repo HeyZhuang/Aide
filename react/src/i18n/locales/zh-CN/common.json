@@ -43,7 +43,42 @@
     "retry": "重试",
     "loading": "加载中...",
     "hide_panel": "隐藏面板",
-    "reload": "重新加载"
+    "reload": "重新加载",
+    "text_templates": "文字模板",
+    "click_to_add_text_template": "点击添加文字模板到画布",
+    "ad_templates": {
+      "template_1_name": "优质品质",
+      "template_2_name": "最佳选择",
+      "template_3_name": "信赖品牌",
+      "template_4_name": "创新科技",
+      "slogan_1_1": "优质品质",
+      "slogan_1_2": "精心制作",
+      "slogan_1_3": "品质保证",
+      "slogan_2_1": "最佳选择",
+      "slogan_2_2": "为您的生活",
+      "slogan_2_3": "超值体验",
+      "slogan_3_1": "信赖品牌",
+      "slogan_3_2": "可靠耐用",
+      "slogan_3_3": "客户至上",
+      "slogan_4_1": "创新科技",
+      "slogan_4_2": "引领未来",
+      "slogan_4_3": "创意解决方案"
+    },
+    "template": {
+      "quality": "品质",
+      "first": "第一",
+      "trusted": "值得信赖的",
+      "brand": "品牌",
+      "premium": "优质",
+      "choice": "选择",
+      "customer": "客户",
+      "satisfaction": "满意度",
+      "innovation": "创新",
+      "excellence": "卓越",
+      "value": "价值",
+      "for": "为",
+      "money": "金钱"
+    }
   },
   "templates": {
     "no_preview": "暂无预览图",

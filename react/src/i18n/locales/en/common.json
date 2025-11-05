@@ -43,7 +43,42 @@
     "retry": "Retry",
     "loading": "Loading...",
     "hide_panel": "Hide panel",
-    "reload": "Reload"
+    "reload": "Reload",
+    "text_templates": "Text Templates",
+    "click_to_add_text_template": "Click to add text template to canvas",
+    "ad_templates": {
+      "template_1_name": "Premium Quality",
+      "template_2_name": "Best Choice",
+      "template_3_name": "Trusted Brand",
+      "template_4_name": "Innovation",
+      "slogan_1_1": "Premium Quality",
+      "slogan_1_2": "Crafted with care",
+      "slogan_1_3": "Excellence guaranteed",
+      "slogan_2_1": "BEST CHOICE",
+      "slogan_2_2": "For your lifestyle",
+      "slogan_2_3": "Unbeatable value",
+      "slogan_3_1": "Trusted Brand",
+      "slogan_3_2": "Reliable & Durable",
+      "slogan_3_3": "Customer first",
+      "slogan_4_1": "INNOVATION",
+      "slogan_4_2": "Leading the future",
+      "slogan_4_3": "Creative solutions"
+    },
+    "template": {
+      "quality": "Quality",
+      "first": "First",
+      "trusted": "Trusted",
+      "brand": "Brand",
+      "premium": "Premium",
+      "choice": "Choice",
+      "customer": "Customer",
+      "satisfaction": "Satisfaction",
+      "innovation": "Innovation",
+      "excellence": "Excellence",
+      "value": "Value",
+      "for": "for",
+      "money": "Money"
+    }
   },
   "templates": {
     "no_preview": "No preview",
