@@ -27,9 +27,12 @@ import {
   ArrowRight,
   Grid3x3,
   Moon,
-  Sun
+  Sun,
+  Languages
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import i18n from '@/i18n'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -37,13 +40,19 @@ export const Route = createFileRoute('/')({
 
 function Home() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n: translationI18n } = useTranslation()
   const { setInitCanvas } = useConfigs()
   const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState('all-maps')
   const [showChatTextarea, setShowChatTextarea] = useState(false)
 
   const isDark = theme === 'dark'
+
+  // 语言切换函数
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng)
+    localStorage.setItem('language', lng)
+  }
 
   const { mutate: createCanvasMutation, isPending } = useMutation({
     mutationFn: createCanvas,
@@ -85,11 +94,21 @@ function Home() {
   }
 
   const templates = [
-    { name: 'Mind Map', preview: '/templates/mindmap.png' },
-    { name: 'Logic Chart', preview: '/templates/logic.png' },
-    { name: 'Brace Map', preview: '/templates/brace.png' },
-    { name: 'Org Chart', preview: '/templates/org.png' },
+    { name: t('home:templates.mindMap'), preview: '/templates/mindmap.png' },
+    { name: t('home:templates.logicChart'), preview: '/templates/logic.png' },
+    { name: t('home:templates.braceMap'), preview: '/templates/brace.png' },
+    { name: t('home:templates.orgChart'), preview: '/templates/org.png' },
   ]
+
+  // 获取当前语言的显示名称
+  const getCurrentLanguageName = () => {
+    switch (translationI18n.language) {
+      case 'en': return 'EN'
+      case 'zh-CN': return '中'
+      case 'zh-TW': return '繁'
+      default: return 'EN'
+    }
+  }
 
   return (
     <div className={cn(
@@ -110,7 +129,7 @@ function Home() {
             )}
           >
             <LayoutGrid className='w-5 h-5' />
-            <span>My Works</span>
+            <span>{t('home:sidebar.myWorks')}</span>
             <ChevronDown className='w-4 h-4 ml-auto' />
           </Button>
         </div>
@@ -121,7 +140,7 @@ function Home() {
             className='w-full bg-gray-900 hover:bg-gray-800 text-white gap-2'
           >
             <Lightbulb className='w-4 h-4' />
-            Create with AI
+            {t('home:sidebar.createWithAI')}
           </Button>
         </div>
 
@@ -137,13 +156,13 @@ function Home() {
             )}
           >
             <Clock className='w-5 h-5' />
-            Recents
+            {t('home:sidebar.recents')}
           </Button>
 
           <div className={cn(
             'my-4 px-3 text-xs font-medium',
             isDark ? 'text-gray-500' : 'text-gray-400'
-          )}>Starred</div>
+          )}>{t('home:sidebar.starred')}</div>
 
           <Button
             variant="ghost"
@@ -156,7 +175,7 @@ function Home() {
             )}
           >
             <Grid3x3 className='w-5 h-5' />
-            All Maps
+            {t('home:sidebar.allMaps')}
           </Button>
 
           <Button
@@ -170,7 +189,7 @@ function Home() {
             )}
           >
             <Share2 className='w-5 h-5' />
-            Shared
+            {t('home:sidebar.shared')}
           </Button>
 
           <Button
@@ -184,7 +203,7 @@ function Home() {
             )}
           >
             <Trash2 className='w-5 h-5' />
-            Trash
+            {t('home:sidebar.trash')}
           </Button>
         </nav>
       </aside>
@@ -196,8 +215,32 @@ function Home() {
           'h-16 border-b flex items-center justify-between px-6 flex-shrink-0',
           isDark ? 'border-gray-800' : 'border-gray-200'
         )}>
-          <h1 className='text-xl font-semibold'>All Maps</h1>
+          <h1 className='text-xl font-semibold'>{t('home:header.allMaps')}</h1>
           <div className='flex items-center gap-3'>
+            {/* 语言下拉菜单（复用样式） */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'rounded-lg transition-all',
+                    isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                  )}
+                >
+                  <Languages className='w-5 h-5' />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className={cn(isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200')}>
+                <DropdownMenuItem onClick={() => changeLanguage('en')}>
+                  English
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => changeLanguage('zh-CN')}>
+                  简体中文
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* 主题切换按钮 */}
             <Button
               variant="ghost"
@@ -207,7 +250,7 @@ function Home() {
                 'rounded-lg transition-all',
                 isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
               )}
-              title={isDark ? '切换到白天模式' : '切换到暗夜模式'}
+              title={isDark ? t('home:header.themeSwitch.light') : t('home:header.themeSwitch.dark')}
             >
               {isDark ? <Sun className='w-5 h-5' /> : <Moon className='w-5 h-5' />}
             </Button>
@@ -261,7 +304,7 @@ function Home() {
                   <span className={cn(
                     'text-sm',
                     isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
-                  )}>Create New</span>
+                  )}>{t('home:templates.createNew')}</span>
                 </motion.div>
 
                 {/* 模板卡片 */}
@@ -288,7 +331,7 @@ function Home() {
                       <span className={cn(
                         'text-xs',
                         isDark ? 'text-gray-500' : 'text-gray-400'
-                      )}>Preview</span>
+                      )}>{t('home:templates.preview')}</span>
                     </div>
                     <div className='h-8 px-3 flex items-center justify-center'>
                       <span className={cn(
@@ -308,7 +351,7 @@ function Home() {
                       isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                     )}
                   >
-                    See All
+                    {t('home:templates.seeAll')}
                     <ArrowRight className='w-4 h-4' />
                   </Button>
                 </div>
@@ -328,13 +371,13 @@ function Home() {
                 )}
               >
                 <div className='flex items-center justify-between mb-4'>
-                  <h3 className='text-lg font-semibold'>Create with AI</h3>
+                  <h3 className='text-lg font-semibold'>{t('home:aiCreation.title')}</h3>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowChatTextarea(false)}
                   >
-                    Close
+                    {t('home:aiCreation.close')}
                   </Button>
                 </div>
                 <ChatTextarea

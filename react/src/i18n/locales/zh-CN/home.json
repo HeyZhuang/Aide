@@ -3,5 +3,34 @@
   "subtitle": "准备好将你的想法变成艺术吗？",
   "allProjects": "所有项目",
   "noCanvases": "还没有画布",
-  "newCanvas": "未命名"
+  "newCanvas": "未命名",
+  "sidebar": {
+    "myWorks": "我的作品",
+    "createWithAI": "AI创作",
+    "recents": "最近",
+    "starred": "星标",
+    "allMaps": "所有图幅",
+    "shared": "已分享",
+    "trash": "回收站"
+  },
+  "header": {
+    "allMaps": "所有图幅",
+    "themeSwitch": {
+      "light": "切换到白天模式",
+      "dark": "切换到暗夜模式"
+    }
+  },
+  "templates": {
+    "createNew": "创建新项目",
+    "seeAll": "查看全部",
+    "mindMap": "思维导图",
+    "logicChart": "逻辑图",
+    "braceMap": "括号图",
+    "orgChart": "组织结构图",
+    "preview": "预览"
+  },
+  "aiCreation": {
+    "title": "AI创作",
+    "close": "关闭"
+  }
 }
