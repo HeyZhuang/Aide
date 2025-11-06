@@ -7,14 +7,15 @@
     "sidebar": {
         "myWorks": "我的作品",
         "createWithAI": "AI創作",
+        "projects": "專案",
         "recents": "最近",
         "starred": "星標",
-        "allMaps": "所有地圖",
+        "allMaps": "地圖",
         "shared": "已分享",
         "trash": "回收站"
     },
     "header": {
-        "allMaps": "所有地圖",
+        "allMaps": "地圖",
         "themeSwitch": {
             "light": "切換到白天模式",
             "dark": "切換到暗夜模式"
@@ -30,7 +31,118 @@
         "preview": "預覽"
     },
     "aiCreation": {
-        "title": "AI創作",
+        "title": "AI成作",
         "close": "關閉"
+    },
+    "userMenu": {
+        "myWorks": "我的作品",
+        "accountSettings": "賬戶設置",
+        "signOut": "退出登錄"
+    },
+    "accountDialog": {
+        "title": "賬戶設置",
+        "nickname": "昵稱",
+        "email": "電子郵件",
+        "manageAccount": "管理責戶",
+        "joinedDate": "上次登錄",
+        "copyEmail": "複製郵件位址",
+        "copied": "郵件位址已複製到剪贴板"
+    },
+    "messages": {
+        "fetchTemplatesFailed": "獲取PSD模板失敗",
+        "logoutFailed": "退出登錄失敗"
+    },
+    "subscription": {
+        "title": "升級你的套餐",
+        "monthly": "月付",
+        "yearly": "年付",
+        "freeMonths": "免費2个月",
+        "features": "功能特色",
+        "upgrade": "升級",
+        "plans": {
+            "starter": {
+                "name": "初级版",
+                "monthlyPrice": 19,
+                "yearlyPrice": 16,
+                "yearlySavings": 3,
+                "monthlyCredits": 2000,
+                "yearlyMonthlyCredits": 2000,
+                "features": [
+                    "每日獲得100個新烟一分",
+                    "約67次Agent對話",
+                    "約52ૡ合片生成",
+                    "約333张图片编辑",
+                    "約267s視頻",
+                    "約13橹veo3視頻",
+                    "使用所有模板",
+                    "可商用"
+                ]
+            },
+            "basic": {
+                "name": "基礎版",
+                "monthlyPrice": 32,
+                "yearlyPrice": 27,
+                "yearlySavings": 5,
+                "monthlyCredits": 3500,
+                "yearlyMonthlyCredits": 3500,
+                "features": [
+                    "每日獲得100個新烟一分",
+                    "約117次Agent對話",
+                    "約350张图片生成",
+                    "約583张图片编辑",
+                    "約467s視頻",
+                    "約23橹veo3視頻",
+                    "使用所有模板",
+                    "可商用",
+                    "Google Nano Banana",
+                    "Seedream 4.0",
+                    "Midjourney"
+                ]
+            },
+            "pro": {
+                "name": "專業版",
+                "monthlyPrice": 90,
+                "yearlyPrice": 74,
+                "yearlySavings": 16,
+                "monthlyCredits": 11000,
+                "yearlyMonthlyCredits": 11000,
+                "features": [
+                    "每日獲得100個新烟一分",
+                    "約367次Agent對話",
+                    "約1100张图片生成",
+                    "約1833张图片编辑",
+                    "約1467s視頻",
+                    "約73橹veo3視頻",
+                    "充值算力享9折儯惠",
+                    "使用所有模板",
+                    "可商用",
+                    "Google Nano Banana",
+                    "Seedream 4.0",
+                    "Midjourney"
+                ]
+            },
+            "ultimate": {
+                "name": "極限版",
+                "monthlyPrice": 199,
+                "yearlyPrice": 166,
+                "yearlySavings": 33,
+                "monthlyCredits": 27000,
+                "yearlyMonthlyCredits": 27000,
+                "features": [
+                    "每日獲得100個新烟一分",
+                    "約900次Agent對話",
+                    "約2700张图片生成",
+                    "約4500张图片编辑",
+                    "約3600s視頻",
+                    "約180橹veo3視頻",
+                    "充值算力享9折儯惠",
+                    "使用所有模板",
+                    "可商用",
+                    "Google Nano Banana",
+                    "Seedream 4.0",
+                    "Midjourney"
+                ]
+            }
+        }
     }
 }

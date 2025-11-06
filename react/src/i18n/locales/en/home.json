@@ -7,14 +7,15 @@
   "sidebar": {
     "myWorks": "My Works",
     "createWithAI": "Create with AI",
+    "projects": "Projects",
     "recents": "Recents",
     "starred": "Starred",
-    "allMaps": "All Templates",
+    "allMaps": "Templates",
     "shared": "Shared",
     "trash": "Trash"
   },
   "header": {
-    "allMaps": "All Templates",
+    "allMaps": "Templates",
     "themeSwitch": {
       "light": "Switch to light mode",
       "dark": "Switch to dark mode"
@@ -37,8 +38,113 @@
   },
   "userMenu": {
     "myWorks": "My Works",
-    "settings": "Settings",
     "accountSettings": "Account Settings",
     "signOut": "Sign Out"
+  },
+  "accountDialog": {
+    "title": "Account Settings",
+    "nickname": "Nick name",
+    "email": "Email",
+    "manageAccount": "Manage Account",
+    "joinedDate": "Joined",
+    "copyEmail": "Copy email",
+    "copied": "Email copied to clipboard"
+  },
+  "messages": {
+    "fetchTemplatesFailed": "Failed to fetch templates",
+    "logoutFailed": "Logout failed"
+  },
+  "subscription": {
+    "title": "Upgrade Your Plan",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "freeMonths": "Free 2 months",
+    "features": "Features",
+    "upgrade": "Upgrade",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "monthlyPrice": 19,
+        "yearlyPrice": 16,
+        "yearlySavings": 3,
+        "monthlyCredits": 2000,
+        "yearlyMonthlyCredits": 2000,
+        "features": [
+          "Get 100 new points daily",
+          "About 67 Agent conversations",
+          "About 200 image generation",
+          "About 333 image editing",
+          "About 267s video",
+          "About 13 veo3 videos",
+          "Use all templates",
+          "Commercial use"
+        ]
+      },
+      "basic": {
+        "name": "Basic",
+        "monthlyPrice": 32,
+        "yearlyPrice": 27,
+        "yearlySavings": 5,
+        "monthlyCredits": 3500,
+        "yearlyMonthlyCredits": 3500,
+        "features": [
+          "Get 100 new points daily",
+          "About 117 Agent conversations",
+          "About 350 image generation",
+          "About 583 image editing",
+          "About 467s video",
+          "About 23 veo3 videos",
+          "Use all templates",
+          "Commercial use",
+          "Google Nano Banana",
+          "Seedream 4.0",
+          "Midjourney"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "monthlyPrice": 90,
+        "yearlyPrice": 74,
+        "yearlySavings": 16,
+        "monthlyCredits": 11000,
+        "yearlyMonthlyCredits": 11000,
+        "features": [
+          "Get 100 new points daily",
+          "About 367 Agent conversations",
+          "About 1100 image generation",
+          "About 1833 image editing",
+          "About 1467s video",
+          "About 73 veo3 videos",
+          "Enjoy 10% discount on credits",
+          "Use all templates",
+          "Commercial use",
+          "Google Nano Banana",
+          "Seedream 4.0",
+          "Midjourney"
+        ]
+      },
+      "ultimate": {
+        "name": "Ultimate",
+        "monthlyPrice": 199,
+        "yearlyPrice": 166,
+        "yearlySavings": 33,
+        "monthlyCredits": 27000,
+        "yearlyMonthlyCredits": 27000,
+        "features": [
+          "Get 100 new points daily",
+          "About 900 Agent conversations",
+          "About 2700 image generation",
+          "About 4500 image editing",
+          "About 3600s video",
+          "About 180 veo3 videos",
+          "Enjoy 10% discount on credits",
+          "Use all templates",
+          "Commercial use",
+          "Google Nano Banana",
+          "Seedream 4.0",
+          "Midjourney"
+        ]
+      }
+    }
   }
 }
