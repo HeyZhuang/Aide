@@ -50,6 +50,61 @@ class UserService:
                 "updated_at": row["updated_at"],
             }
     
+    async def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        根据用户名获取用户信息
+        用于设备认证等场景，获取指定用户的基本信息
+        """
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("""
+                SELECT id, username, email, image_url, created_at, updated_at
+                FROM users
+                WHERE username = ?
+            """, (username,))
+            
+            row = await cursor.fetchone()
+            
+            if not row:
+                return None
+            
+            return {
+                "id": row["id"],
+                "username": row["username"],
+                "email": row["email"],
+                "image_url": row["image_url"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+    
+    async def get_first_user(self) -> Optional[Dict[str, Any]]:
+        """
+        获取第一个用户（通常是管理员）
+        用于设备认证等需要默认用户的场景
+        """
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("""
+                SELECT id, username, email, image_url, created_at, updated_at
+                FROM users
+                ORDER BY created_at ASC
+                LIMIT 1
+            """)
+            
+            row = await cursor.fetchone()
+            
+            if not row:
+                return None
+            
+            return {
+                "id": row["id"],
+                "username": row["username"],
+                "email": row["email"],
+                "image_url": row["image_url"],
+                "created_at": row["created_at"],
+                "updated_at": row["updated_at"],
+            }
+    
     async def get_all_users(self, skip: int = 0, limit: int = 100) -> list[Dict[str, Any]]:
         """获取所有用户列表（分页）"""
         async with aiosqlite.connect(db_service.db_path) as db:
