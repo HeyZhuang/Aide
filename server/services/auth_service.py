@@ -88,7 +88,7 @@ class AuthService:
             }
     
     async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """根据ID获取用户信息"""
+        """根据ID获取用户信息（用于认证流程）"""
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""

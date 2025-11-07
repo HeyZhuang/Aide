@@ -302,31 +302,16 @@ async def auth_device_page(code: str = Query(..., description="设备认证码")
 
 
 @router.post("/api/device/authorize")
-async def authorize_device(code: str = Query(None, description="设备认证码"), request: Request = None):
+async def authorize_device(request: DeviceAuthorizeRequest):
     """
     确认设备认证
-    这个端点由认证页面调用
-    支持从查询参数或请求体中获取 code
+    通过用户名和密码验证用户身份，授权设备访问
     """
-    # 如果查询参数中没有 code，尝试从请求体获取
-    if not code:
-        try:
-            body = await request.json()
-            code = body.get("code")
-        except:
-            pass
+    code = request.code
+    username = request.username
+    password = request.password
     
-    # 如果还是没有 code，尝试从表单数据获取
-    if not code:
-        try:
-            form = await request.form()
-            code = form.get("code")
-        except:
-            pass
-    
-    if not code:
-        raise HTTPException(status_code=422, detail="缺少设备认证码参数")
-    
+    # 验证设备码
     if code not in device_codes:
         raise HTTPException(status_code=400, detail="设备码无效或已过期")
     
@@ -337,17 +322,41 @@ async def authorize_device(code: str = Query(None, description="设备认证码"
         del device_codes[code]
         raise HTTPException(status_code=400, detail="设备码已过期")
     
-    # 生成 session 和 token（实际应用中应该调用真实的认证服务）
-    session_id = str(uuid.uuid4())
-    token = secrets.token_urlsafe(32)
+    # 验证用户名和密码
+    user_info = await auth_service.verify_user(username, password)
     
-    # 创建用户信息（实际应用中应该从认证服务获取）
-    user_info = {
-        "id": str(uuid.uuid4()),
-        "username": "user",
-        "email": "user@example.com",
-        "created_at": datetime.now().isoformat(),
-    }
+    #TODO：此处方便测试将逻辑用自动注册代替
+    #  if not user_info:
+    #     logger.warning(f"登录失败: {username}")
+    #     raise HTTPException(status_code=401, detail="用户名或密码错误")
+    
+    # logger.info(f"用户登录成功: {user_info.get('username')}")
+        try:
+            # 生成默认邮箱（如果用户名不是邮箱格式）
+            email = username if "@" in username else f"{username}@example.com"
+            
+            # 注册新用户
+            user_info = await auth_service.create_user(
+                username=username if "@" not in username else username.split("@")[0],
+                email=email,
+                password=password
+            )
+            logger.info(f"自动注册新用户: {user_info.get('username')}")
+        except ValueError as e:
+            # 如果注册失败（例如用户名已存在但密码错误）
+            logger.warning(f"注册失败: {username}, 错误: {str(e)}")
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        except Exception as e:
+            logger.error(f"注册用户失败: {username}, 错误: {str(e)}")
+            raise HTTPException(status_code=500, detail="注册失败，请稍后重试")
+    else:
+        logger.info(f"用户登录成功: {user_info.get('username')}")
+    
+    # 为用户创建 token
+    token = await auth_service.create_token(user_info["id"])
+    
+    # 生成 session
+    session_id = str(uuid.uuid4())
     
     # 存储会话信息
     auth_sessions[session_id] = {
@@ -361,7 +370,12 @@ async def authorize_device(code: str = Query(None, description="设备认证码"
     device_codes[code]["status"] = "authorized"
     device_codes[code]["session_id"] = session_id
     
+    logger.info(f"设备认证成功: code={code[:8]}..., user={user_info.get('username')}")
+    
     return {
         "status": "success",
         "message": "设备认证成功",
+        "code": code,
+        "token": token,
+        "user_info": user_info,
     }
