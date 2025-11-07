@@ -33,6 +33,14 @@ export interface DeviceAuthPollResponse {
   user_info?: UserInfo
 }
 
+export interface GoogleAuthResponse {
+  status: string
+  code: string
+  auth_url: string
+  expires_at: string
+  message: string
+}
+
 export interface ApiResponse {
   status: string
   message: string
@@ -145,13 +153,40 @@ export async function getAuthStatus(): Promise<AuthStatus> {
 
   if (token && userInfo) {
     try {
-      // Always try to refresh token when we have one
-      const newToken = await refreshToken(token)
+      // 尝试刷新token，如果失败则使用原token
+      try {
+        const newToken = await refreshToken(token)
+        // 刷新成功，保存新token
+        localStorage.setItem('jaaz_access_token', newToken)
+        console.log('Token refreshed successfully')
+      } catch (refreshError) {
+        // 刷新失败，检查是否是token过期
+        if (refreshError instanceof Error && refreshError.message === 'TOKEN_EXPIRED') {
+          console.log('Token expired, clearing auth data')
+          localStorage.removeItem('jaaz_access_token')
+          localStorage.removeItem('jaaz_user_info')
 
-      // Save the new token
-      localStorage.setItem('jaaz_access_token', newToken)
-      console.log('Token refreshed successfully')
+          // Clear jaaz provider api_key
+          try {
+            await clearJaazApiKey()
+          } catch (clearError) {
+            console.error('Failed to clear aide api key:', clearError)
+          }
 
+          const loggedOutStatus = {
+            status: 'logged_out' as const,
+            is_logged_in: false,
+            tokenExpired: true,
+          }
+
+          return loggedOutStatus
+        } else {
+          // 网络错误或其他问题，继续使用原token
+          console.log('Token refresh failed (network error), keeping existing token:', refreshError)
+        }
+      }
+
+      // 返回登录状态（使用原token或新token）
       const authStatus = {
         status: 'logged_in' as const,
         is_logged_in: true,
@@ -159,40 +194,16 @@ export async function getAuthStatus(): Promise<AuthStatus> {
       }
       return authStatus
     } catch (error) {
-      console.log('Token refresh failed:', error)
-
-      // Only clear auth data if token is truly expired (401), not for network errors
-      if (error instanceof Error && error.message === 'TOKEN_EXPIRED') {
-        console.log('Token expired, clearing auth data')
-        localStorage.removeItem('jaaz_access_token')
-        localStorage.removeItem('jaaz_user_info')
-
-        // Clear jaaz provider api_key
-        try {
-          await clearJaazApiKey()
-        } catch (clearError) {
-          console.error('Failed to clear aide api key:', clearError)
-        }
-
-        const loggedOutStatus = {
-          status: 'logged_out' as const,
-          is_logged_in: false,
-          tokenExpired: true,
-        }
-
-        return loggedOutStatus
-      } else {
-        // Network error or other issues, keep user logged in with old token
-        console.log(
-          'Network error during token refresh, keeping user logged in with existing token'
-        )
-        const authStatus = {
-          status: 'logged_in' as const,
-          is_logged_in: true,
-          user_info: JSON.parse(userInfo),
-        }
-        return authStatus
+      console.error('Unexpected error in getAuthStatus:', error)
+      // 发生意外错误，返回登出状态
+      localStorage.removeItem('jaaz_access_token')
+      localStorage.removeItem('jaaz_user_info')
+      
+      const loggedOutStatus = {
+        status: 'logged_out' as const,
+        is_logged_in: false,
       }
+      return loggedOutStatus
     }
   }
 
@@ -202,6 +213,58 @@ export async function getAuthStatus(): Promise<AuthStatus> {
   }
   console.log('Returning logged out status:', loggedOutStatus)
   return loggedOutStatus
+}
+
+export async function register(
+  username: string,
+  email: string,
+  password: string
+): Promise<{ token: string; user_info: UserInfo }> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+  
+  try {
+    const response = await fetch(`${BASE_API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: username.trim(),
+        email: email.trim(),
+        password: password,
+      }),
+      signal: controller.signal,
+    })
+    
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: '注册失败' }))
+      throw new Error(errorData.detail || '注册失败，请稍后重试')
+    }
+
+    const data = await response.json()
+    
+    if (data.token && data.user_info) {
+      return {
+        token: data.token,
+        user_info: data.user_info,
+      }
+    }
+    
+    throw new Error('注册响应格式错误')
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`连接失败: 无法连接到 ${BASE_API_URL}。请检查服务器是否运行以及网络连接。`)
+    }
+    
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      throw new Error(`请求超时: 服务器 ${BASE_API_URL} 响应时间过长。请检查网络连接。`)
+    }
+    
+    throw error
+  }
 }
 
 export async function loginWithCredentials(
@@ -263,6 +326,129 @@ export async function loginWithCredentials(
   throw new Error('登录超时，请重试')
 }
 
+export async function startGoogleAuth(): Promise<GoogleAuthResponse> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+  
+  try {
+    const response = await fetch(`${BASE_API_URL}/api/auth/google/start`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    })
+    
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Google 登录启动失败' }))
+      throw new Error(errorData.detail || '无法启动 Google 登录')
+    }
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error(`连接失败: 无法连接到 ${BASE_API_URL}。请检查服务器是否运行以及网络连接。`)
+    }
+    
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      throw new Error(`请求超时: 服务器 ${BASE_API_URL} 响应时间过长。请检查网络连接。`)
+    }
+    
+    throw error
+  }
+}
+
+export async function loginWithGoogle(): Promise<{ token: string; user_info: UserInfo }> {
+  // 启动 Google OAuth 流程
+  const googleAuthResult = await startGoogleAuth()
+  
+  // 打开新窗口进行 Google 认证
+  const authWindow = window.open(
+    googleAuthResult.auth_url,
+    'google_auth',
+    'width=500,height=600,scrollbars=yes,resizable=yes'
+  )
+  
+  if (!authWindow) {
+    throw new Error('无法打开认证窗口，请检查浏览器弹窗设置')
+  }
+  
+  // 监听窗口关闭或消息
+  return new Promise((resolve, reject) => {
+    const checkClosed = setInterval(() => {
+      if (authWindow.closed) {
+        clearInterval(checkClosed)
+        // 窗口已关闭，轮询认证状态
+        pollGoogleAuthStatus(googleAuthResult.code)
+          .then(resolve)
+          .catch(reject)
+      }
+    }, 500)
+    
+    // 监听来自认证窗口的消息
+    const messageHandler = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'google_auth_success') {
+        clearInterval(checkClosed)
+        window.removeEventListener('message', messageHandler)
+        authWindow.close()
+        // 轮询获取 token
+        pollGoogleAuthStatus(googleAuthResult.code)
+          .then(resolve)
+          .catch(reject)
+      }
+    }
+    
+    window.addEventListener('message', messageHandler)
+    
+    // 超时处理
+    setTimeout(() => {
+      clearInterval(checkClosed)
+      window.removeEventListener('message', messageHandler)
+      if (!authWindow.closed) {
+        authWindow.close()
+      }
+      reject(new Error('Google 登录超时，请重试'))
+    }, 300000) // 5分钟超时
+  })
+}
+
+async function pollGoogleAuthStatus(deviceCode: string): Promise<{ token: string; user_info: UserInfo }> {
+  let attempts = 0
+  const maxAttempts = 60 // 最多轮询60次（约1分钟）
+  
+  while (attempts < maxAttempts) {
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 等待1秒
+    
+    try {
+      const pollResult = await pollDeviceAuth(deviceCode)
+      
+      if (pollResult.status === 'authorized' && pollResult.token && pollResult.user_info) {
+        return {
+          token: pollResult.token,
+          user_info: pollResult.user_info,
+        }
+      }
+      
+      if (pollResult.status === 'error' || pollResult.status === 'expired') {
+        throw new Error(pollResult.message || 'Google 认证失败')
+      }
+      
+      attempts++
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('认证失败')) {
+        throw error
+      }
+      // 继续轮询
+      attempts++
+    }
+  }
+  
+  throw new Error('Google 登录超时，请重试')
+}
+
 export async function logout(): Promise<{ status: string; message: string }> {
   // Clear local storage
   localStorage.removeItem('jaaz_access_token')
@@ -321,21 +507,34 @@ export async function authenticatedFetch(
 
 // 刷新token
 export async function refreshToken(currentToken: string) {
+  if (!currentToken) {
+    throw new Error('TOKEN_EXPIRED')
+  }
+  
   const response = await fetch(`${BASE_API_URL}/api/device/refresh-token`, {
     method: 'GET',
     headers: {
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${currentToken}`,
     },
   })
 
   if (response.status === 200) {
     const data = await response.json()
-    return data.new_token
+    if (data.new_token) {
+      console.log('Token刷新成功')
+      return data.new_token
+    } else {
+      throw new Error('TOKEN_EXPIRED')
+    }
   } else if (response.status === 401) {
     // Token 真正过期，需要重新登录
+    console.warn('Token刷新失败: 401 Unauthorized')
     throw new Error('TOKEN_EXPIRED')
   } else {
     // 其他错误（网络错误、服务器错误等），不强制重新登录
+    const errorText = await response.text().catch(() => '')
+    console.warn(`Token刷新失败: ${response.status} ${errorText}`)
     throw new Error(`NETWORK_ERROR: ${response.status}`)
   }
 }

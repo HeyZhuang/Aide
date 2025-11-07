@@ -101,6 +101,24 @@ function CanvasContent() {
     setPsdData(updatedPsdData)
   }
 
+  // 检查登录状态
+  if (!authStatus.is_logged_in) {
+    return (
+      <div className='flex flex-col items-center justify-center h-screen bg-background'>
+        <div className='text-center p-8'>
+          <h2 className='text-2xl font-bold text-destructive mb-4'>需要登录</h2>
+          <p className='text-muted-foreground mb-4'>请先登录以访问画布</p>
+          <button
+            onClick={() => window.location.href = '/'}
+            className='px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90'
+          >
+            返回首页
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // 如果有错误，显示错误信息
   if (error) {
     return (
@@ -108,12 +126,21 @@ function CanvasContent() {
         <div className='text-center p-8'>
           <h2 className='text-2xl font-bold text-destructive mb-4'>加载画布失败</h2>
           <p className='text-muted-foreground mb-4'>{error.message}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className='px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90'
-          >
-            {t('sidebar.reload')}
-          </button>
+          {error.message.includes('无权访问') || error.message.includes('未登录') ? (
+            <button
+              onClick={() => window.location.href = '/'}
+              className='px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90'
+            >
+              返回首页
+            </button>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className='px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90'
+            >
+              {t('sidebar.reload')}
+            </button>
+          )}
         </div>
       </div>
     )

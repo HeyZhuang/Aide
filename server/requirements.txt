@@ -38,3 +38,6 @@ sqlalchemy # For database operations
 google-genai # For Gemini API integration
 langsmith # Fix langchain dependency issue
 numpy # For PSD layer image processing
+google-auth # For Google OAuth authentication
+google-auth-oauthlib # For Google OAuth flow
+google-auth-httplib2 # For Google OAuth HTTP requests

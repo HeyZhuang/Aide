@@ -32,26 +32,35 @@ class AuthService:
         """验证密码"""
         return AuthService._hash_password(password) == password_hash
     
-    async def create_user(self, username: str, email: str, password: str) -> Dict[str, Any]:
+    async def create_user(self, username: str, email: str, password: str, provider: str = "local", google_id: Optional[str] = None, image_url: Optional[str] = None) -> Dict[str, Any]:
         """创建新用户"""
         user_id = str(uuid.uuid4())
-        password_hash = self._hash_password(password)
+        password_hash = self._hash_password(password) if password else ""
         now = datetime.utcnow().isoformat()
         
         async with aiosqlite.connect(db_service.db_path) as db:
             try:
-                await db.execute("""
-                    INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (user_id, username, email, password_hash, now, now))
+                # 构建 SQL 查询，根据是否有 google_id 来决定字段
+                if google_id:
+                    await db.execute("""
+                        INSERT INTO users (id, username, email, password_hash, provider, google_id, image_url, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (user_id, username, email, password_hash, provider, google_id, image_url, now, now))
+                else:
+                    await db.execute("""
+                        INSERT INTO users (id, username, email, password_hash, provider, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (user_id, username, email, password_hash, provider, now, now))
                 await db.commit()
                 
-                logger.info(f"Created user: {username} ({email})")
+                logger.info(f"Created user: {username} ({email}) with provider: {provider}")
                 
                 return {
                     "id": user_id,
                     "username": username,
                     "email": email,
+                    "provider": provider,
+                    "image_url": image_url,
                     "created_at": now,
                 }
             except aiosqlite.IntegrityError as e:
@@ -59,7 +68,121 @@ class AuthService:
                     raise ValueError("用户名已存在")
                 elif "email" in str(e):
                     raise ValueError("邮箱已存在")
+                elif "google_id" in str(e):
+                    raise ValueError("Google账户已关联其他用户")
                 raise
+    
+    async def get_user_by_google_id(self, google_id: str) -> Optional[Dict[str, Any]]:
+        """根据Google ID获取用户信息"""
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("""
+                SELECT id, username, email, image_url, provider, google_id, created_at, updated_at
+                FROM users
+                WHERE google_id = ?
+            """, (google_id,))
+            
+            row = await cursor.fetchone()
+            
+            if not row:
+                return None
+            
+            return {
+                "id": row["id"],
+                "username": row["username"],
+                "email": row["email"],
+                "image_url": row["image_url"],
+                "provider": row.get("provider", "local"),
+                "google_id": row.get("google_id"),
+                "created_at": row["created_at"],
+                "updated_at": row.get("updated_at"),
+            }
+    
+    async def create_or_update_google_user(self, google_id: str, email: str, name: str, picture: Optional[str] = None) -> Dict[str, Any]:
+        """创建或更新Google用户"""
+        # 先检查是否已存在
+        existing_user = await self.get_user_by_google_id(google_id)
+        
+        if existing_user:
+            # 更新用户信息（可能Google账户信息有变化）
+            now = datetime.utcnow().isoformat()
+            async with aiosqlite.connect(db_service.db_path) as db:
+                await db.execute("""
+                    UPDATE users
+                    SET email = ?, image_url = ?, updated_at = ?
+                    WHERE google_id = ?
+                """, (email, picture, now, google_id))
+                await db.commit()
+            
+            logger.info(f"Updated Google user: {email} (google_id: {google_id})")
+            return {
+                "id": existing_user["id"],
+                "username": existing_user["username"],
+                "email": email,
+                "image_url": picture,
+                "provider": "google",
+                "google_id": google_id,
+                "created_at": existing_user["created_at"],
+            }
+        
+        # 检查邮箱是否已被其他账户使用
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("""
+                SELECT id, username, email, provider, google_id
+                FROM users
+                WHERE email = ?
+            """, (email,))
+            
+            existing_email_user = await cursor.fetchone()
+            
+            if existing_email_user:
+                # 如果邮箱已存在但未关联Google，则关联Google ID
+                if not existing_email_user["google_id"]:
+                    now = datetime.utcnow().isoformat()
+                    await db.execute("""
+                        UPDATE users
+                        SET google_id = ?, provider = ?, image_url = ?, updated_at = ?
+                        WHERE email = ?
+                    """, (google_id, "google", picture, now, email))
+                    await db.commit()
+                    
+                    logger.info(f"Linked Google account to existing user: {email}")
+                    return {
+                        "id": existing_email_user["id"],
+                        "username": existing_email_user["username"],
+                        "email": email,
+                        "image_url": picture,
+                        "provider": "google",
+                        "google_id": google_id,
+                    }
+                else:
+                    # 邮箱已关联其他Google账户
+                    raise ValueError("该邮箱已关联其他Google账户")
+        
+        # 创建新用户
+        # 使用邮箱前缀作为用户名，如果冲突则添加随机后缀
+        base_username = email.split("@")[0]
+        username = base_username
+        attempts = 0
+        while attempts < 10:
+            try:
+                return await self.create_user(
+                    username=username,
+                    email=email,
+                    password="",  # Google用户不需要密码
+                    provider="google",
+                    google_id=google_id,
+                    image_url=picture
+                )
+            except ValueError as e:
+                if "用户名已存在" in str(e):
+                    username = f"{base_username}_{secrets.token_hex(4)}"
+                    attempts += 1
+                else:
+                    raise
+        
+        raise ValueError("无法创建用户，请稍后重试")
     
     async def verify_user(self, username_or_email: str, password: str) -> Optional[Dict[str, Any]]:
         """验证用户登录"""
@@ -92,7 +215,7 @@ class AuthService:
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
-                SELECT id, username, email, image_url, created_at, updated_at
+                SELECT id, username, email, image_url, provider, google_id, created_at, updated_at
                 FROM users
                 WHERE id = ?
             """, (user_id,))
@@ -107,8 +230,10 @@ class AuthService:
                 "username": row["username"],
                 "email": row["email"],
                 "image_url": row["image_url"],
+                "provider": row.get("provider", "local"),
+                "google_id": row.get("google_id"),
                 "created_at": row["created_at"],
-                "updated_at": row["updated_at"],
+                "updated_at": row.get("updated_at"),
             }
     
     async def create_device_code(self) -> Dict[str, Any]:
@@ -180,18 +305,24 @@ class AuthService:
         """创建访问token"""
         token = secrets.token_urlsafe(64)
         expires_at = datetime.utcnow() + timedelta(seconds=TOKEN_EXPIRY)
+        created_at = datetime.utcnow()
+        
+        logger.debug(f"创建token: user_id={user_id}, expires_at={expires_at.isoformat()}, token={token[:20]}...")
         
         async with aiosqlite.connect(db_service.db_path) as db:
             await db.execute("""
                 INSERT INTO auth_tokens (token, user_id, expires_at, created_at)
                 VALUES (?, ?, ?, ?)
-            """, (token, user_id, expires_at.isoformat(), datetime.utcnow().isoformat()))
+            """, (token, user_id, expires_at.isoformat(), created_at.isoformat()))
             await db.commit()
         
+        logger.info(f"Token创建成功: user_id={user_id}, token={token[:20]}..., expires_at={expires_at.isoformat()}")
         return token
     
     async def verify_token(self, token: str) -> Optional[Dict[str, Any]]:
         """验证token并返回用户信息"""
+        logger.debug(f"验证token: {token[:20]}...")
+        
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
@@ -204,15 +335,22 @@ class AuthService:
             row = await cursor.fetchone()
             
             if not row:
+                logger.warning(f"Token未找到: {token[:20]}...")
                 return None
             
             expires_at = datetime.fromisoformat(row["expires_at"])
-            if datetime.utcnow() > expires_at:
+            now = datetime.utcnow()
+            
+            logger.debug(f"Token过期时间: {expires_at}, 当前时间: {now}, 是否过期: {now > expires_at}")
+            
+            if now > expires_at:
                 # 过期，删除token
+                logger.warning(f"Token已过期: {token[:20]}..., 过期时间: {expires_at}")
                 await db.execute("DELETE FROM auth_tokens WHERE token = ?", (token,))
                 await db.commit()
                 return None
             
+            logger.debug(f"Token验证成功: user_id={row['user_id']}, username={row['username']}")
             return {
                 "user_id": row["user_id"],
                 "username": row["username"],

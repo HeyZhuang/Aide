@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============ 部署配置 ============
-PROJECT_DIR="/home/ubuntu/cckz/psd-canvas-jaaz"
+PROJECT_DIR="/home/ubuntu/psd-canvas-jaaz"
 SERVER_DIR="$PROJECT_DIR/server"
 REACT_DIR="$PROJECT_DIR/react"
 VENV_DIR="$SERVER_DIR/venv"

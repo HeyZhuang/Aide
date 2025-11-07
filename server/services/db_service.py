@@ -46,38 +46,61 @@ class DatabaseService:
                 # Need to migrate
                 self._migration_manager.migrate(conn, current_version[0], CURRENT_VERSION)
 
-    async def create_canvas(self, id: str, name: str):
-        """Create a new canvas"""
-        logger.debug(f"[DB] 开始创建画布: canvas_id={id}, name={name}")
+    async def create_canvas(self, id: str, name: str, user_id: str):
+        """Create a new canvas associated with a user"""
+        logger.debug(f"[DB] 开始创建画布: canvas_id={id}, name={name}, user_id={user_id}")
         try:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("""
-                    INSERT INTO canvases (id, name)
-                    VALUES (?, ?)
-                """, (id, name))
+                    INSERT INTO canvases (id, name, user_id)
+                    VALUES (?, ?, ?)
+                """, (id, name, user_id))
                 await db.commit()
-            logger.debug(f"[DB] 成功创建画布: canvas_id={id}")
+            logger.debug(f"[DB] 成功创建画布: canvas_id={id}, user_id={user_id}")
         except Exception as e:
-            logger.error(f"[DB] 创建画布失败: canvas_id={id}, name={name}, 错误: {str(e)}", exc_info=True)
+            logger.error(f"[DB] 创建画布失败: canvas_id={id}, name={name}, user_id={user_id}, 错误: {str(e)}", exc_info=True)
             raise
 
-    async def list_canvases(self) -> List[Dict[str, Any]]:
-        """Get all canvases"""
-        logger.debug("[DB] 开始查询画布列表")
+    async def list_canvases(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all canvases for a specific user"""
+        logger.debug(f"[DB] 开始查询画布列表: user_id={user_id}")
         try:
             async with aiosqlite.connect(self.db_path) as db:
                 db.row_factory = sqlite3.Row
                 cursor = await db.execute("""
                     SELECT id, name, description, thumbnail, created_at, updated_at
                     FROM canvases
+                    WHERE user_id = ?
                     ORDER BY updated_at DESC
-                """)
+                """, (user_id,))
                 rows = await cursor.fetchall()
                 result = [dict(row) for row in rows]
-                logger.debug(f"[DB] 成功查询画布列表，返回 {len(result)} 个画布")
+                logger.debug(f"[DB] 成功查询画布列表: user_id={user_id}, 返回 {len(result)} 个画布")
                 return result
         except Exception as e:
-            logger.error(f"[DB] 查询画布列表失败: {str(e)}", exc_info=True)
+            logger.error(f"[DB] 查询画布列表失败: user_id={user_id}, 错误: {str(e)}", exc_info=True)
+            raise
+
+    async def get_canvas_owner(self, canvas_id: str) -> Optional[str]:
+        """Get the owner (user_id) of a canvas"""
+        logger.debug(f"[DB] 开始查询画布所有者: canvas_id={canvas_id}")
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute("""
+                    SELECT user_id
+                    FROM canvases
+                    WHERE id = ?
+                """, (canvas_id,))
+                row = await cursor.fetchone()
+                if row:
+                    user_id = row[0]
+                    logger.debug(f"[DB] 画布所有者: canvas_id={canvas_id}, user_id={user_id}")
+                    return user_id
+                else:
+                    logger.debug(f"[DB] 画布不存在: canvas_id={canvas_id}")
+                    return None
+        except Exception as e:
+            logger.error(f"[DB] 查询画布所有者失败: canvas_id={canvas_id}, 错误: {str(e)}", exc_info=True)
             raise
 
     async def create_chat_session(self, id: str, model: str, provider: str, canvas_id: str, title: Optional[str] = None):
