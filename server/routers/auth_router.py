@@ -9,10 +9,23 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Query, Request
 from starlette.requests import Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel
 from typing import Optional, Dict
 import uuid
 
+from services.auth_service import auth_service
+from utils.logger import get_logger
+
+logger = get_logger("routers.auth_router")
+
 router = APIRouter()
+
+# 请求模型
+class DeviceAuthorizeRequest(BaseModel):
+    """设备授权请求模型"""
+    code: str
+    username: str
+    password: str
 
 # 临时存储设备码和认证状态（生产环境应该使用数据库或 Redis）
 device_codes: Dict[str, dict] = {}
@@ -116,7 +129,7 @@ async def refresh_token(request: Request):
     if not session:
         raise HTTPException(status_code=401, detail="令牌无效或已过期")
     
-    # 生成新 token（实际应用中应该使用 JWT 等更安全的方式）
+    #TODO: 生成新 token（实际应用中应该使用 JWT 等更安全的方式）
     new_token = secrets.token_urlsafe(32)
     session["token"] = new_token
     session["updated_at"] = datetime.now().isoformat()
@@ -305,7 +318,7 @@ async def auth_device_page(code: str = Query(..., description="设备认证码")
 async def authorize_device(request: DeviceAuthorizeRequest):
     """
     确认设备认证
-    通过用户名和密码验证用户身份，授权设备访问
+    通过用户名和密码验证用户身份，授权设备访问，并返回用户数据和token
     """
     code = request.code
     username = request.username
@@ -331,6 +344,7 @@ async def authorize_device(request: DeviceAuthorizeRequest):
     #     raise HTTPException(status_code=401, detail="用户名或密码错误")
     
     # logger.info(f"用户登录成功: {user_info.get('username')}")
+    if not user_info:
         try:
             # 生成默认邮箱（如果用户名不是邮箱格式）
             email = username if "@" in username else f"{username}@example.com"
