@@ -50,7 +50,6 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
-
 # 临时存储设备码和认证状态（生产环境应该使用数据库或 Redis）
 device_codes: Dict[str, dict] = {}
 auth_sessions: Dict[str, dict] = {}
@@ -395,7 +394,7 @@ async def auth_device_page(code: str = Query(..., description="设备认证码")
 async def authorize_device(request: DeviceAuthorizeRequest):
     """
     确认设备认证
-    通过用户名和密码验证用户身份，授权设备访问
+    通过用户名和密码验证用户身份，授权设备访问，并返回用户数据和token
     """
     code = request.code
     username = request.username
@@ -421,6 +420,24 @@ async def authorize_device(request: DeviceAuthorizeRequest):
         raise HTTPException(status_code=401, detail="用户名或密码错误，请先注册账户")
     
     logger.info(f"用户登录成功: {user_info.get('username')}")
+            
+            # 注册新用户
+            user_info = await auth_service.create_user(
+                username=username if "@" not in username else username.split("@")[0],
+                email=email,
+                password=password
+            )
+            logger.info(f"自动注册新用户: {user_info.get('username')}")
+        except ValueError as e:
+            # 如果注册失败（例如用户名已存在但密码错误）
+            logger.warning(f"注册失败: {username}, 错误: {str(e)}")
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        except Exception as e:
+            logger.error(f"注册用户失败: {username}, 错误: {str(e)}")
+            raise HTTPException(status_code=500, detail="注册失败，请稍后重试")
+    else:
+        logger.info(f"用户登录成功: {user_info.get('username')}")
+>>>>>>> 9ff23e8f5b2bb1d9cc9160a27651ae408b7a8b71
     
     # 为用户创建 token
     token = await auth_service.create_token(user_info["id"])
