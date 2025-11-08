@@ -26,7 +26,7 @@ import {
     RefreshCw,
 } from 'lucide-react'
 import { TemplateItem, TemplateCategory } from '@/types/types'
-import { getTemplates, getTemplateCategories } from '@/api/template'
+import { listTemplates } from '@/api/template'
 import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { useCanvas } from '@/contexts/canvas'
 

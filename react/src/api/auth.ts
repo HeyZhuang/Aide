@@ -15,6 +15,7 @@ export interface UserInfo {
   email: string
   image_url?: string
   provider?: string
+  role?: string
   created_at?: string
   updated_at?: string
 }

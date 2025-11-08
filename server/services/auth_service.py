@@ -32,7 +32,7 @@ class AuthService:
         """验证密码"""
         return AuthService._hash_password(password) == password_hash
     
-    async def create_user(self, username: str, email: str, password: str, provider: str = "local", google_id: Optional[str] = None, image_url: Optional[str] = None) -> Dict[str, Any]:
+    async def create_user(self, username: str, email: str, password: str, provider: str = "local", google_id: Optional[str] = None, image_url: Optional[str] = None, role: str = "user") -> Dict[str, Any]:
         """创建新用户"""
         user_id = str(uuid.uuid4())
         password_hash = self._hash_password(password) if password else ""
@@ -43,14 +43,14 @@ class AuthService:
                 # 构建 SQL 查询，根据是否有 google_id 来决定字段
                 if google_id:
                     await db.execute("""
-                        INSERT INTO users (id, username, email, password_hash, provider, google_id, image_url, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (user_id, username, email, password_hash, provider, google_id, image_url, now, now))
+                        INSERT INTO users (id, username, email, password_hash, provider, google_id, image_url, role, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (user_id, username, email, password_hash, provider, google_id, image_url, role, now, now))
                 else:
                     await db.execute("""
-                        INSERT INTO users (id, username, email, password_hash, provider, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (user_id, username, email, password_hash, provider, now, now))
+                        INSERT INTO users (id, username, email, password_hash, provider, role, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (user_id, username, email, password_hash, provider, role, now, now))
                 await db.commit()
                 
                 logger.info(f"Created user: {username} ({email}) with provider: {provider}")
@@ -61,6 +61,7 @@ class AuthService:
                     "email": email,
                     "provider": provider,
                     "image_url": image_url,
+                    "role": role,
                     "created_at": now,
                 }
             except aiosqlite.IntegrityError as e:
@@ -77,7 +78,7 @@ class AuthService:
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
-                SELECT id, username, email, image_url, provider, google_id, created_at, updated_at
+                SELECT id, username, email, image_url, provider, google_id, role, created_at, updated_at
                 FROM users
                 WHERE google_id = ?
             """, (google_id,))
@@ -87,15 +88,18 @@ class AuthService:
             if not row:
                 return None
             
+            # sqlite3.Row 不支持 .get() 方法，需要检查键是否存在
+            row_keys = row.keys()
             return {
                 "id": row["id"],
                 "username": row["username"],
                 "email": row["email"],
-                "image_url": row["image_url"],
-                "provider": row.get("provider", "local"),
-                "google_id": row.get("google_id"),
+                "image_url": row["image_url"] if row["image_url"] else None,
+                "provider": row["provider"] if "provider" in row_keys else "local",
+                "google_id": row["google_id"] if "google_id" in row_keys and row["google_id"] else None,
+                "role": row["role"] if "role" in row_keys else "user",
                 "created_at": row["created_at"],
-                "updated_at": row.get("updated_at"),
+                "updated_at": row["updated_at"] if "updated_at" in row_keys else None,
             }
     
     async def create_or_update_google_user(self, google_id: str, email: str, name: str, picture: Optional[str] = None) -> Dict[str, Any]:
@@ -115,6 +119,7 @@ class AuthService:
                 await db.commit()
             
             logger.info(f"Updated Google user: {email} (google_id: {google_id})")
+            # existing_user 是字典，可以使用 .get() 方法
             return {
                 "id": existing_user["id"],
                 "username": existing_user["username"],
@@ -122,6 +127,7 @@ class AuthService:
                 "image_url": picture,
                 "provider": "google",
                 "google_id": google_id,
+                "role": existing_user.get("role", "user") if isinstance(existing_user, dict) else "user",
                 "created_at": existing_user["created_at"],
             }
         
@@ -189,7 +195,7 @@ class AuthService:
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
-                SELECT id, username, email, password_hash, image_url, created_at
+                SELECT id, username, email, password_hash, image_url, role, created_at
                 FROM users
                 WHERE username = ? OR email = ?
             """, (username_or_email, username_or_email))
@@ -202,11 +208,14 @@ class AuthService:
             if not self._verify_password(password, row["password_hash"]):
                 return None
             
+            # sqlite3.Row 不支持 .get() 方法，需要检查键是否存在
+            row_keys = row.keys()
             return {
                 "id": row["id"],
                 "username": row["username"],
                 "email": row["email"],
-                "image_url": row["image_url"],
+                "image_url": row["image_url"] if row["image_url"] else None,
+                "role": row["role"] if "role" in row_keys else "user",
                 "created_at": row["created_at"],
             }
     
@@ -225,15 +234,18 @@ class AuthService:
             if not row:
                 return None
             
+            # sqlite3.Row 不支持 .get() 方法，需要检查键是否存在
+            row_keys = row.keys()
             return {
                 "id": row["id"],
                 "username": row["username"],
                 "email": row["email"],
-                "image_url": row["image_url"],
-                "provider": row.get("provider", "local"),
-                "google_id": row.get("google_id"),
+                "image_url": row["image_url"] if row["image_url"] else None,
+                "provider": row["provider"] if "provider" in row_keys else "local",
+                "google_id": row["google_id"] if "google_id" in row_keys and row["google_id"] else None,
+                "role": row["role"] if "role" in row_keys else "user",
                 "created_at": row["created_at"],
-                "updated_at": row.get("updated_at"),
+                "updated_at": row["updated_at"] if "updated_at" in row_keys else None,
             }
     
     async def create_device_code(self) -> Dict[str, Any]:
@@ -326,7 +338,7 @@ class AuthService:
         async with aiosqlite.connect(db_service.db_path) as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute("""
-                SELECT t.token, t.user_id, t.expires_at, u.username, u.email, u.image_url
+                SELECT t.token, t.user_id, t.expires_at, u.username, u.email, u.image_url, u.role
                 FROM auth_tokens t
                 JOIN users u ON t.user_id = u.id
                 WHERE t.token = ?
@@ -350,12 +362,16 @@ class AuthService:
                 await db.commit()
                 return None
             
-            logger.debug(f"Token验证成功: user_id={row['user_id']}, username={row['username']}")
+            # sqlite3.Row 不支持 .get() 方法，需要检查键是否存在
+            row_keys = row.keys()
+            role = row["role"] if "role" in row_keys else "user"
+            logger.debug(f"Token验证成功: user_id={row['user_id']}, username={row['username']}, role={role}")
             return {
                 "user_id": row["user_id"],
                 "username": row["username"],
                 "email": row["email"],
-                "image_url": row["image_url"],
+                "image_url": row["image_url"] if row["image_url"] else None,
+                "role": role,
             }
     
     async def refresh_token(self, old_token: str) -> Optional[str]:

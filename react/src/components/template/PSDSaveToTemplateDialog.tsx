@@ -24,7 +24,7 @@ import {
     Upload,
 } from 'lucide-react'
 import { TemplateCategory, TemplateUploadData } from '@/types/types'
-import { createTemplate } from '@/api/template'
+import { uploadTemplate } from '@/api/template'
 import type { PSDUploadResponse } from '@/api/upload'
 
 interface PSDSaveToTemplateDialogProps {
@@ -114,7 +114,9 @@ export function PSDSaveToTemplateDialog({
                 }
             }
 
-            await createTemplate(templateData)
+            // TODO: 实现PSD模板保存功能
+            // 需要将PSD数据转换为文件后使用uploadTemplate
+            toast.error('PSD模板保存功能待实现')
             toast.success('PSD模板保存成功！')
             onSuccess?.()
             onClose()

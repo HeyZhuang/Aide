@@ -29,7 +29,8 @@ import {
 import { TemplateManager } from './TemplateManager'
 import { TemplateToolbarManager } from './TemplateToolbarManager'
 import { TemplateItem } from '@/types/types'
-import { getTemplates, incrementTemplateUsage } from '@/api/template'
+import { listTemplates } from '@/api/template'
+// import { incrementTemplateUsage } from '@/api/template' // TODO: 实现使用统计功能
 import { useCanvas } from '@/contexts/canvas'
 
 interface TemplateButtonProps {
@@ -87,7 +88,7 @@ export function TemplateButton({ onApplyTemplate, className }: TemplateButtonPro
     // 加载最近使用的模板
     const loadRecentTemplates = async () => {
         try {
-            const templates = await getTemplates({ is_favorite: true })
+            const templates = await listTemplates() // TODO: 实现收藏功能
             setRecentTemplates(templates.slice(0, 5)) // 只显示前5个
         } catch (error) {
             console.error('Failed to load recent templates:', error)
@@ -97,7 +98,7 @@ export function TemplateButton({ onApplyTemplate, className }: TemplateButtonPro
     // 应用模板
     const handleApplyTemplate = async (template: TemplateItem) => {
         try {
-            await incrementTemplateUsage(template.id)
+            await // incrementTemplateUsage(template.id)
             onApplyTemplate?.(template)
             toast.success(`模板 "${template.name}" 已应用`)
         } catch (error) {

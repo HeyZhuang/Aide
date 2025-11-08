@@ -94,8 +94,8 @@ app.include_router(chat_router.router)
 app.include_router(tool_confirmation.router)
 # 注意：template_router已经在root_router中包含，不需要再次包含
 
-# 为模板路由器添加前缀
-app.include_router(template_router.router, prefix="/api/templates")
+# 包含模板路由器（路由已在router中定义）
+app.include_router(template_router.router)
 
 # 包含认证路由器
 if auth_router:

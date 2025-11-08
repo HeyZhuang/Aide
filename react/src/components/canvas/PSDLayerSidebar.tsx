@@ -46,7 +46,7 @@ import {
 } from '@/api/upload'
 import { useCanvas } from '@/contexts/canvas'
 import { TemplateManager } from '@/components/template/TemplateManager'
-import { createTemplateFromPSDLayer } from '@/api/template'
+// import { createTemplateFromPSDLayer } from '@/api/template' // TODO: 实现从PSD图层创建模板
 import { FontUploadDialog } from '@/components/font/FontUploadDialog'
 import { getFonts, getFontCategories, type FontItem, type FontCategory, searchFonts } from '@/api/font'
 import { toast } from 'sonner'

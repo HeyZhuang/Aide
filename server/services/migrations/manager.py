@@ -6,10 +6,12 @@ from services.migrations.v3_add_comfy_workflow import V3AddComfyWorkflow
 from services.migrations.v4_add_users import V4AddUsers
 from services.migrations.v5_add_google_auth import V5AddGoogleAuth
 from services.migrations.v6_add_user_id_to_canvases import V6AddUserIdToCanvases
+from services.migrations.v7_add_user_role import V7AddUserRole
+# from services.migrations.v8_create_templates_table import V8CreateTemplatesTable  # 文件已删除，暂时注释
 from . import Migration
 
 # Database version
-CURRENT_VERSION = 6
+CURRENT_VERSION = 7  # 暂时降回7，因为v8迁移文件已删除
 
 ALL_MIGRATIONS = [
     {
@@ -36,6 +38,14 @@ ALL_MIGRATIONS = [
         'version': 6,
         'migration': V6AddUserIdToCanvases,
     },
+    {
+        'version': 7,
+        'migration': V7AddUserRole,
+    },
+    # {
+    #     'version': 8,
+    #     'migration': V8CreateTemplatesTable,  # 暂时注释
+    # },
 ]
 class MigrationManager:
     def get_migrations_to_apply(self, current_version: int, target_version: int) -> List[Type[Migration]]:

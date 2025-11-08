@@ -35,6 +35,8 @@ import {
   LogOut,
   Copy,
   ExternalLink,
+  Shield,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import i18n from '@/i18n'
@@ -215,6 +217,16 @@ function Home() {
               {authStatus.is_logged_in && (
                 <>
                   <div className={cn('my-1 h-px', isDark ? 'bg-gray-800' : 'bg-gray-200')} />
+                  {/* 管理员面板已移除 */}
+                  {/* {authStatus.user_info?.role === 'admin' && (
+                    <DropdownMenuItem
+                      onClick={() => navigate({ to: '/admin' })}
+                      className="cursor-pointer"
+                    >
+                      <Shield className="mr-2 h-4 w-4" />
+                      <span>管理员面板</span>
+                    </DropdownMenuItem>
+                  )} */}
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className={cn(
@@ -470,7 +482,52 @@ function Home() {
             )}
 
             {/* 显示项目列表（Projects标签时） */}
-            {activeTab === 'projects' && <CanvasList />}
+            {activeTab === 'projects' && (
+              <div className="space-y-4">
+                {/* 新建项目按钮 */}
+                <div className="px-4 pb-2">
+                  <Button
+                    onClick={() => {
+                      const newCanvasId = nanoid()
+                      createCanvasMutation({
+                        name: `新项目 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+                        canvas_id: newCanvasId,
+                        messages: [],
+                        session_id: nanoid(),
+                        text_model: configs.textModel,
+                        tool_list: configs.toolList,
+                        system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
+                      })
+                    }}
+                    disabled={isPending}
+                    className="w-full h-12 text-base font-semibold relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
+                    style={{
+                      background: 'linear-gradient(135deg, #007AFF 0%, #0051D5 100%)',
+                      color: '#ffffff',
+                      boxShadow: '0 4px 16px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+                      {isPending ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin text-white" />
+                          <span className="text-white">创建中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5 text-white" />
+                          <span className="text-white">新建项目</span>
+                        </>
+                      )}
+                    </span>
+                    {!isPending && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                    )}
+                  </Button>
+                </div>
+                <CanvasList />
+              </div>
+            )}
 
             {/* 其他标签页内容留空（可扩展） */}
             {activeTab === 'recents' && (

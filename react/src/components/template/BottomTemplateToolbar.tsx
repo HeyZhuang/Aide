@@ -42,7 +42,7 @@ import {
     Palette,
 } from 'lucide-react'
 import { TemplateItem, TemplateCategory } from '@/types/types'
-import { getTemplates, getTemplateCategories } from '@/api/template'
+import { listTemplates } from '@/api/template'
 import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { useCanvas } from '@/contexts/canvas'
 
@@ -71,12 +71,9 @@ export function BottomTemplateToolbar({
     const loadData = useCallback(async () => {
         setLoading(true)
         try {
-            const [templatesData, categoriesData] = await Promise.all([
-                getTemplates({}),
-                getTemplateCategories(),
-            ])
+            const templatesData = await listTemplates()
             setTemplates(templatesData)
-            setCategories(categoriesData)
+            setCategories([]) // TODO: 实现分类功能
         } catch (error) {
             console.error('Failed to load template data:', error)
         } finally {

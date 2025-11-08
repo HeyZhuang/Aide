@@ -420,24 +420,6 @@ async def authorize_device(request: DeviceAuthorizeRequest):
         raise HTTPException(status_code=401, detail="用户名或密码错误，请先注册账户")
     
     logger.info(f"用户登录成功: {user_info.get('username')}")
-            
-            # 注册新用户
-            user_info = await auth_service.create_user(
-                username=username if "@" not in username else username.split("@")[0],
-                email=email,
-                password=password
-            )
-            logger.info(f"自动注册新用户: {user_info.get('username')}")
-        except ValueError as e:
-            # 如果注册失败（例如用户名已存在但密码错误）
-            logger.warning(f"注册失败: {username}, 错误: {str(e)}")
-            raise HTTPException(status_code=401, detail="用户名或密码错误")
-        except Exception as e:
-            logger.error(f"注册用户失败: {username}, 错误: {str(e)}")
-            raise HTTPException(status_code=500, detail="注册失败，请稍后重试")
-    else:
-        logger.info(f"用户登录成功: {user_info.get('username')}")
->>>>>>> 9ff23e8f5b2bb1d9cc9160a27651ae408b7a8b71
     
     # 为用户创建 token
     token = await auth_service.create_token(user_info["id"])

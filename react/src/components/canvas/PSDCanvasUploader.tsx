@@ -8,7 +8,7 @@ import { useCanvas } from '@/contexts/canvas'
 import { ExcalidrawImageElement } from '@excalidraw/excalidraw/element/types'
 import { BinaryFileData } from '@excalidraw/excalidraw/types'
 import { PSDSaveToTemplateDialog } from '../template/PSDSaveToTemplateDialog'
-import { getTemplateCategories } from '@/api/template'
+// import { getTemplateCategories } from '@/api/template' // TODO: 实现分类功能
 import type { TemplateCategory } from '@/types/types'
 
 interface PSDCanvasUploaderProps {
