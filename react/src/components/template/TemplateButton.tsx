@@ -89,7 +89,27 @@ export function TemplateButton({ onApplyTemplate, className }: TemplateButtonPro
     const loadRecentTemplates = async () => {
         try {
             const templates = await listTemplates() // TODO: 实现收藏功能
-            setRecentTemplates(templates.slice(0, 5)) // 只显示前5个
+            // 将 Template[] 转换为 TemplateItem[]
+            const templateItems: TemplateItem[] = templates.slice(0, 5).map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                category_id: t.category || '',
+                type: 'psd_file' as const,
+                thumbnail_url: t.thumbnail_path,
+                metadata: {
+                    original_filename: t.file_path,
+                    file_type: t.file_type,
+                },
+                tags: t.tags ? t.tags.split(',').map(tag => tag.trim()) : [],
+                usage_count: 0,
+                is_favorite: false,
+                is_public: false,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+                created_by: t.created_by,
+            }))
+            setRecentTemplates(templateItems)
         } catch (error) {
             console.error('Failed to load recent templates:', error)
         }
@@ -99,7 +119,7 @@ export function TemplateButton({ onApplyTemplate, className }: TemplateButtonPro
     const handleApplyTemplate = async (template: TemplateItem) => {
         try {
             await // incrementTemplateUsage(template.id)
-            onApplyTemplate?.(template)
+                onApplyTemplate?.(template)
             toast.success(`模板 "${template.name}" 已应用`)
         } catch (error) {
             console.error('Failed to apply template:', error)

@@ -219,7 +219,8 @@ export async function getAuthStatus(): Promise<AuthStatus> {
 export async function register(
   username: string,
   email: string,
-  password: string
+  password: string,
+  role: 'admin' | 'editor' | 'viewer' = 'viewer'
 ): Promise<{ token: string; user_info: UserInfo }> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
@@ -232,6 +233,7 @@ export async function register(
         username: username.trim(),
         email: email.trim(),
         password: password,
+        role: role,
       }),
       signal: controller.signal,
     })
@@ -270,7 +272,8 @@ export async function register(
 
 export async function loginWithCredentials(
   username: string,
-  password: string
+  password: string,
+  role: 'admin' | 'editor' | 'viewer' = 'viewer'
 ): Promise<{ token: string; user_info: UserInfo }> {
   // 创建设备码
   const deviceAuthResult = await startDeviceAuth()
@@ -283,6 +286,7 @@ export async function loginWithCredentials(
       code: deviceAuthResult.code,
       username: username,
       password: password,
+      role: role,
     }),
   })
 

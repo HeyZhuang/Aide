@@ -20,6 +20,18 @@ user_data/
 .continue
 
 .env
+config.env
 config.envtemplate/
 *.psd
 logs/
+
+# SSL certificates and private keys
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+prototype.atcommgroup.com_*/
+**/privkey.key
+**/fullchain.pem
+**/password.txt

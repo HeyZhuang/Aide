@@ -96,17 +96,17 @@ export async function getCanvas(
   try {
     const token = getAccessToken()
     
-    if (!token) {
-      console.warn('未找到访问令牌，无法访问画布')
-      throw new Error('未登录，无法访问画布，请先登录')
-    }
-    
+    // 未登录用户也可以查看画布（只读模式）
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     }
-
-    console.log(`请求画布 ${id}，使用token: ${token.substring(0, 20)}...`)
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+      console.log(`请求画布 ${id}，使用token: ${token.substring(0, 20)}...`)
+    } else {
+      console.log(`请求画布 ${id}，未登录用户（只读模式）`)
+    }
 
     const response = await fetch(`/api/canvas/${id}`, {
       headers,

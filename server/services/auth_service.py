@@ -32,7 +32,7 @@ class AuthService:
         """验证密码"""
         return AuthService._hash_password(password) == password_hash
     
-    async def create_user(self, username: str, email: str, password: str, provider: str = "local", google_id: Optional[str] = None, image_url: Optional[str] = None, role: str = "user") -> Dict[str, Any]:
+    async def create_user(self, username: str, email: str, password: str, provider: str = "local", google_id: Optional[str] = None, image_url: Optional[str] = None, role: str = "viewer") -> Dict[str, Any]:
         """创建新用户"""
         user_id = str(uuid.uuid4())
         password_hash = self._hash_password(password) if password else ""

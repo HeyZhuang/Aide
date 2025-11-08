@@ -5,11 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { startDeviceAuth, pollDeviceAuth, saveAuthData, loginWithCredentials, loginWithGoogle, register } from '../../api/auth'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { updateJaazApiKey } from '../../api/config'
 import { useAuth } from '../../contexts/AuthContext'
 import { useConfigs, useRefreshModels } from '../../contexts/configs'
-import { Loader2, CheckCircle2, XCircle, LogIn, Sparkles } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, LogIn, Sparkles, Shield, Edit, Eye } from 'lucide-react'
 import { LOGO_URL } from '../../constants'
+import { useNavigate } from '@tanstack/react-router'
 
 export function LoginDialog() {
   const [authMessage, setAuthMessage] = useState('')
@@ -19,11 +21,12 @@ export function LoginDialog() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRegisterMode, setIsRegisterMode] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin' | 'guest' | null>(null)
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'editor' | 'viewer'>('viewer')
   const { refreshAuth } = useAuth()
   const { showLoginDialog: open, setShowLoginDialog } = useConfigs()
   const refreshModels = useRefreshModels()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Clean up polling when dialog closes
@@ -36,7 +39,7 @@ export function LoginDialog() {
       setConfirmPassword('')
       setIsSubmitting(false)
       setIsRegisterMode(false)
-      setSelectedRole(null)
+      setSelectedRole('viewer')
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
@@ -109,7 +112,7 @@ export function LoginDialog() {
         }
       } catch (error) {
         console.error('Polling error:', error)
-        
+
         // 提供更详细的错误信息
         let errorMessage = t('common:auth.pollErrorMessage')
         if (error instanceof Error) {
@@ -121,7 +124,7 @@ export function LoginDialog() {
             errorMessage = `${errorMessage}: ${error.message}`
           }
         }
-        
+
         setAuthMessage(errorMessage)
         if (pollingIntervalRef.current) {
           clearInterval(pollingIntervalRef.current)
@@ -139,40 +142,59 @@ export function LoginDialog() {
     if (e) {
       e.preventDefault()
     }
-    
+
     if (!username.trim() || !password.trim()) {
       setAuthMessage('请输入用户名和密码')
       return
     }
-    
+
+    if (!selectedRole) {
+      setAuthMessage('请选择登录角色')
+      return
+    }
+
     try {
       setIsSubmitting(true)
       setAuthMessage('正在登录...')
 
-      const result = await loginWithCredentials(username.trim(), password)
-      
-      // 保存认证数据
-      saveAuthData(result.token, result.user_info)
-      
+      const result = await loginWithCredentials(username.trim(), password, selectedRole)
+
+      // 保存认证数据（包含角色信息）
+      const userInfoWithRole = {
+        ...result.user_info,
+        role: selectedRole
+      }
+      saveAuthData(result.token, userInfoWithRole)
+
       // Update jaaz provider api_key with the access token
       await updateJaazApiKey(result.token)
-      
+
       setAuthMessage(t('common:auth.loginSuccessMessage'))
-      
+
       try {
         await refreshAuth()
         console.log('Auth status refreshed successfully')
         // Refresh models list after successful login and config update
         refreshModels()
+
+        // 根据角色跳转到不同页面
+        setTimeout(() => {
+          setShowLoginDialog(false)
+          if (selectedRole === 'admin') {
+            navigate({ to: '/admin/dashboard' })
+          } else {
+            // Editor 和 Viewer 都跳转到模板库
+            navigate({ to: '/' })
+          }
+        }, 1500)
       } catch (error) {
         console.error('Failed to refresh auth status:', error)
+        setTimeout(() => setShowLoginDialog(false), 1500)
       }
-
-      setTimeout(() => setShowLoginDialog(false), 1500)
 
     } catch (error) {
       console.error('登录失败:', error)
-      
+
       // 提供更详细的错误信息
       let errorMessage = t('common:auth.loginRequestFailed')
       if (error instanceof Error) {
@@ -186,7 +208,7 @@ export function LoginDialog() {
           errorMessage = error.message || errorMessage
         }
       }
-      
+
       setAuthMessage(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -197,56 +219,69 @@ export function LoginDialog() {
     if (e) {
       e.preventDefault()
     }
-    
+
     // 验证输入
     if (!username.trim() || username.trim().length < 3) {
       setAuthMessage('用户名至少需要3个字符')
       return
     }
-    
+
     if (!email.trim() || !email.includes('@')) {
       setAuthMessage('请输入有效的邮箱地址')
       return
     }
-    
+
     if (!password.trim() || password.length < 6) {
       setAuthMessage('密码至少需要6个字符')
       return
     }
-    
+
     if (password !== confirmPassword) {
       setAuthMessage('两次输入的密码不一致')
       return
     }
-    
+
     try {
       setIsSubmitting(true)
       setAuthMessage('正在注册...')
 
-      const result = await register(username.trim(), email.trim(), password)
-      
-      // 保存认证数据
-      saveAuthData(result.token, result.user_info)
-      
+      const result = await register(username.trim(), email.trim(), password, selectedRole)
+
+      // 保存认证数据（包含角色信息）
+      const userInfoWithRole = {
+        ...result.user_info,
+        role: selectedRole
+      }
+      saveAuthData(result.token, userInfoWithRole)
+
       // Update jaaz provider api_key with the access token
       await updateJaazApiKey(result.token)
-      
+
       setAuthMessage('注册成功！正在登录...')
-      
+
       try {
         await refreshAuth()
         console.log('Auth status refreshed successfully')
         // Refresh models list after successful registration and config update
         refreshModels()
+
+        // 根据角色跳转到不同页面
+        setTimeout(() => {
+          setShowLoginDialog(false)
+          if (selectedRole === 'admin') {
+            navigate({ to: '/admin/dashboard' })
+          } else {
+            navigate({ to: '/' })
+          }
+        }, 1500)
       } catch (error) {
         console.error('Failed to refresh auth status:', error)
+        setTimeout(() => setShowLoginDialog(false), 1500)
       }
-
-      setTimeout(() => setShowLoginDialog(false), 1500)
 
     } catch (error) {
       console.error('注册失败:', error)
-      
+
       // 提供更详细的错误信息
       let errorMessage = '注册失败，请稍后重试'
       if (error instanceof Error) {
@@ -260,7 +295,7 @@ export function LoginDialog() {
           errorMessage = error.message || errorMessage
         }
       }
-      
+
       setAuthMessage(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -273,15 +308,15 @@ export function LoginDialog() {
       setAuthMessage('正在启动 Google 登录...')
 
       const result = await loginWithGoogle()
-      
+
       // 保存认证数据
       saveAuthData(result.token, result.user_info)
-      
+
       // Update jaaz provider api_key with the access token
       await updateJaazApiKey(result.token)
-      
+
       setAuthMessage(t('common:auth.loginSuccessMessage') || '登录成功')
-      
+
       try {
         await refreshAuth()
         console.log('Auth status refreshed successfully')
@@ -295,7 +330,7 @@ export function LoginDialog() {
 
     } catch (error) {
       console.error('Google 登录失败:', error)
-      
+
       // 提供更详细的错误信息
       let errorMessage = 'Google 登录失败'
       if (error instanceof Error) {
@@ -309,7 +344,7 @@ export function LoginDialog() {
           errorMessage = error.message || errorMessage
         }
       }
-      
+
       setAuthMessage(errorMessage)
     } finally {
       setIsSubmitting(false)
@@ -333,7 +368,7 @@ export function LoginDialog() {
   return (
     <Dialog open={open} onOpenChange={setShowLoginDialog}>
       <DialogContent className="sm:max-w-md overflow-hidden p-0 border-0 bg-transparent shadow-2xl max-h-[85vh] overflow-y-auto">
-        <div 
+        <div
           className="relative rounded-3xl overflow-hidden"
           style={{
             background: 'rgba(255, 255, 255, 0.9)',
@@ -347,14 +382,14 @@ export function LoginDialog() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none"></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
-          
+
           <div className="relative p-6">
             <DialogHeader className="text-center space-y-4 pb-3">
               {/* Logo 和标题区域 */}
               <div className="flex flex-col items-center gap-3">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-purple-500/20 to-primary/10 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                  <div 
+                  <div
                     className="relative p-4 rounded-2xl border transition-all duration-300 group-hover:scale-105"
                     style={{
                       background: 'rgba(255, 255, 255, 0.6)',
@@ -364,9 +399,9 @@ export function LoginDialog() {
                       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
                     }}
                   >
-                    <img 
-                      src={LOGO_URL} 
-                      alt="Aide Logo" 
+                    <img
+                      src={LOGO_URL}
+                      alt="Aide Logo"
                       className="w-16 h-16 object-contain"
                     />
                   </div>
@@ -386,135 +421,6 @@ export function LoginDialog() {
                   <DialogDescription className="text-xs text-muted-foreground/80 max-w-sm mx-auto">
                     {isRegisterMode ? '创建新账户以开始使用' : t('common:auth.loginDescription')}
                   </DialogDescription>
-                  {/* 用户角色说明 - 紧凑且可点击 */}
-                  {!isRegisterMode && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-semibold text-foreground/70 text-center mb-2">选择您的身份类型</p>
-                      <div className="flex flex-col gap-2">
-                        {/* 注册用户卡片 */}
-                        <div 
-                          onClick={() => setSelectedRole(selectedRole === 'user' ? null : 'user')}
-                          className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 cursor-pointer active:scale-[0.98] ${
-                            selectedRole === 'user' ? 'ring-2 ring-purple-500/50 ring-offset-2' : ''
-                          }`}
-                          style={{
-                            background: selectedRole === 'user' 
-                              ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(168, 85, 247, 0.15) 100%)'
-                              : 'linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(168, 85, 247, 0.1) 100%)',
-                            backdropFilter: 'blur(12px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                            border: selectedRole === 'user' 
-                              ? '1.5px solid rgba(139, 92, 246, 0.5)'
-                              : '1.5px solid rgba(139, 92, 246, 0.3)',
-                            boxShadow: selectedRole === 'user'
-                              ? '0 4px 16px rgba(139, 92, 246, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
-                              : '0 4px 16px rgba(139, 92, 246, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
-                          }}
-                        >
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center border border-purple-400/30 transition-transform duration-300 ${
-                            selectedRole === 'user' ? 'scale-110' : ''
-                          }`}>
-                            <span className="text-lg">👤</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-bold mb-0.5 transition-colors duration-300 ${
-                              selectedRole === 'user' 
-                                ? 'text-purple-800 dark:text-purple-200' 
-                                : 'text-purple-700 dark:text-purple-300'
-                            }`}>注册用户</p>
-                            <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70 leading-tight">可浏览模板、下载和使用</p>
-                          </div>
-                          {selectedRole === 'user' && (
-                            <div className="flex-shrink-0 w-4 h-4 rounded-full bg-purple-500 border-2 border-white dark:border-gray-800"></div>
-                          )}
-                          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
-                        
-                        {/* 管理员卡片 */}
-                        <div 
-                          onClick={() => setSelectedRole(selectedRole === 'admin' ? null : 'admin')}
-                          className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 cursor-pointer active:scale-[0.98] ${
-                            selectedRole === 'admin' ? 'ring-2 ring-blue-500/50 ring-offset-2' : ''
-                          }`}
-                          style={{
-                            background: selectedRole === 'admin' 
-                              ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(37, 99, 235, 0.15) 100%)'
-                              : 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.1) 100%)',
-                            backdropFilter: 'blur(12px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                            border: selectedRole === 'admin' 
-                              ? '1.5px solid rgba(59, 130, 246, 0.5)'
-                              : '1.5px solid rgba(59, 130, 246, 0.3)',
-                            boxShadow: selectedRole === 'admin'
-                              ? '0 4px 16px rgba(59, 130, 246, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
-                              : '0 4px 16px rgba(59, 130, 246, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
-                          }}
-                        >
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center border border-blue-400/30 transition-transform duration-300 ${
-                            selectedRole === 'admin' ? 'scale-110' : ''
-                          }`}>
-                            <span className="text-lg">🛡️</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-bold mb-0.5 transition-colors duration-300 ${
-                              selectedRole === 'admin' 
-                                ? 'text-blue-800 dark:text-blue-200' 
-                                : 'text-blue-700 dark:text-blue-300'
-                            }`}>管理员</p>
-                            <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 leading-tight">可上传、删除模板，管理所有功能</p>
-                          </div>
-                          {selectedRole === 'admin' && (
-                            <div className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-500 border-2 border-white dark:border-gray-800"></div>
-                          )}
-                          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
-                        
-                        {/* 游客卡片 */}
-                        <div 
-                          onClick={() => {
-                            setSelectedRole(selectedRole === 'guest' ? null : 'guest')
-                            if (selectedRole !== 'guest') {
-                              setTimeout(() => setShowLoginDialog(false), 300)
-                            }
-                          }}
-                          className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 cursor-pointer active:scale-[0.98] ${
-                            selectedRole === 'guest' ? 'ring-2 ring-gray-500/50 ring-offset-2' : ''
-                          }`}
-                          style={{
-                            background: selectedRole === 'guest' 
-                              ? 'linear-gradient(135deg, rgba(107, 114, 128, 0.25) 0%, rgba(75, 85, 99, 0.15) 100%)'
-                              : 'linear-gradient(135deg, rgba(107, 114, 128, 0.15) 0%, rgba(75, 85, 99, 0.1) 100%)',
-                            backdropFilter: 'blur(12px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                            border: selectedRole === 'guest' 
-                              ? '1.5px solid rgba(107, 114, 128, 0.5)'
-                              : '1.5px solid rgba(107, 114, 128, 0.3)',
-                            boxShadow: selectedRole === 'guest'
-                              ? '0 4px 16px rgba(107, 114, 128, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
-                              : '0 4px 16px rgba(107, 114, 128, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
-                          }}
-                        >
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center border border-gray-400/30 transition-transform duration-300 ${
-                            selectedRole === 'guest' ? 'scale-110' : ''
-                          }`}>
-                            <span className="text-lg">👁️</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-xs font-bold mb-0.5 transition-colors duration-300 ${
-                              selectedRole === 'guest' 
-                                ? 'text-gray-800 dark:text-gray-200' 
-                                : 'text-gray-700 dark:text-gray-300'
-                            }`}>游客</p>
-                            <p className="text-[10px] text-gray-600/70 dark:text-gray-400/70 leading-tight">仅可查看模板缩略图，功能受限</p>
-                          </div>
-                          {selectedRole === 'guest' && (
-                            <div className="flex-shrink-0 w-4 h-4 rounded-full bg-gray-500 border-2 border-white dark:border-gray-800"></div>
-                          )}
-                          <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </DialogHeader>
@@ -522,14 +428,13 @@ export function LoginDialog() {
             <div className="space-y-4 pt-2 px-6 pb-6">
               {/* 状态消息区域 */}
               {authMessage && (
-                <div 
-                  className={`flex items-start gap-3 p-4 rounded-xl border transition-all duration-300 ${
-                    isSuccess 
-                      ? 'bg-green-50/80 dark:bg-green-950/40 border-green-200/50 dark:border-green-800/50' 
-                      : isError
+                <div
+                  className={`flex items-start gap-3 p-4 rounded-xl border transition-all duration-300 ${isSuccess
+                    ? 'bg-green-50/80 dark:bg-green-950/40 border-green-200/50 dark:border-green-800/50'
+                    : isError
                       ? 'bg-red-50/80 dark:bg-red-950/40 border-red-200/50 dark:border-red-800/50'
                       : 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200/50 dark:border-blue-800/50'
-                  }`}
+                    }`}
                   style={{
                     backdropFilter: 'blur(12px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(12px) saturate(180%)',
@@ -545,13 +450,12 @@ export function LoginDialog() {
                       <Loader2 className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-spin" />
                     )}
                   </div>
-                  <p className={`text-sm flex-1 leading-relaxed ${
-                    isSuccess 
-                      ? 'text-green-800 dark:text-green-200' 
-                      : isError
+                  <p className={`text-sm flex-1 leading-relaxed ${isSuccess
+                    ? 'text-green-800 dark:text-green-200'
+                    : isError
                       ? 'text-red-800 dark:text-red-200'
                       : 'text-blue-800 dark:text-blue-200'
-                  }`}>
+                    }`}>
                     {authMessage}
                   </p>
                 </div>
@@ -577,7 +481,7 @@ export function LoginDialog() {
                       className="h-10 bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200/50 dark:border-gray-700/50 focus:border-primary/50 transition-all duration-200"
                     />
                   </div>
-              
+
                   {isRegisterMode && (
                     <div className="space-y-2">
                       <Label htmlFor="email" className="text-sm font-medium text-foreground/80">邮箱</Label>
@@ -594,7 +498,7 @@ export function LoginDialog() {
                       />
                     </div>
                   )}
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
                       {t('common:auth.password') || '密码'}
@@ -612,7 +516,7 @@ export function LoginDialog() {
                       className="h-10 bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200/50 dark:border-gray-700/50 focus:border-primary/50 transition-all duration-200"
                     />
                   </div>
-                  
+
                   {isRegisterMode && (
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground/80">确认密码</Label>
@@ -630,13 +534,54 @@ export function LoginDialog() {
                       />
                     </div>
                   )}
-              
+
+                  {/* 角色选择下拉框 */}
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="text-sm font-medium text-foreground/80">
+                      登录角色
+                    </Label>
+                    <Select
+                      value={selectedRole}
+                      onValueChange={(value: 'admin' | 'editor' | 'viewer') => setSelectedRole(value)}
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger className="h-10 w-full bg-white/50 dark:bg-gray-900/50 border-2 border-gray-200/50 dark:border-gray-700/50 focus:border-primary/50 transition-all duration-200">
+                        <SelectValue placeholder="选择登录角色" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">
+                          <span className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-blue-600" />
+                            管理员 (Admin)
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="editor">
+                          <span className="flex items-center gap-2">
+                            <Edit className="w-4 h-4 text-purple-600" />
+                            编辑者 (Editor)
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="viewer">
+                          <span className="flex items-center gap-2">
+                            <Eye className="w-4 h-4 text-gray-600" />
+                            查看者 (Viewer)
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground/70 px-1">
+                      {selectedRole === 'admin' && '可访问管理仪表盘，管理模板和用户权限'}
+                      {selectedRole === 'editor' && '可访问模板库，编辑和使用模板'}
+                      {selectedRole === 'viewer' && '仅可查看模板，功能受限'}
+                    </p>
+                  </div>
+
                   <Button
                     type="submit"
                     disabled={
-                      isSubmitting || 
-                      !username.trim() || 
-                      !password.trim() || 
+                      isSubmitting ||
+                      !username.trim() ||
+                      !password.trim() ||
                       (isRegisterMode && (!email.trim() || !confirmPassword.trim() || password !== confirmPassword)) ||
                       (isRegisterMode && username.trim().length < 3) ||
                       (isRegisterMode && password.length < 6)
@@ -678,7 +623,7 @@ export function LoginDialog() {
                         setAuthMessage('')
                         setEmail('')
                         setConfirmPassword('')
-                        setSelectedRole(null)
+                        setSelectedRole('viewer')
                       }}
                       className="text-primary hover:text-primary/80 font-medium text-xs transition-colors duration-200 hover:underline"
                       disabled={isSubmitting}
@@ -695,7 +640,7 @@ export function LoginDialog() {
                           <div className="w-full border-t border-border/30"></div>
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                          <span 
+                          <span
                             className="px-3 text-muted-foreground/60 font-medium"
                             style={{
                               background: 'rgba(255, 255, 255, 0.9)',

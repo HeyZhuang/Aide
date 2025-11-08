@@ -101,23 +101,7 @@ function CanvasContent() {
     setPsdData(updatedPsdData)
   }
 
-  // 检查登录状态
-  if (!authStatus.is_logged_in) {
-    return (
-      <div className='flex flex-col items-center justify-center h-screen bg-background'>
-        <div className='text-center p-8'>
-          <h2 className='text-2xl font-bold text-destructive mb-4'>需要登录</h2>
-          <p className='text-muted-foreground mb-4'>请先登录以访问画布</p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className='px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90'
-          >
-            返回首页
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // 未登录用户也可以查看画布（只读模式），不需要强制登录
 
   // 如果有错误，显示错误信息
   if (error) {
@@ -157,8 +141,24 @@ function CanvasContent() {
     }
   }
 
+  // 获取用户角色
+  // 未登录用户视为 viewer（只读模式）
+  const userRole = authStatus.is_logged_in ? (authStatus.user_info?.role || 'viewer') : 'viewer'
+  const isViewer = userRole === 'viewer' || !authStatus.is_logged_in
+
   return (
     <div className='flex flex-col w-screen h-screen'>
+      {/* Viewer 角色提示横幅 */}
+      {isViewer && (
+        <div className="w-full p-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
+            <strong>查看者模式：</strong>
+            {authStatus.is_logged_in 
+              ? '您当前以查看者身份登录，只能查看画布内容，无法进行编辑操作。'
+              : '您当前以游客身份访问，只能查看画布内容，无法进行编辑操作。请登录以编辑画布。'}
+          </p>
+        </div>
+      )}
       <CanvasHeader
         canvasName={canvasName}
         canvasId={id}
@@ -265,8 +265,8 @@ function CanvasContent() {
       </div>
 
       {/* Chat Interface - Small floating window at the bottom center */}
-      {/* 只有在用户登录成功后才显示AI助手 */}
-      {authStatus.is_logged_in && (
+      {/* 只有在用户登录成功后才显示AI助手（Editor 或 Admin） */}
+      {authStatus.is_logged_in && userRole !== 'viewer' && (
         <div className={`bottom-chat-container ${isChatMinimized ? 'minimized' : ''}`}>
           <ChatInterface
             canvasId={id}

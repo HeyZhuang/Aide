@@ -185,3 +185,133 @@ export async function deleteTemplate(templateId: string): Promise<void> {
         throw new Error(error.detail || `删除模板失败: ${response.statusText}`)
     }
 }
+
+/**
+ * 获取模板分类列表
+ */
+export interface TemplateCategory {
+    id: string
+    name: string
+    description?: string
+    icon?: string
+    color?: string
+    created_at: string
+    updated_at: string
+}
+
+export async function getTemplateCategories(): Promise<TemplateCategory[]> {
+    const token = getAccessToken()
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    }
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${BASE_API_URL}/api/templates/categories`, {
+        method: 'GET',
+        headers,
+    })
+
+    if (!response.ok) {
+        // 如果接口不存在，返回空数组
+        if (response.status === 404) {
+            return []
+        }
+        throw new Error(`获取模板分类失败: ${response.statusText}`)
+    }
+
+    const categories = await response.json()
+    // 确保所有分类都有 created_at 和 updated_at
+    return categories.map((cat: any) => ({
+        ...cat,
+        created_at: cat.created_at || new Date().toISOString(),
+        updated_at: cat.updated_at || new Date().toISOString(),
+    }))
+}
+
+/**
+ * 获取模板列表（支持过滤）
+ */
+export interface GetTemplatesParams {
+    category?: string
+    is_favorite?: boolean
+    search?: string
+}
+
+export async function getTemplates(params?: GetTemplatesParams): Promise<Template[]> {
+    const token = getAccessToken()
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    }
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const url = new URL(`${BASE_API_URL}/api/templates`)
+    if (params) {
+        if (params.category) {
+            url.searchParams.append('category', params.category)
+        }
+        if (params.is_favorite !== undefined) {
+            url.searchParams.append('is_favorite', String(params.is_favorite))
+        }
+        if (params.search) {
+            url.searchParams.append('search', params.search)
+        }
+    }
+
+    const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers,
+    })
+
+    if (!response.ok) {
+        throw new Error(`获取模板列表失败: ${response.statusText}`)
+    }
+
+    return response.json()
+}
+
+/**
+ * 获取模板统计信息
+ */
+export interface TemplateStats {
+    total: number
+    by_category: Record<string, number>
+    favorites: number
+    recent: number
+}
+
+export async function getTemplateStats(): Promise<TemplateStats> {
+    const token = getAccessToken()
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    }
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${BASE_API_URL}/api/templates/stats`, {
+        method: 'GET',
+        headers,
+    })
+
+    if (!response.ok) {
+        // 如果接口不存在，返回默认值
+        if (response.status === 404) {
+            return {
+                total: 0,
+                by_category: {},
+                favorites: 0,
+                recent: 0,
+            }
+        }
+        throw new Error(`获取模板统计失败: ${response.statusText}`)
+    }
+
+    return response.json()
+}

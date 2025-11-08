@@ -13,6 +13,8 @@ import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { FontSelector } from '../FontSelector'
 import { FontItem } from '@/api/font'
 import { toast } from 'sonner'
+import { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
+import { BinaryFileData } from '@excalidraw/excalidraw/types'
 
 import { uploadPSD, uploadImage, updateLayerProperties, type PSDUploadResponse, type PSDLayer } from '@/api/upload'
 

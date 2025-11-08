@@ -31,10 +31,49 @@ except ImportError:
 
 router = APIRouter()
 
-# Google OAuth 配置
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")  # 例如: http://localhost:57988/api/auth/google/callback
+# Google OAuth 配置 - 从环境变量或config.env文件读取
+def _load_google_config():
+    """从环境变量或config.env文件加载Google OAuth配置"""
+    # 首先尝试从环境变量读取
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "")
+    
+    # 如果环境变量未设置，尝试从config.env文件读取
+    if not client_id or not client_secret:
+        try:
+            # 尝试多个可能的config.env路径
+            possible_paths = [
+                # 从server/routers向上三级到项目根目录
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config.env"),
+                # 从server/routers向上四级到项目根目录（如果server在子目录中）
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "config.env"),
+                # 尝试当前工作目录的config.env
+                os.path.join(os.getcwd(), "config.env"),
+            ]
+            
+            for config_path in possible_paths:
+                if os.path.exists(config_path):
+                    logger.info(f"从配置文件读取Google OAuth配置: {config_path}")
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line.startswith('GOOGLE_CLIENT_ID=') and not line.startswith('#'):
+                                if not client_id:
+                                    client_id = line.split('=', 1)[1].strip().strip('"').strip("'")
+                            elif line.startswith('GOOGLE_CLIENT_SECRET=') and not line.startswith('#'):
+                                if not client_secret:
+                                    client_secret = line.split('=', 1)[1].strip().strip('"').strip("'")
+                            elif line.startswith('GOOGLE_REDIRECT_URI=') and not line.startswith('#'):
+                                if not redirect_uri:
+                                    redirect_uri = line.split('=', 1)[1].strip().strip('"').strip("'")
+                    break
+        except Exception as e:
+            logger.warning(f"从配置文件读取Google OAuth配置失败: {e}")
+    
+    return client_id, client_secret, redirect_uri
+
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI = _load_google_config()
 SCOPES = ['openid', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
 
 # ================== Pydantic 模型 ==================
@@ -44,12 +83,14 @@ class DeviceAuthorizeRequest(BaseModel):
     code: str
     username: str
     password: str
+    role: Optional[str] = "viewer"  # admin, editor, viewer
 
 class RegisterRequest(BaseModel):
     """用户注册请求"""
     username: str
     email: str
     password: str
+    role: Optional[str] = "viewer"  # admin, editor, viewer
 # 临时存储设备码和认证状态（生产环境应该使用数据库或 Redis）
 device_codes: Dict[str, dict] = {}
 auth_sessions: Dict[str, dict] = {}
@@ -84,13 +125,18 @@ async def register_user(request: RegisterRequest):
     if len(password) > 100:
         raise HTTPException(status_code=400, detail="密码不能超过100个字符")
     
+    # 验证角色
+    valid_roles = ["admin", "editor", "viewer"]
+    role = request.role if request.role in valid_roles else "viewer"
+    
     try:
         # 创建用户
         user_info = await auth_service.create_user(
             username=username,
             email=email,
             password=password,
-            provider="local"
+            provider="local",
+            role=role
         )
         
         logger.info(f"用户注册成功: {username} ({email})")
@@ -419,7 +465,14 @@ async def authorize_device(request: DeviceAuthorizeRequest):
         logger.warning(f"登录失败: 用户名或密码错误 - {username}")
         raise HTTPException(status_code=401, detail="用户名或密码错误，请先注册账户")
     
-    logger.info(f"用户登录成功: {user_info.get('username')}")
+    # 验证角色
+    valid_roles = ["admin", "editor", "viewer"]
+    selected_role = request.role if request.role in valid_roles else user_info.get("role", "viewer")
+    
+    # 更新用户信息中的角色（用于本次登录会话）
+    user_info["role"] = selected_role
+    
+    logger.info(f"用户登录成功: {user_info.get('username')}, 角色: {selected_role}")
     
     # 为用户创建 token
     token = await auth_service.create_token(user_info["id"])
@@ -514,8 +567,8 @@ async def google_auth_start(request: Request):
 
 @router.get("/api/auth/google/callback")
 async def google_auth_callback(
-    code: str = Query(..., description="Google OAuth 授权码"),
-    state: str = Query(..., description="OAuth state"),
+    code: Optional[str] = Query(None, description="Google OAuth 授权码"),
+    state: Optional[str] = Query(None, description="OAuth state"),
     device_code: Optional[str] = Query(None, description="设备码（用于轮询）"),
     request: Request = None
 ):
@@ -523,6 +576,28 @@ async def google_auth_callback(
     Google OAuth 回调处理
     处理 Google 返回的授权码，创建或更新用户，并返回 token
     """
+    # 检查必需参数
+    if not code or not state:
+        error_html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Google 登录错误</title>
+            <style>
+                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+                .error { color: #d32f2f; }
+                .info { color: #666; margin-top: 20px; }
+            </style>
+        </head>
+        <body>
+            <h1 class="error">❌ Google 登录参数缺失</h1>
+            <p class="info">此页面只能通过 Google OAuth 重定向访问。</p>
+            <p class="info">请从登录页面点击"使用 Google 登录"按钮开始登录流程。</p>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=error_html, status_code=400)
     if not GOOGLE_OAUTH_AVAILABLE:
         raise HTTPException(status_code=503, detail="Google OAuth 未配置或依赖未安装")
     

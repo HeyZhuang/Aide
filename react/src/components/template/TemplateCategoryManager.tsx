@@ -61,7 +61,12 @@ export function TemplateCategoryManager({
             //     color: newCategory.color,
             // })
             // TODO: 实现分类创建功能
-            const category = { ...newCategory, id: Date.now().toString() }
+            const category: TemplateCategory = {
+                ...newCategory,
+                id: Date.now().toString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            }
             onCategoriesChange([...categories, category])
             setNewCategory({ name: '', description: '', icon: '', color: '#3b82f6' })
             toast.success('分类创建成功')

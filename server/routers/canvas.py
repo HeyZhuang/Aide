@@ -2,14 +2,14 @@ from fastapi import APIRouter, Request, Depends, HTTPException
 #from routers.agent import chat
 from services.chat_service import handle_chat
 from services.db_service import db_service
-from utils.auth_dependency import get_current_user
+from utils.auth_dependency import get_current_user, get_current_user_optional
 import asyncio
 import json
 import time
 from fastapi.responses import JSONResponse
 from starlette.requests import ClientDisconnect
 from utils.logger import get_logger
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logger = get_logger("routers.canvas")
 
@@ -64,21 +64,24 @@ async def create_canvas(request: Request, current_user: Dict[str, Any] = Depends
         raise
 
 @router.get("/{id}")
-async def get_canvas(id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+async def get_canvas(id: str, current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)):
     """
     获取画布数据
-    需要登录，只能访问当前用户拥有的画布
+    未登录用户也可以查看画布（只读模式），但只能查看，不能编辑
+    登录用户可以查看和编辑自己拥有的画布
     """
     start_time = time.time()
-    user_id = current_user["user_id"]
-    logger.info(f"=== 接收到获取画布请求 === user_id: {user_id}, canvas_id: {id}")
+    user_id = current_user["user_id"] if current_user else None
+    logger.info(f"=== 接收到获取画布请求 === user_id: {user_id or '游客'}, canvas_id: {id}")
     try:
-        # 检查画布所有权
+        # 检查画布是否存在
         canvas_owner = await db_service.get_canvas_owner(id)
         if canvas_owner is None:
             raise HTTPException(status_code=404, detail="画布不存在")
         
-        if canvas_owner != user_id:
+        # 如果用户已登录，检查是否是画布所有者
+        # 如果未登录，允许查看（只读模式）
+        if user_id and canvas_owner != user_id:
             raise HTTPException(
                 status_code=403,
                 detail="无权访问此画布，只能访问您自己的画布"
@@ -88,14 +91,14 @@ async def get_canvas(id: str, current_user: Dict[str, Any] = Depends(get_current
         elapsed = time.time() - start_time
         data_size = len(str(result.get('data', {}))) if result else 0
         sessions_count = len(result.get('sessions', [])) if result else 0
-        logger.info(f"✅ 成功获取画布数据: user_id={user_id}, canvas_id={id}, name={result.get('name', 'N/A')}, "
+        logger.info(f"✅ 成功获取画布数据: user_id={user_id or '游客'}, canvas_id={id}, name={result.get('name', 'N/A')}, "
                    f"数据大小: {data_size}字符, 会话数: {sessions_count}, 耗时: {elapsed:.3f}秒")
         return result
     except HTTPException:
         raise
     except Exception as e:
         elapsed = time.time() - start_time
-        logger.error(f"❌ 获取画布数据失败: user_id={user_id}, canvas_id={id}, 错误: {str(e)}, 耗时: {elapsed:.3f}秒", exc_info=True)
+        logger.error(f"❌ 获取画布数据失败: user_id={user_id or '游客'}, canvas_id={id}, 错误: {str(e)}, 耗时: {elapsed:.3f}秒", exc_info=True)
         raise
 
 @router.post("/{id}/save")

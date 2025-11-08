@@ -51,7 +51,9 @@ export const Route = createFileRoute('/')({
 function Home() {
   const navigate = useNavigate()
   const { t, i18n: translationI18n } = useTranslation()
-  const { setInitCanvas } = useConfigs()
+  const configsStore = useConfigs()
+  const { setInitCanvas, textModel, selectedTools } = configsStore
+  const toolList = selectedTools
   const { theme, setTheme } = useTheme()
   const { authStatus, refreshAuth } = useAuth()
   const [activeTab, setActiveTab] = useState('projects')
@@ -103,6 +105,14 @@ function Home() {
   })
 
   const handleCreateNew = () => {
+    const userRole = authStatus.user_info?.role || 'viewer'
+    
+    // Viewer 角色不能创建新画布
+    if (userRole === 'viewer') {
+      toast.error('查看者角色无法创建新画布，只能查看模板')
+      return
+    }
+    
     setShowChatTextarea(true)
   }
 
@@ -147,7 +157,22 @@ function Home() {
   }
 
   // 处理PSD模板点击 - 创建新画布并导航
+  // 未登录用户和 Viewer 角色不能创建新画布，只能查看
   const handlePsdTemplateClick = (template: PSDTemplateInfo) => {
+    // 未登录用户不能创建新画布
+    if (!authStatus.is_logged_in) {
+      toast.error('请先登录以创建新画布')
+      return
+    }
+    
+    const userRole = authStatus.user_info?.role || 'viewer'
+    
+    // Viewer 角色不能创建新画布
+    if (userRole === 'viewer') {
+      toast.error('查看者角色无法创建新画布，只能查看模板')
+      return
+    }
+    
     createCanvasMutation({
       name: template.display_name || template.name,
       canvas_id: nanoid(),
@@ -217,16 +242,19 @@ function Home() {
               {authStatus.is_logged_in && (
                 <>
                   <div className={cn('my-1 h-px', isDark ? 'bg-gray-800' : 'bg-gray-200')} />
-                  {/* 管理员面板已移除 */}
-                  {/* {authStatus.user_info?.role === 'admin' && (
+                  {/* 管理员入口 */}
+                  {authStatus.user_info?.role === 'admin' && (
                     <DropdownMenuItem
-                      onClick={() => navigate({ to: '/admin' })}
-                      className="cursor-pointer"
+                      onClick={() => navigate({ to: '/admin/dashboard' })}
+                      className={cn(
+                        'cursor-pointer',
+                        isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                      )}
                     >
                       <Shield className="mr-2 h-4 w-4" />
-                      <span>管理员面板</span>
+                      <span>管理仪表盘</span>
                     </DropdownMenuItem>
-                  )} */}
+                  )}
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className={cn(
@@ -243,15 +271,18 @@ function Home() {
           </DropdownMenu>
         </div>
 
-        <div className='px-4 pb-4'>
-          <Button
-            onClick={handleCreateNew}
-            className='w-full bg-gray-900 hover:bg-gray-800 text-white gap-2'
-          >
-            <Lightbulb className='w-4 h-4' />
-            {t('home:sidebar.createWithAI')}
-          </Button>
-        </div>
+        {/* 只有 Editor 和 Admin 可以创建新画布 */}
+        {authStatus.is_logged_in && authStatus.user_info?.role !== 'viewer' && (
+          <div className='px-4 pb-4'>
+            <Button
+              onClick={handleCreateNew}
+              className='w-full bg-gray-900 hover:bg-gray-800 text-white gap-2'
+            >
+              <Lightbulb className='w-4 h-4' />
+              {t('home:sidebar.createWithAI')}
+            </Button>
+          </div>
+        )}
 
         <nav className='flex-1 px-2'>
           <Button
@@ -484,47 +515,59 @@ function Home() {
             {/* 显示项目列表（Projects标签时） */}
             {activeTab === 'projects' && (
               <div className="space-y-4">
-                {/* 新建项目按钮 */}
-                <div className="px-4 pb-2">
-                  <Button
-                    onClick={() => {
-                      const newCanvasId = nanoid()
-                      createCanvasMutation({
-                        name: `新项目 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
-                        canvas_id: newCanvasId,
-                        messages: [],
-                        session_id: nanoid(),
-                        text_model: configs.textModel,
-                        tool_list: configs.toolList,
-                        system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
-                      })
-                    }}
-                    disabled={isPending}
-                    className="w-full h-12 text-base font-semibold relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
-                    style={{
-                      background: 'linear-gradient(135deg, #007AFF 0%, #0051D5 100%)',
-                      color: '#ffffff',
-                      boxShadow: '0 4px 16px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
-                    }}
-                  >
-                    <span className="relative z-10 flex items-center justify-center gap-2 text-white">
-                      {isPending ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin text-white" />
-                          <span className="text-white">创建中...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-5 h-5 text-white" />
-                          <span className="text-white">新建项目</span>
-                        </>
+                {/* 新建项目按钮 - 只有 Editor 和 Admin 可以创建 */}
+                {authStatus.is_logged_in && authStatus.user_info?.role !== 'viewer' && (
+                  <div className="px-4 pb-2">
+                    <Button
+                      onClick={() => {
+                        const newCanvasId = nanoid()
+                        createCanvasMutation({
+                          name: `新项目 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
+                          canvas_id: newCanvasId,
+                          messages: [],
+                          session_id: nanoid(),
+                          text_model: textModel || { provider: 'openai', model: 'gpt-4', url: '' },
+                          tool_list: toolList || [],
+                          system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
+                        })
+                      }}
+                      disabled={isPending}
+                      className="w-full h-12 text-base font-semibold relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
+                      style={{
+                        background: 'linear-gradient(135deg, #007AFF 0%, #0051D5 100%)',
+                        color: '#ffffff',
+                        boxShadow: '0 4px 16px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
+                      }}
+                    >
+                      <span className="relative z-10 flex items-center justify-center gap-2 text-white">
+                        {isPending ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin text-white" />
+                            <span className="text-white">创建中...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-5 h-5 text-white" />
+                            <span className="text-white">新建项目</span>
+                          </>
+                        )}
+                      </span>
+                      {!isPending && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                       )}
-                    </span>
-                    {!isPending && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                    )}
-                  </Button>
-                </div>
+                    </Button>
+                  </div>
+                )}
+                {/* Viewer 角色提示 */}
+                {authStatus.is_logged_in && authStatus.user_info?.role === 'viewer' && (
+                  <div className="px-4 pb-2">
+                    <div className="w-full p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <strong>查看者模式：</strong>您当前以查看者身份登录，只能查看模板和项目，无法创建新项目或编辑内容。
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <CanvasList />
               </div>
             )}

@@ -72,7 +72,27 @@ export function BottomTemplateToolbar({
         setLoading(true)
         try {
             const templatesData = await listTemplates()
-            setTemplates(templatesData)
+            // 将 Template[] 转换为 TemplateItem[]
+            const templateItems: TemplateItem[] = templatesData.map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                category_id: t.category || '',
+                type: 'psd_file' as const,
+                thumbnail_url: t.thumbnail_path,
+                metadata: {
+                    original_filename: t.file_path,
+                    file_type: t.file_type,
+                },
+                tags: t.tags ? t.tags.split(',').map(tag => tag.trim()) : [],
+                usage_count: 0,
+                is_favorite: false,
+                is_public: false,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+                created_by: t.created_by,
+            }))
+            setTemplates(templateItems)
             setCategories([]) // TODO: 实现分类功能
         } catch (error) {
             console.error('Failed to load template data:', error)
