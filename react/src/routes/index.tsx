@@ -191,12 +191,12 @@ function Home() {
   return (
     <div className={cn(
       'flex h-screen w-full overflow-hidden',
-      isDark ? 'bg-[#1a1a1a] text-white' : 'bg-gray-50 text-gray-900'
+      'bg-gray-50 dark:bg-black text-gray-900 dark:text-foreground'
     )}>
       {/* 左侧边栏 */}
       <aside className={cn(
         'w-60 flex-shrink-0 border-r flex flex-col',
-        isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200'
+        'bg-white dark:bg-card border-gray-200 dark:border-border'
       )}>
         <div className='p-4'>
           <DropdownMenu>
@@ -205,7 +205,7 @@ function Home() {
                 variant="ghost"
                 className={cn(
                   'w-full justify-start gap-2',
-                  isDark ? 'text-white hover:bg-gray-800' : 'text-gray-900 hover:bg-gray-100'
+                  'text-gray-900 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
                 )}
               >
                 <LayoutGrid className='w-5 h-5' />
@@ -217,13 +217,13 @@ function Home() {
               align="start"
               className={cn(
                 'w-56',
-                isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200'
+                'bg-white dark:bg-popover border-gray-200 dark:border-border'
               )}
             >
               <DropdownMenuItem
                 className={cn(
                   'cursor-pointer',
-                  isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                  'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
                 )}
               >
                 <LayoutGrid className='w-4 h-4 mr-2' />
@@ -233,7 +233,7 @@ function Home() {
                 onClick={() => setShowAccountDialog(true)}
                 className={cn(
                   'cursor-pointer',
-                  isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                  'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
                 )}
               >
                 <Crown className='w-4 h-4 mr-2' />
@@ -241,14 +241,14 @@ function Home() {
               </DropdownMenuItem>
               {authStatus.is_logged_in && (
                 <>
-                  <div className={cn('my-1 h-px', isDark ? 'bg-gray-800' : 'bg-gray-200')} />
+                  <div className={cn('my-1 h-px', 'bg-gray-200 dark:bg-border')} />
                   {/* 管理员入口 */}
                   {authStatus.user_info?.role === 'admin' && (
                     <DropdownMenuItem
                       onClick={() => navigate({ to: '/admin/dashboard' })}
                       className={cn(
                         'cursor-pointer',
-                        isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                        'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
                       )}
                     >
                       <Shield className="mr-2 h-4 w-4" />
@@ -259,7 +259,7 @@ function Home() {
                     onClick={handleLogout}
                     className={cn(
                       'cursor-pointer text-red-600 dark:text-red-400',
-                      isDark ? 'hover:bg-gray-800 focus:bg-gray-800' : 'hover:bg-gray-100 focus:bg-gray-100'
+                      'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
                     )}
                   >
                     <ArrowRight className='w-4 h-4 mr-2' />
@@ -291,8 +291,8 @@ function Home() {
             className={cn(
               'w-full justify-start gap-3 mb-1',
               activeTab === 'projects'
-                ? isDark ? 'bg-gray-800' : 'bg-gray-100'
-                : isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                ? 'bg-gray-100 dark:bg-secondary'
+                : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
             <LayoutGrid className='w-5 h-5' />
@@ -305,8 +305,8 @@ function Home() {
             className={cn(
               'w-full justify-start gap-3 mb-1',
               activeTab === 'recents'
-                ? isDark ? 'bg-gray-800' : 'bg-gray-100'
-                : isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                ? 'bg-gray-100 dark:bg-secondary'
+                : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
             <Clock className='w-5 h-5' />
@@ -315,7 +315,7 @@ function Home() {
 
           <div className={cn(
             'my-4 px-3 text-xs font-medium',
-            isDark ? 'text-gray-500' : 'text-gray-400'
+            'text-gray-400 dark:text-muted-foreground'
           )}>{t('home:sidebar.starred')}</div>
 
           <Button
@@ -324,8 +324,8 @@ function Home() {
             className={cn(
               'w-full justify-start gap-3 mb-1',
               activeTab === 'all-maps'
-                ? isDark ? 'bg-gray-800' : 'bg-gray-100'
-                : isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                ? 'bg-gray-100 dark:bg-secondary'
+                : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
             <Grid3x3 className='w-5 h-5' />
@@ -338,8 +338,8 @@ function Home() {
             className={cn(
               'w-full justify-start gap-3 mb-1',
               activeTab === 'shared'
-                ? isDark ? 'bg-gray-800' : 'bg-gray-100'
-                : isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                ? 'bg-gray-100 dark:bg-secondary'
+                : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
             <Share2 className='w-5 h-5' />
@@ -352,8 +352,8 @@ function Home() {
             className={cn(
               'w-full justify-start gap-3 mb-1',
               activeTab === 'trash'
-                ? isDark ? 'bg-gray-800' : 'bg-gray-100'
-                : isDark ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                ? 'bg-gray-100 dark:bg-secondary'
+                : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
             <Trash2 className='w-5 h-5' />
@@ -367,7 +367,7 @@ function Home() {
         {/* 顶部栏 */}
         <header className={cn(
           'h-16 border-b flex items-center justify-between px-6 flex-shrink-0',
-          isDark ? 'border-gray-800' : 'border-gray-200'
+          'border-gray-200 dark:border-border'
         )}>
           <h1 className='text-xl font-semibold'></h1>
           <div className='flex items-center gap-3'>
@@ -379,13 +379,13 @@ function Home() {
                   size="icon"
                   className={cn(
                     'rounded-lg transition-all',
-                    isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                    'text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
                   )}
                 >
                   <Languages className='w-5 h-5' />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className={cn(isDark ? 'bg-[#252525] border-gray-800' : 'bg-white border-gray-200')}>
+              <DropdownMenuContent align="end" className={cn('bg-white dark:bg-popover border-gray-200 dark:border-border')}>
                 <DropdownMenuItem onClick={() => changeLanguage('en')}>
                   English
                 </DropdownMenuItem>
@@ -402,7 +402,7 @@ function Home() {
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
               className={cn(
                 'rounded-lg transition-all',
-                isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                'text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
               )}
               title={isDark ? t('home:header.themeSwitch.light') : t('home:header.themeSwitch.dark')}
             >
@@ -413,7 +413,7 @@ function Home() {
               size="icon"
               onClick={() => setShowSubscriptionDialog(true)}
               className={cn(
-                isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                'text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
               )}
               title={t('home:subscription.title')}
             >
@@ -423,7 +423,7 @@ function Home() {
               variant="ghost"
               size="icon"
               className={cn(
-                isDark ? 'text-white hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'
+                'text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
               )}
             >
               <Settings className='w-5 h-5' />
@@ -448,14 +448,14 @@ function Home() {
                 <div className='grid grid-cols-4 gap-4 w-full pb-10'>
                   {loadingTemplates ? (
                     <div className='col-span-4 flex items-center justify-center py-12'>
-                      <span className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      <span className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
                         {t('home:templates.loading')}
                       </span>
                     </div>
                   ) : psdTemplates.length === 0 ? (
                     <div className='col-span-4 flex flex-col items-center justify-center py-12'>
-                      <FileImage className={cn('w-8 h-8 mb-2', isDark ? 'text-gray-600' : 'text-gray-300')} />
-                      <span className={cn('text-xs', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      <FileImage className={cn('w-8 h-8 mb-2', 'text-gray-300 dark:text-muted-foreground')} />
+                      <span className={cn('text-xs', 'text-gray-400 dark:text-muted-foreground')}>
                         {t('home:templates.noTemplates')}
                       </span>
                     </div>
@@ -471,16 +471,12 @@ function Home() {
                           onClick={() => handlePsdTemplateClick(template)}
                           className={cn(
                             'w-full aspect-square rounded-lg border transition-all cursor-pointer overflow-hidden group',
-                            isDark
-                              ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
-                              : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
+                            'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-gray-400 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
                           )}
                         >
                           <div className={cn(
                             'w-full h-[calc(100%-2rem)] flex items-center justify-center overflow-hidden',
-                            isDark
-                              ? 'bg-gradient-to-br from-gray-500/20 to-blue-500/20'
-                              : 'bg-gradient-to-br from-gray-100 to-blue-100'
+                            'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
                           )}>
                             {template.thumbnail_url && !hasThumbnailError ? (
                               <img
@@ -492,14 +488,14 @@ function Home() {
                             ) : (
                               <FileImage className={cn(
                                 'w-12 h-12',
-                                isDark ? 'text-gray-600' : 'text-gray-300'
+                                'text-gray-300 dark:text-muted-foreground'
                               )} />
                             )}
                           </div>
                           <div className='h-8 px-3 flex items-center justify-center'>
                             <span className={cn(
                               'text-xs truncate w-full text-center',
-                              isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
+                              'text-gray-600 dark:text-muted-foreground group-hover:text-gray-900 dark:group-hover:text-foreground'
                             )}>
                               {template.display_name || template.name}
                             </span>
@@ -575,7 +571,7 @@ function Home() {
             {/* 其他标签页内容留空（可扩展） */}
             {activeTab === 'recents' && (
               <div className='text-center py-12'>
-                <p className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                <p className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
                   {t('home:sidebar.recents')}
                 </p>
               </div>
@@ -594,14 +590,14 @@ function Home() {
                 <div className='grid grid-cols-4 gap-4 w-full pb-10'>
                   {loadingTemplates ? (
                     <div className='col-span-4 flex items-center justify-center py-12'>
-                      <span className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      <span className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
                         {t('home:templates.loading')}
                       </span>
                     </div>
                   ) : psdTemplates.length === 0 ? (
                     <div className='col-span-4 flex flex-col items-center justify-center py-12'>
-                      <FileImage className={cn('w-8 h-8 mb-2', isDark ? 'text-gray-600' : 'text-gray-300')} />
-                      <span className={cn('text-xs', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                      <FileImage className={cn('w-8 h-8 mb-2', 'text-gray-300 dark:text-muted-foreground')} />
+                      <span className={cn('text-xs', 'text-gray-400 dark:text-muted-foreground')}>
                         {t('home:templates.noTemplates')}
                       </span>
                     </div>
@@ -617,16 +613,12 @@ function Home() {
                           onClick={() => handlePsdTemplateClick(template)}
                           className={cn(
                             'w-full aspect-square rounded-lg border transition-all cursor-pointer overflow-hidden group',
-                            isDark
-                              ? 'bg-[#2a2a2a] border-gray-700 hover:border-gray-500'
-                              : 'bg-white border-gray-200 hover:border-gray-400 shadow-sm hover:shadow-md'
+                            'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-gray-400 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
                           )}
                         >
                           <div className={cn(
                             'w-full h-[calc(100%-2rem)] flex items-center justify-center overflow-hidden',
-                            isDark
-                              ? 'bg-gradient-to-br from-gray-500/20 to-blue-500/20'
-                              : 'bg-gradient-to-br from-gray-100 to-blue-100'
+                            'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
                           )}>
                             {template.thumbnail_url && !hasThumbnailError ? (
                               <img
@@ -638,14 +630,14 @@ function Home() {
                             ) : (
                               <FileImage className={cn(
                                 'w-12 h-12',
-                                isDark ? 'text-gray-600' : 'text-gray-300'
+                                'text-gray-300 dark:text-muted-foreground'
                               )} />
                             )}
                           </div>
                           <div className='h-8 px-3 flex items-center justify-center'>
                             <span className={cn(
                               'text-xs truncate w-full text-center',
-                              isDark ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'
+                              'text-gray-600 dark:text-muted-foreground group-hover:text-gray-900 dark:group-hover:text-foreground'
                             )}>
                               {template.display_name || template.name}
                             </span>
@@ -659,14 +651,14 @@ function Home() {
             )}
             {activeTab === 'shared' && (
               <div className='text-center py-12'>
-                <p className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                <p className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
                   {t('home:sidebar.shared')}
                 </p>
               </div>
             )}
             {activeTab === 'trash' && (
               <div className='text-center py-12'>
-                <p className={cn('text-sm', isDark ? 'text-gray-500' : 'text-gray-400')}>
+                <p className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
                   {t('home:sidebar.trash')}
                 </p>
               </div>
@@ -680,30 +672,27 @@ function Home() {
         <DialogContent
           className={cn(
             'max-w-md',
-            isDark
-              ? 'bg-[#2a2a2a] border-gray-700 text-white'
-              : 'bg-white border-gray-200 text-gray-900'
+            'bg-white dark:bg-popover border-gray-200 dark:border-border text-gray-900 dark:text-foreground'
           )}
           style={{
-            background: isDark
-              ? 'rgba(42, 42, 42, 0.95)'
-              : 'rgba(255, 255, 255, 0.95)',
+            background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: isDark
-              ? '1px solid rgba(75, 75, 75, 0.5)'
-              : '1px solid rgba(229, 229, 229, 0.5)',
-            boxShadow: isDark
-              ? '0 8px 32px rgba(0, 0, 0, 0.5)'
-              : '0 8px 32px rgba(0, 0, 0, 0.12)',
+            border: '1px solid rgba(229, 229, 229, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
-          <DialogHeader className='border-b pb-4' style={{
-            borderColor: isDark ? 'rgba(75, 75, 75, 0.5)' : 'rgba(229, 229, 229, 0.5)'
-          }}>
+          <style>{`
+            .dark .dialog-content {
+              background: rgba(28, 28, 30, 0.95) !important;
+              border: 1px solid rgba(255, 255, 255, 0.1) !important;
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+            }
+          `}</style>
+          <DialogHeader className='border-b pb-4 dark:border-border'>
             <DialogTitle className={cn(
               'text-lg font-semibold',
-              isDark ? 'text-white' : 'text-gray-900'
+              'text-gray-900 dark:text-foreground'
             )}>
               {t('home:accountDialog.title')}
             </DialogTitle>
@@ -713,15 +702,13 @@ function Home() {
               {/* 用户信息卡片 */}
               <div className={cn(
                 'rounded-lg p-4 transition-all',
-                isDark
-                  ? 'bg-gradient-to-br from-gray-800 to-gray-800/50 border border-gray-700/50'
-                  : 'bg-gradient-to-br from-gray-50 to-white border border-gray-200/50'
+                'bg-gradient-to-br from-gray-50 to-white dark:from-card dark:to-card/50 border border-gray-200/50 dark:border-border'
               )}>
                 <div className='flex items-center gap-4'>
                   {/* 头像 */}
                   <div className={cn(
                     'w-16 h-16 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0',
-                    isDark ? 'bg-gradient-to-br from-blue-900 to-blue-800 border border-blue-700/50' : 'bg-gradient-to-br from-blue-100 to-blue-50 border border-blue-200/50'
+                    'bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900 dark:to-blue-800 border border-blue-200/50 dark:border-blue-700/50'
                   )}>
                     {authStatus.user_info.image_url ? (
                       <img
@@ -732,7 +719,7 @@ function Home() {
                     ) : (
                       <div className={cn(
                         'text-xl font-bold',
-                        isDark ? 'text-blue-200' : 'text-blue-600'
+                        'text-blue-600 dark:text-blue-200'
                       )}>
                         {authStatus.user_info.username?.substring(0, 1).toUpperCase()}
                       </div>
@@ -743,20 +730,20 @@ function Home() {
                   <div className='flex-1 min-w-0'>
                     <h3 className={cn(
                       'text-sm font-semibold truncate',
-                      isDark ? 'text-white' : 'text-gray-900'
+                      'text-gray-900 dark:text-foreground'
                     )}>
                       {authStatus.user_info.username}
                     </h3>
                     <p className={cn(
                       'text-xs truncate mt-1',
-                      isDark ? 'text-gray-400' : 'text-gray-600'
+                      'text-gray-600 dark:text-muted-foreground'
                     )}>
                       {authStatus.user_info.email}
                     </p>
                     {authStatus.user_info.created_at && (
                       <p className={cn(
                         'text-xs mt-2',
-                        isDark ? 'text-gray-500' : 'text-gray-500'
+                        'text-gray-500 dark:text-muted-foreground'
                       )}>
                         {t('home:accountDialog.joinedDate')}: {new Date(authStatus.user_info.created_at).toLocaleDateString()}
                       </p>
@@ -771,15 +758,13 @@ function Home() {
                 <div className='space-y-2'>
                   <label className={cn(
                     'text-xs font-medium block uppercase tracking-wider',
-                    isDark ? 'text-gray-400' : 'text-gray-500'
+                    'text-gray-500 dark:text-muted-foreground'
                   )}>
                     {t('home:accountDialog.nickname')}
                   </label>
                   <div className={cn(
                     'px-3 py-2.5 rounded-lg border transition-all',
-                    isDark
-                      ? 'bg-gray-900/50 border-gray-700/50 text-white text-sm'
-                      : 'bg-gray-50/50 border-gray-200/50 text-gray-900 text-sm'
+                    'bg-gray-50/50 dark:bg-input border-gray-200/50 dark:border-border text-gray-900 dark:text-foreground text-sm'
                   )}>
                     {authStatus.user_info.username}
                   </div>
@@ -789,28 +774,24 @@ function Home() {
                 <div className='space-y-2'>
                   <label className={cn(
                     'text-xs font-medium block uppercase tracking-wider',
-                    isDark ? 'text-gray-400' : 'text-gray-500'
+                    'text-gray-500 dark:text-muted-foreground'
                   )}>
                     {t('home:accountDialog.email')}
                   </label>
                   <div className={cn(
                     'flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-all',
-                    isDark
-                      ? 'bg-gray-900/50 border-gray-700/50'
-                      : 'bg-gray-50/50 border-gray-200/50'
+                    'bg-gray-50/50 dark:bg-input border-gray-200/50 dark:border-border'
                   )}>
                     <span className={cn(
                       'text-sm break-all flex-1',
-                      isDark ? 'text-white' : 'text-gray-900'
+                      'text-gray-900 dark:text-foreground'
                     )}>
                       {authStatus.user_info.email}
                     </span>
                     <button
                       className={cn(
                         'p-1 rounded transition-colors flex-shrink-0',
-                        isDark
-                          ? 'hover:bg-gray-800 text-gray-400 hover:text-gray-200'
-                          : 'hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+                        'hover:bg-gray-200 dark:hover:bg-secondary text-gray-500 dark:text-muted-foreground hover:text-gray-700 dark:hover:text-foreground'
                       )}
                       title={t('home:accountDialog.copyEmail')}
                       onClick={() => {
@@ -825,11 +806,7 @@ function Home() {
               </div>
 
               {/* 分割线 */}
-              <div className='h-px' style={{
-                background: isDark
-                  ? 'linear-gradient(to right, transparent, rgba(75, 75, 75, 0.5), transparent)'
-                  : 'linear-gradient(to right, transparent, rgba(229, 229, 229, 0.5), transparent)'
-              }} />
+              <div className='h-px bg-gray-200 dark:bg-border' />
 
               {/* 操作按钮 */}
               <div className='space-y-2'>
@@ -855,28 +832,27 @@ function Home() {
         <DialogContent
           className={cn(
             'max-w-5xl max-h-[90vh] overflow-y-auto',
-            isDark
-              ? 'bg-[#0f0f0f] border-gray-800 text-white'
-              : 'bg-white border-gray-200 text-gray-900'
+            'bg-white dark:bg-popover border-gray-200 dark:border-border text-gray-900 dark:text-foreground'
           )}
           style={{
-            background: isDark
-              ? 'rgba(15, 15, 15, 0.98)'
-              : 'rgba(255, 255, 255, 0.95)',
+            background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: isDark
-              ? '1px solid rgba(55, 55, 55, 0.6)'
-              : '1px solid rgba(229, 229, 229, 0.5)',
-            boxShadow: isDark
-              ? '0 8px 32px rgba(0, 0, 0, 0.8)'
-              : '0 8px 32px rgba(0, 0, 0, 0.12)',
+            border: '1px solid rgba(229, 229, 229, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
+          <style>{`
+            .dark .dialog-content {
+              background: rgba(15, 15, 15, 0.98) !important;
+              border: 1px solid rgba(55, 55, 55, 0.6) !important;
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+            }
+          `}</style>
           <DialogHeader>
             <DialogTitle className={cn(
               'text-2xl font-bold text-center w-full',
-              isDark ? 'text-white' : 'text-gray-900'
+              'text-gray-900 dark:text-foreground'
             )}>
               {t('home:subscription.title')}
             </DialogTitle>
@@ -930,28 +906,26 @@ function Home() {
                     key={planKey}
                     className={cn(
                       'rounded-2xl border-2 p-6 space-y-4 transition-all flex flex-col',
-                      isDark
-                        ? 'bg-gradient-to-br from-gray-900 to-gray-800/50 border-gray-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10'
-                        : 'bg-white border-gray-200 hover:border-blue-400 shadow-sm hover:shadow-lg'
+                      'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-blue-400 dark:hover:border-primary/40 shadow-sm hover:shadow-lg'
                     )}
                   >
                     <h3 className={cn(
                       'font-bold text-lg',
-                      isDark ? 'text-gray-100' : 'text-gray-900'
+                      'text-gray-900 dark:text-foreground'
                     )}>{plan.name}</h3>
                     <div className='flex items-baseline gap-2'>
                       <span className={cn(
                         'text-3xl font-bold',
-                        isDark ? 'text-white' : 'text-gray-900'
+                        'text-gray-900 dark:text-foreground'
                       )}>${price}</span>
                       <span className={cn(
                         'text-sm',
-                        isDark ? 'text-gray-400' : 'opacity-70'
+                        'opacity-70 dark:text-muted-foreground'
                       )}>/{subscriptionType === 'monthly' ? t('home:subscription.monthly') : t('home:subscription.yearly')}</span>
                       {subscriptionType === 'yearly' && savings > 0 && (
                         <span className={cn(
                           'text-xs font-medium ml-auto px-2 py-1 rounded-md',
-                          isDark ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-green-100 text-green-700'
+                          'bg-green-100 dark:bg-emerald-500/20 text-green-700 dark:text-emerald-400 border border-green-700 dark:border-emerald-500/30'
                         )}>
                           省${savings}
                         </span>
@@ -959,35 +933,31 @@ function Home() {
                     </div>
                     <p className={cn(
                       'text-xs',
-                      isDark ? 'text-gray-400' : 'opacity-70'
+                      'opacity-70 dark:text-muted-foreground'
                     )}>
                       {plan.monthlyCredits}算力/月
                     </p>
                     <Button className={cn(
                       'w-full font-semibold py-6 rounded-xl transition-all',
                       planKey === 'starter'
-                        ? isDark
-                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/30'
-                          : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md'
-                        : isDark
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-600/30'
-                          : 'bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white shadow-md'
+                        ? 'bg-gradient-to-r from-green-500 to-green-600 dark:from-emerald-500 dark:to-emerald-600 hover:from-green-600 hover:to-green-700 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white shadow-md dark:shadow-lg dark:shadow-emerald-500/30'
+                        : 'bg-gradient-to-r from-gray-800 to-gray-900 dark:from-blue-600 dark:to-blue-700 hover:from-gray-900 hover:to-black dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-md dark:shadow-lg dark:shadow-blue-600/30'
                     )}>
                       {t('home:subscription.upgrade')}
                     </Button>
                     <div className='flex-1'>
                       <h4 className={cn(
                         'text-sm font-semibold mb-3 pb-2 border-b',
-                        isDark ? 'text-gray-300 border-gray-700' : 'text-gray-700 border-gray-200'
+                        'text-gray-700 dark:text-foreground border-gray-200 dark:border-border'
                       )}>
                         {t('home:subscription.features')}
                       </h4>
-                      <ul className={cn('text-xs space-y-2', isDark ? 'text-gray-400' : 'text-gray-600')}>
+                      <ul className={cn('text-xs space-y-2', 'text-gray-600 dark:text-muted-foreground')}>
                         {features.slice(0, 8).map((feature: string, idx: number) => (
                           <li key={idx} className='flex items-start gap-2'>
                             <span className={cn(
                               'mt-0.5 flex-shrink-0 font-bold',
-                              isDark ? 'text-emerald-400' : 'text-green-500'
+                              'text-green-500 dark:text-emerald-400'
                             )}>✓</span>
                             <span>{feature}</span>
                           </li>
@@ -1007,26 +977,25 @@ function Home() {
         <DialogContent
           className={cn(
             'max-w-2xl',
-            isDark
-              ? 'bg-[#2a2a2a] border-gray-700 text-white'
-              : 'bg-white border-gray-200 text-gray-900'
+            'bg-white dark:bg-popover border-gray-200 dark:border-border text-gray-900 dark:text-foreground'
           )}
           style={{
-            background: isDark
-              ? 'rgba(42, 42, 42, 0.95)'
-              : 'rgba(255, 255, 255, 0.95)',
+            background: 'rgba(255, 255, 255, 0.95)',
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: isDark
-              ? '1px solid rgba(75, 75, 75, 0.5)'
-              : '1px solid rgba(229, 229, 229, 0.5)',
-            boxShadow: isDark
-              ? '0 8px 32px rgba(0, 0, 0, 0.5)'
-              : '0 8px 32px rgba(0, 0, 0, 0.12)',
+            border: '1px solid rgba(229, 229, 229, 0.5)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
+          <style>{`
+            .dark .dialog-content {
+              background: rgba(42, 42, 42, 0.95) !important;
+              border: 1px solid rgba(75, 75, 75, 0.5) !important;
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+            }
+          `}</style>
           <DialogHeader>
-            <DialogTitle className={isDark ? 'text-white' : 'text-gray-900'}>
+            <DialogTitle className='text-gray-900 dark:text-foreground'>
               {t('home:aiCreation.title')}
             </DialogTitle>
           </DialogHeader>

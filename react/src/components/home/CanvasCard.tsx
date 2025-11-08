@@ -72,8 +72,8 @@ const CanvasCard: React.FC<CanvasCardProps> = ({
           </div>
         )}
         <div className="flex flex-col">
-          <h3 className="text-lg font-bold">{canvas.name}</h3>
-          <p className="text-sm text-gray-500">{formatDate(canvas.created_at)}</p>
+          <h3 className="text-lg font-bold text-foreground">{canvas.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-muted-foreground">{formatDate(canvas.created_at)}</p>
         </div>
       </div>
     </motion.div>

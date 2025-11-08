@@ -1137,10 +1137,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             <div 
                 className="relative grid grid-cols-2 border-b" 
                 style={{
-                    background: 'rgba(255, 255, 255, 0.5)',
+                    background: document.documentElement.classList.contains('dark')
+                        ? 'rgba(28, 28, 30, 0.8)'
+                        : 'rgba(255, 255, 255, 0.5)',
                     backdropFilter: 'blur(16px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                    borderColor: 'rgba(0, 0, 0, 0.08)',
+                    borderColor: document.documentElement.classList.contains('dark')
+                        ? 'rgba(255, 255, 255, 0.1)'
+                        : 'rgba(0, 0, 0, 0.08)',
                     borderTopLeftRadius: '20px',
                     borderTopRightRadius: '20px',
                     paddingTop: '8px',
@@ -1192,8 +1196,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-border space-y-3 bg-card/50 backdrop-blur-sm">
+                <div className="flex-1 flex flex-col overflow-hidden bg-card/30 dark:bg-card/80">
+                    <div className="p-4 border-b border-border space-y-3 bg-card/50 dark:bg-card/60 backdrop-blur-sm">
                         <Input
                             placeholder={t('sidebar.search_layers')}
                             value={searchTerm}

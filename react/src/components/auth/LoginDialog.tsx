@@ -12,6 +12,7 @@ import { useConfigs, useRefreshModels } from '../../contexts/configs'
 import { Loader2, CheckCircle2, XCircle, LogIn, Sparkles, Shield, Edit, Eye } from 'lucide-react'
 import { LOGO_URL } from '../../constants'
 import { useNavigate } from '@tanstack/react-router'
+import { useTheme } from '@/hooks/use-theme'
 
 export function LoginDialog() {
   const [authMessage, setAuthMessage] = useState('')
@@ -28,6 +29,32 @@ export function LoginDialog() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const { theme } = useTheme()
+
+  // 获取当前实际应用的主题（考虑 system 模式）
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
 
   // Clean up polling when dialog closes
   useEffect(() => {
@@ -371,11 +398,17 @@ export function LoginDialog() {
         <div
           className="relative rounded-3xl overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.9)',
+            background: isDark
+              ? 'rgba(28, 28, 30, 0.95)'
+              : 'rgba(255, 255, 255, 0.9)',
             backdropFilter: 'blur(24px) saturate(180%)',
             WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
+            border: isDark
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.5)',
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
+              : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
           }}
         >
           {/* 背景渐变装饰 */}
@@ -392,11 +425,17 @@ export function LoginDialog() {
                   <div
                     className="relative p-4 rounded-2xl border transition-all duration-300 group-hover:scale-105"
                     style={{
-                      background: 'rgba(255, 255, 255, 0.6)',
+                      background: isDark
+                        ? 'rgba(28, 28, 30, 0.8)'
+                        : 'rgba(255, 255, 255, 0.6)',
                       backdropFilter: 'blur(12px) saturate(180%)',
                       WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                      border: '1px solid rgba(255, 255, 255, 0.4)',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                      border: isDark
+                        ? '1px solid rgba(255, 255, 255, 0.1)'
+                        : '1px solid rgba(255, 255, 255, 0.4)',
+                      boxShadow: isDark
+                        ? '0 8px 32px rgba(0, 0, 0, 0.5)'
+                        : '0 8px 32px rgba(0, 0, 0, 0.1)',
                     }}
                   >
                     <img
@@ -643,7 +682,9 @@ export function LoginDialog() {
                           <span
                             className="px-3 text-muted-foreground/60 font-medium"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.9)',
+                              background: isDark
+                                ? 'rgba(28, 28, 30, 0.95)'
+                                : 'rgba(255, 255, 255, 0.9)',
                               backdropFilter: 'blur(12px)',
                               WebkitBackdropFilter: 'blur(12px)',
                             }}
@@ -662,14 +703,21 @@ export function LoginDialog() {
                         className="w-full h-10 text-sm font-semibold relative overflow-hidden group hover:scale-[1.02] transition-all duration-300"
                         size="lg"
                         style={{
-                          background: 'rgba(255, 255, 255, 0.8)',
+                          background: isDark
+                            ? 'rgba(28, 28, 30, 0.8)'
+                            : 'rgba(255, 255, 255, 0.8)',
                           backdropFilter: 'blur(12px) saturate(180%)',
                           WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                          border: '2px solid rgba(0, 0, 0, 0.1)',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                          border: isDark
+                            ? '2px solid rgba(255, 255, 255, 0.1)'
+                            : '2px solid rgba(0, 0, 0, 0.1)',
+                          boxShadow: isDark
+                            ? '0 2px 8px rgba(0, 0, 0, 0.4)'
+                            : '0 2px 8px rgba(0, 0, 0, 0.08)',
+                          color: isDark ? '#F5F5F7' : '#1C1C1E',
                         }}
                       >
-                        <span className="flex items-center justify-center gap-2">
+                        <span className="flex items-center justify-center gap-2" style={{ color: isDark ? '#F5F5F7' : '#1C1C1E' }}>
                           {isSubmitting ? (
                             <>
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -725,10 +773,15 @@ export function LoginDialog() {
                   variant="outline"
                   className="w-full h-11 font-semibold"
                   style={{
-                    background: 'rgba(255, 255, 255, 0.6)',
+                    background: isDark
+                      ? 'rgba(28, 28, 30, 0.8)'
+                      : 'rgba(255, 255, 255, 0.6)',
                     backdropFilter: 'blur(12px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(12px) saturate(180%)',
-                    border: '2px solid rgba(0, 0, 0, 0.1)',
+                    border: isDark
+                      ? '2px solid rgba(255, 255, 255, 0.1)'
+                      : '2px solid rgba(0, 0, 0, 0.1)',
+                    color: isDark ? '#F5F5F7' : '#1C1C1E',
                   }}
                 >
                   {t('common:cancel') || '取消'}

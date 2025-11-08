@@ -215,12 +215,23 @@ function CanvasContent() {
           className={`absolute right-4 top-4 bottom-4 w-[24vw] z-10 overflow-visible transition-all duration-500 ease-out ${isLayerSidebarVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
             }`}
           style={{
-            background: 'rgba(255, 255, 255, 0.75)',
+            background: document.documentElement.classList.contains('dark')
+              ? 'rgba(28, 28, 30, 0.85)'
+              : 'rgba(255, 255, 255, 0.75)',
             backdropFilter: 'blur(40px) saturate(200%)',
             WebkitBackdropFilter: 'blur(40px) saturate(200%)',
             borderRadius: '20px',
-            border: '1px solid rgba(255, 255, 255, 0.25)',
-            boxShadow: `
+            border: document.documentElement.classList.contains('dark')
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(255, 255, 255, 0.25)',
+            boxShadow: document.documentElement.classList.contains('dark')
+              ? `
+                  -8px 0 32px rgba(0, 0, 0, 0.6),
+                  0 8px 32px rgba(0, 0, 0, 0.4),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                  inset -1px 0 0 rgba(255, 255, 255, 0.08)
+                `
+              : `
                   -8px 0 32px rgba(0, 0, 0, 0.12),
                   0 8px 32px rgba(0, 0, 0, 0.08),
                   inset 0 1px 0 rgba(255, 255, 255, 0.6),
@@ -231,23 +242,29 @@ function CanvasContent() {
           {/* 面板关闭按钮 - 优化位置：放在面板左侧边缘中间，作为拖拽手柄样式 */}
           <button
             onClick={() => setIsLayerSidebarVisible(false)}
-            className="absolute -left-10 top-1/2 -translate-y-1/2 z-30 w-9 h-20 flex items-center justify-center backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:bg-white/90 group"
+            className="absolute -left-10 top-1/2 -translate-y-1/2 z-30 w-9 h-20 flex items-center justify-center backdrop-blur-xl transition-all duration-300 hover:scale-110 group"
             style={{
-              background: 'rgba(255, 255, 255, 0.85)',
+              background: document.documentElement.classList.contains('dark')
+                ? 'rgba(28, 28, 30, 0.85)'
+                : 'rgba(255, 255, 255, 0.85)',
               backdropFilter: 'blur(24px) saturate(200%)',
               WebkitBackdropFilter: 'blur(24px) saturate(200%)',
               borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.5)',
+              border: document.documentElement.classList.contains('dark')
+                ? '1px solid rgba(255, 255, 255, 0.1)'
+                : '1px solid rgba(255, 255, 255, 0.5)',
               borderRight: 'none',
-              boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.8)',
+              boxShadow: document.documentElement.classList.contains('dark')
+                ? '-4px 0 20px rgba(0, 0, 0, 0.6), inset 1px 0 0 rgba(255, 255, 255, 0.08)'
+                : '-4px 0 20px rgba(0, 0, 0, 0.12), inset 1px 0 0 rgba(255, 255, 255, 0.8)',
             }}
             aria-label="隐藏图层面板"
             title={t('sidebar.hide_panel')}
           >
             <div className="flex flex-col items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
-              <PanelRightClose className="w-4 h-4 text-gray-700 group-hover:text-gray-900 transition-colors" />
-              <div className="w-1.5 h-1.5 rounded-full bg-gray-500 group-hover:bg-gray-700 transition-colors"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400 group-hover:bg-gray-700 dark:group-hover:bg-gray-300 transition-colors"></div>
+              <PanelRightClose className="w-4 h-4 text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors" />
+              <div className="w-1.5 h-1.5 rounded-full bg-gray-500 dark:bg-gray-400 group-hover:bg-gray-700 dark:group-hover:bg-gray-300 transition-colors"></div>
             </div>
           </button>
 
