@@ -87,13 +87,17 @@ function Home() {
 
   const { mutate: createCanvasMutation, isPending } = useMutation({
     mutationFn: createCanvas,
-    onSuccess: (data, variables) => {
+    onSuccess: (data, variables, context) => {
       setInitCanvas(true)
+      // 从 context 中获取模板信息（如果有）
+      const templateInfo = (context as any)?.templateInfo
       navigate({
         to: '/canvas/$id',
         params: { id: data.id },
         search: {
           sessionId: variables.session_id,
+          ...(templateInfo?.templateId && { templateId: templateInfo.templateId }),
+          ...(templateInfo?.templateName && { templateName: templateInfo.templateName }),
         },
       })
     },
@@ -106,13 +110,13 @@ function Home() {
 
   const handleCreateNew = () => {
     const userRole = authStatus.user_info?.role || 'viewer'
-    
+
     // Viewer 角色不能创建新画布
     if (userRole === 'viewer') {
       toast.error('查看者角色无法创建新画布，只能查看模板')
       return
     }
-    
+
     setShowChatTextarea(true)
   }
 
@@ -164,15 +168,23 @@ function Home() {
       toast.error('请先登录以创建新画布')
       return
     }
-    
+
     const userRole = authStatus.user_info?.role || 'viewer'
-    
+
     // Viewer 角色不能创建新画布
     if (userRole === 'viewer') {
       toast.error('查看者角色无法创建新画布，只能查看模板')
       return
     }
-    
+
+    // 保存模板信息到 sessionStorage，以便画布加载后应用
+    const templateInfo = {
+      templateId: template.template_id || null,
+      templateName: template.name,
+      displayName: template.display_name || template.name,
+    }
+    sessionStorage.setItem('pendingTemplate', JSON.stringify(templateInfo))
+
     createCanvasMutation({
       name: template.display_name || template.name,
       canvas_id: nanoid(),

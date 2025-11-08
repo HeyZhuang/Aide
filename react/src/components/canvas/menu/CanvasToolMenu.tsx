@@ -1057,7 +1057,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         </div>
 
         {/* 形状选择下拉菜单 */}
-        <div className="relative">
+        <div className="relative" ref={shapeButtonRef}>
           <CanvasMenuButton
             type="rectangle" // 使用rectangle类型作为形状菜单的默认图标
             active={['rectangle', 'ellipse', 'arrow', 'line', 'freedraw'].includes(activeTool || '')}

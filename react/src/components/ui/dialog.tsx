@@ -36,7 +36,24 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const isDark = document.documentElement.classList.contains('dark')
+  const [isDark, setIsDark] = React.useState(false)
+  
+  React.useEffect(() => {
+    const checkTheme = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+    
+    checkTheme()
+    
+    // 监听主题变化
+    const observer = new MutationObserver(checkTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+    
+    return () => observer.disconnect()
+  }, [])
   
   return (
     <DialogPortal>
