@@ -9,6 +9,7 @@ import { PSDLayerSidebar } from '@/components/canvas/PSDLayerSidebar'
 import { CanvasProvider } from '@/contexts/canvas'
 import { CanvasOverlay } from '@/components/canvas/CanvasOverlay'
 import { useCanvas } from '@/contexts/canvas'
+import useCanvasStore from '@/stores/canvas'
 import { CanvasData, Session } from '@/types/types'
 import { createFileRoute, useParams, useSearch } from '@tanstack/react-router'
 import { Loader2, PanelRightClose, PanelRightOpen } from 'lucide-react'
@@ -154,226 +155,256 @@ function CanvasContent() {
   useEffect(() => {
     // 检查是否有待处理的模板
     const pendingTemplateStr = sessionStorage.getItem('pendingTemplate')
-    if (!pendingTemplateStr || !excalidrawAPI || !canvas) {
+    if (!pendingTemplateStr || !canvas) {
       return
     }
 
-    const pendingTemplate = JSON.parse(pendingTemplateStr)
-    sessionStorage.removeItem('pendingTemplate') // 清除待处理标记
+    // 等待 excalidrawAPI 准备好
+    const checkAndApplyTemplate = async () => {
+      // 最多等待 5 秒，每 200ms 检查一次
+      let attempts = 0
+      const maxAttempts = 25
 
-    // 延迟应用模板，确保画布已完全加载
-    const timer = setTimeout(async () => {
-      try {
-        console.log('开始自动应用模板:', pendingTemplate)
-        if (!excalidrawAPI) {
-          console.warn('Excalidraw API 未准备好，无法应用模板')
-          return
-        }
+      while (attempts < maxAttempts) {
+        const { excalidrawAPI: api } = useCanvasStore.getState()
+        if (api) {
+          // API 已准备好，开始应用模板
+          const pendingTemplate = JSON.parse(pendingTemplateStr)
+          sessionStorage.removeItem('pendingTemplate') // 清除待处理标记
 
-        let result: PSDUploadResponse
+          // 再延迟一点确保画布完全初始化
+          await new Promise(resolve => setTimeout(resolve, 500))
 
-        // 如果模板已解析，直接从数据库加载（快速）
-        if (pendingTemplate.templateId) {
           try {
-            result = await getPSDTemplateById(pendingTemplate.templateId)
-            console.log('✅ 从数据库快速加载PSD模板:', result)
-          } catch (error) {
-            console.warn('从数据库加载失败，回退到解析模式:', error)
-            // 如果从数据库加载失败，回退到解析模式
-            const response = await fetch(`/api/psd/templates/${encodeURIComponent(pendingTemplate.templateName)}`)
-            if (!response.ok) {
-              throw new Error('获取PSD文件失败')
+            console.log('开始自动应用模板:', pendingTemplate)
+
+            if (!api) {
+              console.warn('Excalidraw API 未准备好，无法应用模板')
+              return
             }
-            const blob = await response.blob()
-            const file = new File([blob], pendingTemplate.templateName, { type: 'application/octet-stream' })
-            result = await uploadPSD(file)
-          }
-        } else {
-          // 如果模板未解析，先解析再加载
-          try {
-            const parseResult = await parsePSDTemplate(pendingTemplate.templateName)
-            result = await getPSDTemplateById(parseResult.template_id)
-            console.log('✅ PSD模板解析完成并已加载:', result)
-          } catch (error) {
-            console.warn('解析失败，回退到传统方式:', error)
-            const response = await fetch(`/api/psd/templates/${encodeURIComponent(pendingTemplate.templateName)}`)
-            if (!response.ok) {
-              throw new Error('获取PSD文件失败')
-            }
-            const blob = await response.blob()
-            const file = new File([blob], pendingTemplate.templateName, { type: 'application/octet-stream' })
-            result = await uploadPSD(file)
-          }
-        }
 
-        // 应用模板到画布（复用 PSDLayerSidebar 的逻辑）
-        if (excalidrawAPI && result.layers) {
-          console.log('开始添加PSD图层到画布，共', result.layers.length, '个图层')
+            let result: PSDUploadResponse
 
-          const appState = excalidrawAPI.getAppState()
-          const currentElements = excalidrawAPI.getSceneElements()
-
-          // 计算视口中心
-          const viewportCenter = {
-            x: -appState.scrollX + (appState.width || 0) / 2 / appState.zoom.value,
-            y: -appState.scrollY + (appState.height || 0) / 2 / appState.zoom.value,
-          }
-
-          // 过滤有效图层：排除群组，只保留图片和文字图层
-          const validLayers = result.layers.filter(layer => {
-            return layer.type !== 'group' && layer.visible !== false && (layer.image_url || layer.type === 'text')
-          })
-
-          if (validLayers.length === 0) {
-            toast.warning('模板没有可显示的图层')
-            return
-          }
-
-          // 计算PSD内容的中心位置
-          let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity
-          validLayers.forEach(layer => {
-            minLeft = Math.min(minLeft, layer.left)
-            minTop = Math.min(minTop, layer.top)
-            maxRight = Math.max(maxRight, layer.left + layer.width)
-            maxBottom = Math.max(maxBottom, layer.top + layer.height)
-          })
-
-          const psdCenterX = (minLeft + maxRight) / 2
-          const psdCenterY = (minTop + maxBottom) / 2
-
-          // 计算偏移量使PSD内容居中
-          const offsetX = viewportCenter.x - psdCenterX
-          const offsetY = viewportCenter.y - psdCenterY
-
-          // 收集所有要添加的图片元素和文件数据
-          const newImageElements: any[] = []
-          const newFileData: any[] = []
-
-          // 准备所有图层数据
-          for (const layer of validLayers) {
-            if (!layer.image_url && layer.type !== 'text') continue
-
-            try {
-              // 获取图片数据
-              const response = await fetch(layer.image_url!)
-              if (!response.ok) {
-                console.warn(`获取图层 "${layer.name}" 图片失败: ${response.status}`)
-                continue
-              }
-
-              const blob = await response.blob()
-              const file = new File([blob], `${layer.name}.png`, { type: 'image/png' })
-
-              // 转换为Base64
-              const dataURL = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader()
-                reader.onload = () => resolve(reader.result as string)
-                reader.onerror = reject
-                reader.readAsDataURL(file)
-              })
-
-              // 生成文件ID
-              const fileId = `psd-template-${result.file_id || result.template_id || 'template'}-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-              // 创建文件数据
-              const fileData = {
-                mimeType: 'image/png' as const,
-                id: fileId as any,
-                dataURL: dataURL as any,
-                created: Date.now()
-              }
-
-              // 创建图片元素
-              const imageElement = {
-                type: 'image' as const,
-                id: `psd-template-element-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                x: layer.left + offsetX,
-                y: layer.top + offsetY,
-                width: layer.width,
-                height: layer.height,
-                angle: 0,
-                strokeColor: '#000000',
-                backgroundColor: 'transparent',
-                fillStyle: 'solid' as const,
-                strokeWidth: 1,
-                strokeStyle: 'solid' as const,
-                roughness: 1,
-                opacity: Math.round((layer.opacity || 255) / 255 * 100),
-                groupIds: [],
-                frameId: null,
-                roundness: null,
-                seed: Math.floor(Math.random() * 1000000),
-                version: 1,
-                versionNonce: Math.floor(Math.random() * 1000000),
-                isDeleted: false,
-                boundElements: null,
-                updated: Date.now(),
-                link: null,
-                locked: false,
-                fileId: fileId as any,
-                scale: [1, 1] as [number, number],
-                status: 'saved' as const,
-                index: null,
-                crop: null,
-                customData: {
-                  psdLayerIndex: layer.index,
-                  psdFileId: result.file_id,
-                  layerName: layer.name,
-                  templateId: result.template_id || null
+            // 如果模板已解析，直接从数据库加载（快速）
+            if (pendingTemplate.templateId) {
+              try {
+                result = await getPSDTemplateById(pendingTemplate.templateId)
+                console.log('✅ 从数据库快速加载PSD模板:', result)
+              } catch (error) {
+                console.warn('从数据库加载失败，回退到解析模式:', error)
+                // 如果从数据库加载失败，回退到解析模式
+                const response = await fetch(`/api/psd/templates/${encodeURIComponent(pendingTemplate.templateName)}`)
+                if (!response.ok) {
+                  throw new Error('获取PSD文件失败')
                 }
-              } as any
-
-              newFileData.push(fileData)
-              newImageElements.push(imageElement)
-            } catch (error) {
-              console.error(`准备图层 "${layer.name}" 失败:`, error)
+                const blob = await response.blob()
+                const file = new File([blob], pendingTemplate.templateName, { type: 'application/octet-stream' })
+                result = await uploadPSD(file)
+              }
+            } else {
+              // 如果模板未解析，先解析再加载
+              try {
+                const parseResult = await parsePSDTemplate(pendingTemplate.templateName)
+                result = await getPSDTemplateById(parseResult.template_id)
+                console.log('✅ PSD模板解析完成并已加载:', result)
+              } catch (error) {
+                console.warn('解析失败，回退到传统方式:', error)
+                const response = await fetch(`/api/psd/templates/${encodeURIComponent(pendingTemplate.templateName)}`)
+                if (!response.ok) {
+                  throw new Error('获取PSD文件失败')
+                }
+                const blob = await response.blob()
+                const file = new File([blob], pendingTemplate.templateName, { type: 'application/octet-stream' })
+                result = await uploadPSD(file)
+              }
             }
-          }
 
-          // 逐个添加文件和图层
-          for (let i = 0; i < newFileData.length && i < newImageElements.length; i++) {
-            try {
-              const fileData = newFileData[i]
-              const imageElement = newImageElements[i]
+            // 应用模板到画布（复用 PSDLayerSidebar 的逻辑）
+            if (api && result.layers) {
+              console.log('开始添加PSD图层到画布，共', result.layers.length, '个图层')
 
-              // 添加文件
-              excalidrawAPI.addFiles([fileData])
+              const appState = api.getAppState()
+              const currentElements = api.getSceneElements()
 
-              // 等待文件加载完成
-              await new Promise(resolve => setTimeout(resolve, 100))
-
-              // 获取当前画布元素
-              const currentElements = excalidrawAPI.getSceneElements()
-
-              // 检查是否已存在相同ID的元素
-              const exists = currentElements.some(el => el.id === imageElement.id)
-              if (exists) {
-                console.warn(`图层 "${imageElement.customData?.layerName}" 已存在，跳过`)
-                continue
+              // 计算视口中心
+              const viewportCenter = {
+                x: -appState.scrollX + (appState.width || 0) / 2 / appState.zoom.value,
+                y: -appState.scrollY + (appState.height || 0) / 2 / appState.zoom.value,
               }
 
-              // 添加图层元素
-              excalidrawAPI.updateScene({
-                elements: [...currentElements, imageElement],
+              // 过滤有效图层：排除群组，只保留图片和文字图层
+              const validLayers = result.layers.filter(layer => {
+                return layer.type !== 'group' && layer.visible !== false && (layer.image_url || layer.type === 'text')
               })
 
-              // 添加小延迟，确保图层正确添加
-              await new Promise(resolve => setTimeout(resolve, 50))
-            } catch (error) {
-              console.error(`添加图层 ${i + 1} 失败:`, error)
-            }
-          }
+              if (validLayers.length === 0) {
+                toast.warning('模板没有可显示的图层')
+                return
+              }
 
-          toast.success(`模板 "${pendingTemplate.displayName}" 已成功应用到画布`)
+              // 计算PSD内容的中心位置
+              let minLeft = Infinity, minTop = Infinity, maxRight = -Infinity, maxBottom = -Infinity
+              validLayers.forEach(layer => {
+                minLeft = Math.min(minLeft, layer.left)
+                minTop = Math.min(minTop, layer.top)
+                maxRight = Math.max(maxRight, layer.left + layer.width)
+                maxBottom = Math.max(maxBottom, layer.top + layer.height)
+              })
+
+              const psdCenterX = (minLeft + maxRight) / 2
+              const psdCenterY = (minTop + maxBottom) / 2
+
+              // 计算偏移量使PSD内容居中
+              const offsetX = viewportCenter.x - psdCenterX
+              const offsetY = viewportCenter.y - psdCenterY
+
+              // 收集所有要添加的图片元素和文件数据
+              const newImageElements: any[] = []
+              const newFileData: any[] = []
+
+              // 准备所有图层数据
+              for (const layer of validLayers) {
+                if (!layer.image_url && layer.type !== 'text') continue
+
+                try {
+                  // 获取图片数据
+                  const response = await fetch(layer.image_url!)
+                  if (!response.ok) {
+                    console.warn(`获取图层 "${layer.name}" 图片失败: ${response.status}`)
+                    continue
+                  }
+
+                  const blob = await response.blob()
+                  const file = new File([blob], `${layer.name}.png`, { type: 'image/png' })
+
+                  // 转换为Base64
+                  const dataURL = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader()
+                    reader.onload = () => resolve(reader.result as string)
+                    reader.onerror = reject
+                    reader.readAsDataURL(file)
+                  })
+
+                  // 生成文件ID
+                  const fileId = `psd-template-${result.file_id || result.template_id || 'template'}-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+                  // 创建文件数据
+                  const fileData = {
+                    mimeType: 'image/png' as const,
+                    id: fileId as any,
+                    dataURL: dataURL as any,
+                    created: Date.now()
+                  }
+
+                  // 创建图片元素
+                  const imageElement = {
+                    type: 'image' as const,
+                    id: `psd-template-element-${layer.index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    x: layer.left + offsetX,
+                    y: layer.top + offsetY,
+                    width: layer.width,
+                    height: layer.height,
+                    angle: 0,
+                    strokeColor: '#000000',
+                    backgroundColor: 'transparent',
+                    fillStyle: 'solid' as const,
+                    strokeWidth: 1,
+                    strokeStyle: 'solid' as const,
+                    roughness: 1,
+                    opacity: Math.round((layer.opacity || 255) / 255 * 100),
+                    groupIds: [],
+                    frameId: null,
+                    roundness: null,
+                    seed: Math.floor(Math.random() * 1000000),
+                    version: 1,
+                    versionNonce: Math.floor(Math.random() * 1000000),
+                    isDeleted: false,
+                    boundElements: null,
+                    updated: Date.now(),
+                    link: null,
+                    locked: false,
+                    fileId: fileId as any,
+                    scale: [1, 1] as [number, number],
+                    status: 'saved' as const,
+                    index: null,
+                    crop: null,
+                    customData: {
+                      psdLayerIndex: layer.index,
+                      psdFileId: result.file_id,
+                      layerName: layer.name,
+                      templateId: result.template_id || null
+                    }
+                  } as any
+
+                  newFileData.push(fileData)
+                  newImageElements.push(imageElement)
+                } catch (error) {
+                  console.error(`准备图层 "${layer.name}" 失败:`, error)
+                }
+              }
+
+              // 逐个添加文件和图层
+              for (let i = 0; i < newFileData.length && i < newImageElements.length; i++) {
+                try {
+                  const fileData = newFileData[i]
+                  const imageElement = newImageElements[i]
+
+                  // 添加文件
+                  api.addFiles([fileData])
+
+                  // 等待文件加载完成
+                  await new Promise(resolve => setTimeout(resolve, 100))
+
+                  // 获取当前画布元素
+                  const currentElements = api.getSceneElements()
+
+                  // 检查是否已存在相同ID的元素
+                  const exists = currentElements.some((el: any) => el.id === imageElement.id)
+                  if (exists) {
+                    console.warn(`图层 "${imageElement.customData?.layerName}" 已存在，跳过`)
+                    continue
+                  }
+
+                  // 添加图层元素
+                  api.updateScene({
+                    elements: [...currentElements, imageElement],
+                  })
+
+                  // 添加小延迟，确保图层正确添加
+                  await new Promise(resolve => setTimeout(resolve, 50))
+                } catch (error) {
+                  console.error(`添加图层 ${i + 1} 失败:`, error)
+                }
+              }
+
+              toast.success(`模板 "${pendingTemplate.displayName}" 已成功应用到画布`)
+            }
+          } catch (error) {
+            console.error('自动应用模板失败:', error)
+            toast.error('自动应用模板失败: ' + (error instanceof Error ? error.message : '未知错误'))
+          }
+          return // API 已准备好，退出循环
         }
-      } catch (error) {
-        console.error('自动应用模板失败:', error)
-        toast.error('自动应用模板失败: ' + (error instanceof Error ? error.message : '未知错误'))
+
+        attempts++
+        await new Promise(resolve => setTimeout(resolve, 200))
       }
-    }, 1000) // 延迟1秒，确保画布已完全加载
+
+      // 如果超时仍未准备好，清除待处理标记
+      if (attempts >= maxAttempts) {
+        console.warn('等待 Excalidraw API 超时，清除待处理模板')
+        sessionStorage.removeItem('pendingTemplate')
+        toast.error('画布初始化超时，请手动应用模板')
+      }
+    }
+
+    // 延迟一点再开始检查，确保组件已完全渲染
+    const timer = setTimeout(() => {
+      checkAndApplyTemplate()
+    }, 500)
 
     return () => clearTimeout(timer)
-  }, [id, canvas, excalidrawAPI]) // 当画布加载完成后触发
+  }, [id, canvas]) // 当画布加载完成后触发
 
   const handleNameSave = async () => {
     await renameCanvas(id, canvasName)
