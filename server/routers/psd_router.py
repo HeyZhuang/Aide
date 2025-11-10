@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from psd_tools import PSDImage
@@ -8,6 +8,7 @@ import os
 import json
 import uuid
 import numpy as np
+import asyncio
 from typing import List, Dict, Any, Optional
 from common import DEFAULT_PORT
 from tools.utils.image_canvas_utils import generate_file_id
@@ -1283,3 +1284,271 @@ async def parse_psd_template(filename: str):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error parsing PSD template: {str(e)}")
+
+
+@router.post("/add-image-layer/{file_id}")
+async def add_image_layer_to_psd(
+    file_id: str,
+    image: UploadFile = File(...),
+    layer_name: Optional[str] = Form(None),
+    x: int = Form(0),
+    y: int = Form(0)
+):
+    """
+    上传单张图片并添加为PSD的新图层
+    
+    Args:
+        file_id: PSD文件ID
+        image: 要上传的图片文件
+        layer_name: 图层名称（可选，默认使用文件名）
+        x: 图层X坐标（默认0）
+        y: 图层Y坐标（默认0）
+    
+    Returns:
+        {
+            "success": True,
+            "layer": {图层信息},
+            "message": "成功添加图层"
+        }
+    """
+    print(f'🎨 添加图片图层到PSD: file_id={file_id}, image={image.filename}')
+    
+    try:
+        # 验证PSD文件是否存在
+        metadata_path = os.path.join(PSD_DIR, f'{file_id}_metadata.json')
+        if not os.path.exists(metadata_path):
+            raise HTTPException(status_code=404, detail="PSD文件元数据未找到")
+        
+        # 读取现有元数据
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        layers = metadata.get('layers', [])
+        
+        # 生成新图层索引
+        if layers:
+            max_index = max([layer['index'] for layer in layers])
+            new_layer_index = max_index + 1
+        else:
+            new_layer_index = 0
+        
+        # 读取上传的图片
+        content = await image.read()
+        img = Image.open(BytesIO(content))
+        
+        # 转换为RGBA以保持透明度
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+        
+        width, height = img.size
+        
+        # 确定图层名称
+        if not layer_name:
+            layer_name = image.filename or f"图层 {new_layer_index}"
+        
+        # 保存图层图像
+        layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{new_layer_index}.png')
+        await run_in_threadpool(img.save, layer_path, format='PNG')
+        
+        # 创建新图层信息
+        new_layer = {
+            'index': new_layer_index,
+            'name': layer_name,
+            'visible': True,
+            'opacity': 255,
+            'blend_mode': 'normal',
+            'left': x,
+            'top': y,
+            'width': width,
+            'height': height,
+            'parent_index': None,
+            'type': 'layer',
+            'image_url': f'/api/psd/layer/{file_id}/{new_layer_index}'
+        }
+        
+        # 添加到图层列表
+        layers.append(new_layer)
+        metadata['layers'] = layers
+        
+        # 保存更新后的元数据
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        print(f'✅ 成功添加图层: {layer_name} (索引: {new_layer_index})')
+        
+        return JSONResponse({
+            'success': True,
+            'layer': new_layer,
+            'message': f'成功添加图层 "{layer_name}"'
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f'❌ 添加图层失败: {e}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"添加图层失败: {str(e)}")
+
+
+@router.post("/add-image-layers-batch/{file_id}")
+async def add_image_layers_batch_to_psd(
+    file_id: str,
+    images: List[UploadFile] = File(...)
+):
+    """
+    批量上传多张图片并添加为PSD的多个新图层（原子性操作：全部成功或全部失败）
+    
+    Args:
+        file_id: PSD文件ID
+        images: 要上传的图片文件列表
+    
+    Returns:
+        成功时:
+        {
+            "success": True,
+            "layers": [图层信息列表],
+            "total": 图层总数,
+            "message": "成功添加 N 个图层"
+        }
+        
+        失败时:
+        {
+            "success": False,
+            "error": 错误信息,
+            "failed_index": 失败的图片索引,
+            "failed_filename": 失败的文件名,
+            "message": 错误描述
+        }
+    """
+    print(f'🎨 批量添加图片图层到PSD: file_id={file_id}, 图片数量={len(images)}')
+    
+    try:
+        # 验证至少有一张图片
+        if not images or len(images) == 0:
+            raise HTTPException(status_code=400, detail="至少需要上传一张图片")
+        
+        # 验证PSD文件是否存在
+        metadata_path = os.path.join(PSD_DIR, f'{file_id}_metadata.json')
+        if not os.path.exists(metadata_path):
+            raise HTTPException(status_code=404, detail="PSD文件元数据未找到")
+        
+        # 读取现有元数据
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+        
+        layers = metadata.get('layers', [])
+        
+        # 生成起始图层索引
+        if layers:
+            max_index = max([layer['index'] for layer in layers])
+            start_index = max_index + 1
+        else:
+            start_index = 0
+        
+        # 用于存储新图层信息
+        new_layers = []
+        temp_files = []  # 用于失败时清理临时文件
+        
+        # 并发处理所有图片
+        async def process_single_image(idx: int, image_file: UploadFile):
+            """处理单个图片"""
+            layer_index = start_index + idx
+            layer_name = image_file.filename or f"图层 {layer_index}"
+            
+            try:
+                # 读取图片
+                content = await image_file.read()
+                img = Image.open(BytesIO(content))
+                
+                # 转换为RGBA以保持透明度
+                if img.mode != 'RGBA':
+                    img = img.convert('RGBA')
+                
+                width, height = img.size
+                
+                # 保存图层图像
+                layer_path = os.path.join(PSD_DIR, f'{file_id}_layer_{layer_index}.png')
+                await run_in_threadpool(img.save, layer_path, format='PNG')
+                temp_files.append(layer_path)
+                
+                # 创建图层信息
+                # 计算位置：水平排列，每个图层间隔50px
+                x_offset = idx * 50
+                y_offset = idx * 50
+                
+                layer_info = {
+                    'index': layer_index,
+                    'name': layer_name,
+                    'visible': True,
+                    'opacity': 255,
+                    'blend_mode': 'normal',
+                    'left': x_offset,
+                    'top': y_offset,
+                    'width': width,
+                    'height': height,
+                    'parent_index': None,
+                    'type': 'layer',
+                    'image_url': f'/api/psd/layer/{file_id}/{layer_index}'
+                }
+                
+                return layer_info
+                
+            except Exception as e:
+                raise Exception(f"处理图片 '{layer_name}' 失败: {str(e)}")
+        
+        # 并发处理所有图片
+        tasks = [process_single_image(idx, img) for idx, img in enumerate(images)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # 检查是否有失败
+        for idx, result in enumerate(results):
+            if isinstance(result, Exception):
+                # 发现失败，清理已创建的临时文件
+                print(f'❌ 批量添加图层失败，正在清理临时文件...')
+                for temp_file in temp_files:
+                    try:
+                        if os.path.exists(temp_file):
+                            os.remove(temp_file)
+                    except Exception:
+                        pass
+                
+                error_msg = str(result)
+                filename = images[idx].filename or f"图片 {idx + 1}"
+                
+                return JSONResponse({
+                    "success": False,
+                    "error": error_msg,
+                    "failed_index": idx,
+                    "failed_filename": filename,
+                    "total": len(images),
+                    "message": f"上传失败：第 {idx + 1} 张图片 ({filename}) 处理出错"
+                })
+            else:
+                # 成功，添加到新图层列表
+                new_layers.append(result)
+        
+        # 所有图片处理成功，更新元数据
+        layers.extend(new_layers)
+        metadata['layers'] = layers
+        
+        # 保存更新后的元数据
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+        
+        print(f'✅ 成功批量添加 {len(new_layers)} 个图层')
+        
+        return JSONResponse({
+            'success': True,
+            'layers': new_layers,
+            'total': len(new_layers),
+            'message': f'成功添加 {len(new_layers)} 个图层'
+        })
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f'❌ 批量添加图层失败: {e}')
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"批量添加图层失败: {str(e)}")
