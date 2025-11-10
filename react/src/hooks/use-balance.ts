@@ -17,6 +17,8 @@ export function useBalance() {
     gcTime: 5 * 60 * 1000, // 5分钟后清理缓存
     refetchOnWindowFocus: true, // 窗口聚焦时重新获取
     refetchOnMount: true, // 组件挂载时重新获取
+    retry: false, // 不重试，避免重复的 404 错误
+    retryOnMount: false, // 挂载时不重试
   })
 
   return {

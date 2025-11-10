@@ -93,3 +93,4 @@ echo "  2. 域名 DNS 解析是否正确"
 echo "  3. Nginx 错误日志: sudo tail -f /var/log/nginx/error.log"
 echo "=========================================="
 
+

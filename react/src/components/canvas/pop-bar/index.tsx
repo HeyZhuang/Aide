@@ -72,7 +72,10 @@ const CanvasPopbarWrapper = () => {
       .map((image) => {
         const file = files[image.fileId!]
         if (!file || !file.dataURL) {
-          console.warn(`File not found for image ${image.fileId}`)
+          // 靜默處理文件找不到的情況，只在開發環境中顯示警告
+          if (process.env.NODE_ENV === 'development') {
+            console.debug(`File not found for image ${image.fileId}`)
+          }
           return null
         }
         const isBase64 = file.dataURL.startsWith('data:')

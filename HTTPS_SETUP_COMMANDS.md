@@ -66,3 +66,4 @@ curl -k -I https://localhost 2>&1 | head -5
 bash /home/ubuntu/psd-canvas-jaaz/setup-https.sh
 ```
 
+
