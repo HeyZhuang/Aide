@@ -13,6 +13,8 @@ import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { FontSelector } from '../FontSelector'
 import { FontItem } from '@/api/font'
 import { toast } from 'sonner'
+import { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
+import { BinaryFileData } from '@excalidraw/excalidraw/types'
 
 import { uploadPSD, uploadImage, updateLayerProperties, type PSDUploadResponse, type PSDLayer } from '@/api/upload'
 
@@ -1055,7 +1057,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
         </div>
 
         {/* 形状选择下拉菜单 */}
-        <div className="relative">
+        <div className="relative" ref={shapeButtonRef}>
           <CanvasMenuButton
             type="rectangle" // 使用rectangle类型作为形状菜单的默认图标
             active={['rectangle', 'ellipse', 'arrow', 'line', 'freedraw'].includes(activeTool || '')}

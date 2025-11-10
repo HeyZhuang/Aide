@@ -5,11 +5,11 @@ After=network.target psd-backend.service
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/cckz/psd-canvas-jaaz/react
+WorkingDirectory=/home/ubuntu/psd-canvas-jaaz/react
 Environment="NODE_ENV=production"
 Environment="PORT=3004"
 Environment="BACKEND_URL=http://127.0.0.1:57988"
-ExecStart=/usr/bin/node server.js
+ExecStart=/home/ubuntu/.nvm/versions/node/v20.19.4/bin/node server.js
 Restart=always
 RestartSec=10
 StandardOutput=journal

@@ -26,7 +26,7 @@ import {
     RefreshCw,
 } from 'lucide-react'
 import { TemplateItem, TemplateCategory } from '@/types/types'
-import { getTemplates, getTemplateCategories } from '@/api/template'
+import { listTemplates, getTemplates, getTemplateCategories } from '@/api/template'
 import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { useCanvas } from '@/contexts/canvas'
 
@@ -60,8 +60,34 @@ export function FloatingTemplateToolbar({
                 getTemplates({ is_favorite: true }),
                 getTemplateCategories(),
             ])
-            setTemplates(templatesData.slice(0, 5)) // 只显示前5个收藏的模板
-            setCategories(categoriesData)
+            // 将 Template[] 转换为 TemplateItem[]
+            const templateItems: TemplateItem[] = templatesData.slice(0, 5).map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.description,
+                category_id: t.category || '',
+                type: 'psd_file' as const,
+                thumbnail_url: t.thumbnail_path,
+                metadata: {
+                    original_filename: t.file_path,
+                    file_type: t.file_type,
+                },
+                tags: t.tags ? t.tags.split(',').map(tag => tag.trim()) : [],
+                usage_count: 0,
+                is_favorite: false,
+                is_public: false,
+                created_at: t.created_at,
+                updated_at: t.updated_at,
+                created_by: t.created_by,
+            }))
+            setTemplates(templateItems)
+            // 确保 categoriesData 的类型匹配
+            const categories: TemplateCategory[] = categoriesData.map(cat => ({
+                ...cat,
+                created_at: cat.created_at || new Date().toISOString(),
+                updated_at: cat.updated_at || new Date().toISOString(),
+            }))
+            setCategories(categories)
         } catch (error) {
             console.error('Failed to load template data:', error)
         } finally {

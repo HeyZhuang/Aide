@@ -154,7 +154,24 @@ WeChat: aifox1
 
 First git clone this repo:
 
-`git clone https://github.com/11cafe/localart`
+`git clone https://github.com/Pi3AI/psd-canvas-jaaz.git`
+
+`cd psd-canvas-jaaz`
+
+### Configure Environment Variables
+
+1. Copy the example configuration file:
+   ```bash
+   cp config.env.example config.env
+   ```
+
+2. Edit `config.env` and fill in your API keys:
+   - `GEMINI_API_KEY`: Get from [Google AI Studio](https://aistudio.google.com/)
+   - `GOOGLE_CLIENT_ID`: Get from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - `GOOGLE_CLIENT_SECRET`: Get from Google Cloud Console
+   - `GOOGLE_REDIRECT_URI`: Set to your callback URL (e.g., `http://localhost:3004/api/auth/google/callback`)
+
+### Install and Run
 
 `cd react`
 

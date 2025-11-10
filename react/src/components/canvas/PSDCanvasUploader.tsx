@@ -8,8 +8,7 @@ import { useCanvas } from '@/contexts/canvas'
 import { ExcalidrawImageElement } from '@excalidraw/excalidraw/element/types'
 import { BinaryFileData } from '@excalidraw/excalidraw/types'
 import { PSDSaveToTemplateDialog } from '../template/PSDSaveToTemplateDialog'
-import { getTemplateCategories } from '@/api/template'
-import type { TemplateCategory } from '@/types/types'
+import { getTemplateCategories, type TemplateCategory } from '@/api/template'
 
 interface PSDCanvasUploaderProps {
     canvasId: string
@@ -30,7 +29,13 @@ export function PSDCanvasUploader({ canvasId, onPSDUploaded, className }: PSDCan
     const loadTemplateCategories = useCallback(async () => {
         try {
             const categories = await getTemplateCategories()
-            setTemplateCategories(categories)
+            // 确保所有分类都有 created_at 和 updated_at
+            const formattedCategories: TemplateCategory[] = categories.map(cat => ({
+                ...cat,
+                created_at: cat.created_at || new Date().toISOString(),
+                updated_at: cat.updated_at || new Date().toISOString(),
+            }))
+            setTemplateCategories(formattedCategories)
         } catch (error) {
             console.error('加载模板分类失败:', error)
         }

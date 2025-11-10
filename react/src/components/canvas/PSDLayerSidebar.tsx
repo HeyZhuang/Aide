@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
+import { useTheme } from '@/hooks/use-theme'
 import {
     Layers,
     Eye,
@@ -46,7 +47,7 @@ import {
 } from '@/api/upload'
 import { useCanvas } from '@/contexts/canvas'
 import { TemplateManager } from '@/components/template/TemplateManager'
-import { createTemplateFromPSDLayer } from '@/api/template'
+// import { createTemplateFromPSDLayer } from '@/api/template' // TODO: 实现从PSD图层创建模板
 import { FontUploadDialog } from '@/components/font/FontUploadDialog'
 import { getFonts, getFontCategories, type FontItem, type FontCategory, searchFonts } from '@/api/font'
 import { toast } from 'sonner'
@@ -67,6 +68,32 @@ interface PSDLayerSidebarProps {
 export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLayerSidebarProps) {
     const { t } = useTranslation()
     const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
+    const { theme } = useTheme()
+    
+    // 获取当前实际应用的主题（考虑 system 模式）
+    const [isDark, setIsDark] = useState(false)
+    
+    useEffect(() => {
+        const getActualTheme = (): boolean => {
+            if (theme === 'system') {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches
+            }
+            return theme === 'dark'
+        }
+        
+        const updateTheme = () => {
+            setIsDark(getActualTheme())
+        }
+        
+        updateTheme()
+        
+        // 监听系统主题变化
+        if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+            mediaQuery.addEventListener('change', updateTheme)
+            return () => mediaQuery.removeEventListener('change', updateTheme)
+        }
+    }, [theme])
 
     // 状态管理
     const [selectedLayer, setSelectedLayer] = useState<PSDLayer | null>(null)
@@ -1137,10 +1164,14 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
             <div 
                 className="relative grid grid-cols-2 border-b" 
                 style={{
-                    background: 'rgba(255, 255, 255, 0.5)',
+                    background: isDark
+                        ? 'rgba(28, 28, 30, 0.8)'
+                        : 'rgba(255, 255, 255, 0.5)',
                     backdropFilter: 'blur(16px) saturate(180%)',
                     WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                    borderColor: 'rgba(0, 0, 0, 0.08)',
+                    borderColor: isDark
+                        ? 'rgba(255, 255, 255, 0.1)'
+                        : 'rgba(0, 0, 0, 0.08)',
                     borderTopLeftRadius: '20px',
                     borderTopRightRadius: '20px',
                     paddingTop: '8px',
@@ -1159,7 +1190,7 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
                                 onClick={() => setUiTopTab(top)}
                                 style={{
                                     background: isActive 
-                                        ? (document.documentElement.classList.contains('dark') 
+                                        ? (isDark 
                                             ? 'rgba(255, 255, 255, 0.1)' 
                                             : 'rgba(255, 255, 255, 0.5)')
                                         : 'transparent',
@@ -1192,8 +1223,8 @@ export function PSDLayerSidebar({ psdData, isVisible, onClose, onUpdate }: PSDLa
 
             {/* 主体内容 */}
             {uiTopTab === 'layers' ? (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="p-4 border-b border-border space-y-3 bg-card/50 backdrop-blur-sm">
+                <div className="flex-1 flex flex-col overflow-hidden bg-card/30 dark:bg-card/80">
+                    <div className="p-4 border-b border-border space-y-3 bg-card/50 dark:bg-card/60 backdrop-blur-sm">
                         <Input
                             placeholder={t('sidebar.search_layers')}
                             value={searchTerm}
