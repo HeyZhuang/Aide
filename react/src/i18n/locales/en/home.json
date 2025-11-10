@@ -54,6 +54,14 @@
     "fetchTemplatesFailed": "Failed to fetch templates",
     "logoutFailed": "Logout failed"
   },
+  "project": {
+    "creating": "Creating...",
+    "newProject": "New Project",
+    "viewerMode": {
+      "title": "Viewer Mode:",
+      "description": "You are currently logged in as a viewer. You can only view templates and projects, but cannot create new projects or edit content."
+    }
+  },
   "subscription": {
     "title": "Upgrade Your Plan",
     "monthly": "Monthly",

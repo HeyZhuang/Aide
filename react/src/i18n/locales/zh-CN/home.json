@@ -54,6 +54,14 @@
     "fetchTemplatesFailed": "获取PSD模板失败",
     "logoutFailed": "退出登录失败"
   },
+  "project": {
+    "creating": "创建中...",
+    "newProject": "新建项目",
+    "viewerMode": {
+      "title": "查看者模式：",
+      "description": "您当前以查看者身份登录，只能查看模板和项目,无法创建新项目或编辑内容。"
+    }
+  },
   "subscription": {
     "title": "升级你的套餐",
     "monthly": "月付",
@@ -70,7 +78,7 @@
         "monthlyCredits": 2000,
         "yearlyMonthlyCredits": 2000,
         "features": [
-          "每日获得100弱新积分",
+          "每日获得100新积分",
           "约67次Agent对话",
           "约200张图片生成",
           "约333张图片编辑",
@@ -88,7 +96,7 @@
         "monthlyCredits": 3500,
         "yearlyMonthlyCredits": 3500,
         "features": [
-          "每日获得100弱新积分",
+          "每日获得100新积分",
           "约117次Agent对话",
           "约350张图片生成",
           "约583张图片编辑",
@@ -109,7 +117,7 @@
         "monthlyCredits": 11000,
         "yearlyMonthlyCredits": 11000,
         "features": [
-          "每日获得100弱新积分",
+          "每日获得100新积分",
           "约367次Agent对话",
           "约1100张图片生成",
           "约1833张图片编辑",
@@ -131,7 +139,7 @@
         "monthlyCredits": 27000,
         "yearlyMonthlyCredits": 27000,
         "features": [
-          "每日获得100弱新积分",
+          "每日获得100新积分",
           "约900次Agent对话",
           "约2700张图片生成",
           "约4500张图片编辑",
