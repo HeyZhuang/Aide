@@ -45,8 +45,10 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 1rem; /* 增加圆角半径，更现代 */
-  --background: #FFFFFF; /* 纯白色背景 */
+  --radius: 1rem;
+  /* 增加圆角半径，更现代 */
+  --background: #FFFFFF;
+  /* 纯白色背景 */
   --foreground: oklch(0.141 0.005 285.823);
   /* 毛玻璃效果变量 */
   --glass-bg: rgba(255, 255, 255, 0.85);
@@ -85,30 +87,44 @@
 
 .dark {
   /* 苹果风格深色主题 - 使用纯黑背景和柔和的文字颜色 */
-  --background: #000000; /* 苹果风格的纯黑背景 */
-  --foreground: #F5F5F7; /* 苹果风格的柔和白色文字 */
-  --card: #1C1C1E; /* 苹果风格的次要背景色 */
+  --background: #000000;
+  /* 苹果风格的纯黑背景 */
+  --foreground: #F5F5F7;
+  /* 苹果风格的柔和白色文字 */
+  --card: #1C1C1E;
+  /* 苹果风格的次要背景色 */
   --card-foreground: #F5F5F7;
   --popover: #1C1C1E;
   --popover-foreground: #F5F5F7;
-  --primary: #007AFF; /* 苹果风格的蓝色强调色 */
+  --primary: #007AFF;
+  /* 苹果风格的蓝色强调色 */
   --primary-foreground: #FFFFFF;
-  --secondary: #2C2C2E; /* 稍微亮一点的深灰色 */
+  --secondary: #2C2C2E;
+  /* 稍微亮一点的深灰色 */
   --secondary-foreground: #F5F5F7;
   --muted: #2C2C2E;
-  --muted-foreground: #98989D; /* 苹果风格的次要文字颜色 */
+  --muted-foreground: #98989D;
+  /* 苹果风格的次要文字颜色 */
   --accent: #2C2C2E;
   --accent-foreground: #F5F5F7;
-  --destructive: #FF3B30; /* 苹果风格的红色 */
+  --destructive: #FF3B30;
+  /* 苹果风格的红色 */
   --destructive-foreground: #FFFFFF;
-  --border: rgba(255, 255, 255, 0.1); /* 非常淡的白色边框 */
-  --input: #1C1C1E; /* 输入框使用卡片背景色 */
-  --ring: #007AFF; /* 与 primary 一致 */
+  --border: rgba(255, 255, 255, 0.1);
+  /* 非常淡的白色边框 */
+  --input: #1C1C1E;
+  /* 输入框使用卡片背景色 */
+  --ring: #007AFF;
+  /* 与 primary 一致 */
   --chart-1: #007AFF;
-  --chart-2: #34C759; /* 苹果绿色 */
-  --chart-3: #FF9500; /* 苹果橙色 */
-  --chart-4: #AF52DE; /* 苹果紫色 */
-  --chart-5: #FF2D55; /* 苹果粉红色 */
+  --chart-2: #34C759;
+  /* 苹果绿色 */
+  --chart-3: #FF9500;
+  /* 苹果橙色 */
+  --chart-4: #AF52DE;
+  /* 苹果紫色 */
+  --chart-5: #FF2D55;
+  /* 苹果粉红色 */
   --sidebar: #000000;
   --sidebar-foreground: #F5F5F7;
   --sidebar-primary: #007AFF;
@@ -161,6 +177,7 @@
    毛玻璃效果 (Glassmorphism) 样式类
    ============================================ */
 @layer utilities {
+
   /* 基础毛玻璃效果 */
   .glass {
     background: rgba(255, 255, 255, 0.85);
@@ -182,7 +199,8 @@
 
   /* 深色模式下的毛玻璃 - 苹果风格 */
   .dark .glass {
-    background: rgba(28, 28, 30, 0.8); /* 苹果风格的深灰色，带透明度 */
+    background: rgba(28, 28, 30, 0.8);
+    /* 苹果风格的深灰色，带透明度 */
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(20px) saturate(180%);
@@ -190,7 +208,8 @@
   }
 
   .dark .glass-card {
-    background: rgba(28, 28, 30, 0.75); /* 苹果风格的卡片背景 */
+    background: rgba(28, 28, 30, 0.75);
+    /* 苹果风格的卡片背景 */
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(16px) saturate(180%);
@@ -208,7 +227,8 @@
   }
 
   .dark .glass-nav {
-    background: rgba(28, 28, 30, 0.85); /* 苹果风格的导航栏背景 */
+    background: rgba(28, 28, 30, 0.85);
+    /* 苹果风格的导航栏背景 */
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 1px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px) saturate(180%);
@@ -246,7 +266,8 @@
   }
 
   .dark .glass-hover:hover {
-    background: rgba(44, 44, 46, 0.85); /* 苹果风格的悬浮状态 */
+    background: rgba(44, 44, 46, 0.85);
+    /* 苹果风格的悬浮状态 */
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
     border-color: rgba(255, 255, 255, 0.15);
   }
@@ -271,7 +292,8 @@
   }
 
   /* 为根容器添加毛玻璃背景效果 */
-  #root, .app-container {
+  #root,
+  .app-container {
     background-color: #FFFFFF;
     min-height: 100vh;
     transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -338,29 +360,41 @@
 
   .dark {
     /* 苹果风格深色主题 - HSL 格式 */
-    --background: 0 0% 0%; /* 纯黑 */
-    --foreground: 0 0% 96%; /* #F5F5F7 */
-    --card: 0 0% 11%; /* #1C1C1E */
+    --background: 0 0% 0%;
+    /* 纯黑 */
+    --foreground: 0 0% 96%;
+    /* #F5F5F7 */
+    --card: 0 0% 11%;
+    /* #1C1C1E */
     --card-foreground: 0 0% 96%;
     --popover: 0 0% 11%;
     --popover-foreground: 0 0% 96%;
-    --primary: 210 100% 50%; /* #007AFF 苹果蓝 */
+    --primary: 210 100% 50%;
+    /* #007AFF 苹果蓝 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 17%; /* #2C2C2E */
+    --secondary: 0 0% 17%;
+    /* #2C2C2E */
     --secondary-foreground: 0 0% 96%;
     --muted: 0 0% 17%;
-    --muted-foreground: 0 0% 60%; /* #98989D */
+    --muted-foreground: 0 0% 60%;
+    /* #98989D */
     --accent: 0 0% 17%;
     --accent-foreground: 0 0% 96%;
-    --destructive: 0 100% 60%; /* #FF3B30 */
+    --destructive: 0 100% 60%;
+    /* #FF3B30 */
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 100% / 10%; /* rgba(255, 255, 255, 0.1) */
+    --border: 0 0% 100% / 10%;
+    /* rgba(255, 255, 255, 0.1) */
     --input: 0 0% 11%;
     --ring: 210 100% 50%;
     --chart-1: 210 100% 50%;
-    --chart-2: 142 70% 45%; /* #34C759 */
-    --chart-3: 30 100% 50%; /* #FF9500 */
-    --chart-4: 280 60% 58%; /* #AF52DE */
-    --chart-5: 340 80% 58%; /* #FF2D55 */
+    --chart-2: 142 70% 45%;
+    /* #34C759 */
+    --chart-3: 30 100% 50%;
+    /* #FF9500 */
+    --chart-4: 280 60% 58%;
+    /* #AF52DE */
+    --chart-5: 340 80% 58%;
+    /* #FF2D55 */
   }
 }
