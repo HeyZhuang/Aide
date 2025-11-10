@@ -754,48 +754,48 @@ function Home() {
       <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
         <DialogContent
           className={cn(
-            'max-w-5xl max-h-[90vh] overflow-y-auto',
+            'max-w-5xl max-h-[90vh] overflow-y-auto subscription-dialog',
             isDark
-              ? 'bg-[#0f0f0f] border-gray-800 text-white'
-              : 'bg-white border-gray-200 text-gray-900'
+              ? 'bg-black border-gray-800 text-white'
+              : 'bg-white border-gray-300 text-gray-900 light-mode'
           )}
           style={{
             background: isDark
-              ? 'rgba(15, 15, 15, 0.98)'
-              : 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              ? 'rgba(0, 0, 0, 0.98)'
+              : 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(20px) saturate(150%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(150%)',
             border: isDark
-              ? '1px solid rgba(55, 55, 55, 0.6)'
-              : '1px solid rgba(229, 229, 229, 0.5)',
+              ? '1px solid rgba(255, 255, 255, 0.1)'
+              : '1px solid rgba(0, 0, 0, 0.1)',
             boxShadow: isDark
-              ? '0 8px 32px rgba(0, 0, 0, 0.8)'
-              : '0 8px 32px rgba(0, 0, 0, 0.12)',
+              ? '0 20px 60px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+              : '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
           }}
         >
           <DialogHeader>
             <DialogTitle className={cn(
-              'text-2xl font-bold text-center w-full',
-              isDark ? 'text-white' : 'text-gray-900'
+              'text-3xl font-bold text-center w-full',
+              isDark ? 'text-white' : 'text-black'
             )}>
               {t('home:subscription.title')}
             </DialogTitle>
           </DialogHeader>
 
-          <div className='mt-6 space-y-6'>
+          <div className='mt-8 space-y-8'>
             {/* 计费周期切换 */}
-            <div className='flex justify-center gap-3 items-center'>
+            <div className='flex justify-center gap-4 items-center'>
               <button
                 onClick={() => setSubscriptionType('monthly')}
                 className={cn(
-                  'px-6 py-2.5 rounded-xl font-semibold transition-all border-2',
+                  'px-8 py-3 rounded-full font-bold transition-all duration-300 text-base',
                   subscriptionType === 'monthly'
                     ? isDark
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'border-blue-500 bg-blue-50 text-blue-600 shadow-md'
+                      ? 'bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.3)]'
+                      : 'bg-black text-white shadow-[0_0_30px_rgba(0,0,0,0.3)]'
                     : isDark
-                      ? 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:bg-gray-800'
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                      ? 'bg-transparent border-2 border-white/20 text-white/60 hover:text-white hover:border-white/40'
+                      : 'bg-transparent border-2 border-black/20 text-black/60 hover:text-black hover:border-black/40'
                 )}
               >
                 {t('home:subscription.monthly')}
@@ -803,14 +803,14 @@ function Home() {
               <button
                 onClick={() => setSubscriptionType('yearly')}
                 className={cn(
-                  'px-6 py-2.5 rounded-xl font-semibold transition-all border-2',
+                  'px-8 py-3 rounded-full font-bold transition-all duration-300 text-base',
                   subscriptionType === 'yearly'
                     ? isDark
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'border-blue-500 bg-blue-50 text-blue-600 shadow-md'
+                      ? 'bg-white text-black shadow-[0_0_30px_rgba(255,255,255,0.3)]'
+                      : 'bg-black text-white shadow-[0_0_30px_rgba(0,0,0,0.3)]'
                     : isDark
-                      ? 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:bg-gray-800'
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                      ? 'bg-transparent border-2 border-white/20 text-white/60 hover:text-white hover:border-white/40'
+                      : 'bg-transparent border-2 border-black/20 text-black/60 hover:text-black hover:border-black/40'
                 )}
               >
                 {t('home:subscription.yearly')}
@@ -818,7 +818,7 @@ function Home() {
             </div>
 
             {/* 订阅套餐卡片 */}
-            <div className='grid grid-cols-4 gap-4'>
+            <div className='grid grid-cols-4 gap-5'>
               {(['starter', 'basic', 'pro', 'ultimate'] as const).map((planKey) => {
                 const plan = (t as any)('home:subscription.plans', { returnObjects: true })[planKey];
                 const price = subscriptionType === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
@@ -829,67 +829,55 @@ function Home() {
                   <div
                     key={planKey}
                     className={cn(
-                      'rounded-2xl border-2 p-6 space-y-4 transition-all flex flex-col',
+                      'rounded-3xl border-2 p-7 space-y-5 transition-all duration-300 flex flex-col group',
                       isDark
-                        ? 'bg-gradient-to-br from-gray-900 to-gray-800/50 border-gray-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/10'
-                        : 'bg-white border-gray-200 hover:border-blue-400 shadow-sm hover:shadow-lg'
+                        ? 'bg-black border-white/10 hover:border-white/30 hover:shadow-[0_10px_60px_rgba(255,255,255,0.1)]'
+                        : 'bg-white border-black/10 hover:border-black/30 hover:shadow-[0_10px_60px_rgba(0,0,0,0.15)]'
                     )}
                   >
                     <h3 className={cn(
-                      'font-bold text-lg',
-                      isDark ? 'text-gray-100' : 'text-gray-900'
+                      'font-bold text-xl',
+                      isDark ? 'text-white' : 'text-black'
                     )}>{plan.name}</h3>
                     <div className='flex items-baseline gap-2'>
                       <span className={cn(
-                        'text-3xl font-bold',
-                        isDark ? 'text-white' : 'text-gray-900'
+                        'text-4xl font-bold tracking-tight',
+                        isDark ? 'text-white' : 'text-black'
                       )}>${price}</span>
                       <span className={cn(
                         'text-sm',
-                        isDark ? 'text-gray-400' : 'opacity-70'
+                        isDark ? 'text-white/50' : 'text-black/50'
                       )}>/{subscriptionType === 'monthly' ? t('home:subscription.monthly') : t('home:subscription.yearly')}</span>
-                      {subscriptionType === 'yearly' && savings > 0 && (
-                        <span className={cn(
-                          'text-xs font-medium ml-auto px-2 py-1 rounded-md',
-                          isDark ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-green-100 text-green-700'
-                        )}>
-                          省${savings}
-                        </span>
-                      )}
                     </div>
                     <p className={cn(
-                      'text-xs',
-                      isDark ? 'text-gray-400' : 'opacity-70'
+                      'text-sm font-medium',
+                      isDark ? 'text-white/60' : 'text-black/60'
                     )}>
                       {plan.monthlyCredits}算力/月
                     </p>
                     <Button className={cn(
-                      'w-full font-semibold py-6 rounded-xl transition-all',
-                      planKey === 'starter'
-                        ? isDark
-                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg shadow-emerald-500/30'
-                          : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md'
-                        : isDark
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg shadow-blue-600/30'
-                          : 'bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white shadow-md'
+                      'w-full font-bold py-6 rounded-2xl transition-all duration-300 text-base',
+                      isDark
+                        ? 'bg-white text-black hover:bg-white/90 shadow-[0_4px_20px_rgba(255,255,255,0.3)] hover:shadow-[0_8px_30px_rgba(255,255,255,0.4)]'
+                        : 'bg-black text-white hover:bg-black/90 shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)]'
                     )}>
                       {t('home:subscription.upgrade')}
                     </Button>
                     <div className='flex-1'>
                       <h4 className={cn(
-                        'text-sm font-semibold mb-3 pb-2 border-b',
-                        isDark ? 'text-gray-300 border-gray-700' : 'text-gray-700 border-gray-200'
+                        'text-sm font-bold mb-4 pb-3 border-b',
+                        isDark ? 'text-white/80 border-white/10' : 'text-black/80 border-black/10'
                       )}>
                         {t('home:subscription.features')}
                       </h4>
-                      <ul className={cn('text-xs space-y-2', isDark ? 'text-gray-400' : 'text-gray-600')}>
+                      <ul className={cn('text-xs space-y-2.5', isDark ? 'text-white/60' : 'text-black/60')}>
                         {features.slice(0, 8).map((feature: string, idx: number) => (
-                          <li key={idx} className='flex items-start gap-2'>
+                          <li key={idx} className='flex items-start gap-2.5'>
                             <span className={cn(
-                              'mt-0.5 flex-shrink-0 font-bold',
-                              isDark ? 'text-emerald-400' : 'text-green-500'
+                              'mt-0.5 flex-shrink-0 font-bold text-base',
+                              isDark ? 'text-white' : 'text-black'
                             )}>✓</span>
-                            <span>{feature}</span>
+                            <span className='leading-relaxed'>{feature}</span>
                           </li>
                         ))}
                       </ul>
