@@ -357,6 +357,18 @@ class WorkflowExecution:
 
 
 async def upload_image(image, base_url, filename=None, subfolder='jaaz'):
+    """
+    上传单张图片到 ComfyUI 服务器
+    
+    参数:
+        image: 图片二进制数据
+        base_url: ComfyUI服务器地址
+        filename: 文件名（可选）
+        subfolder: 子文件夹名（默认'jaaz'）
+    
+    返回:
+        str: 上传后的图片路径
+    """
     # Create a tuple with (filename, file_content) for proper multipart upload
     files = {"image": (filename, image)}
     data = {"type": "input", "subfolder": subfolder, "overwrite": "false"}
@@ -378,3 +390,77 @@ async def upload_image(image, base_url, filename=None, subfolder='jaaz'):
                     message = json.dumps(body["node_errors"], indent=2)
             pprint(f"[bold red]Error uploading image\n{message}[/bold red]")
             raise Exception(message)
+
+
+async def upload_images_batch(images_data, base_url, subfolder='jaaz'):
+    """
+    批量上传多张图片到 ComfyUI 服务器（原子性操作：全部成功或全部失败）
+    
+    参数:
+        images_data: 图片数据列表，每项为 dict
+            - image: 图片二进制数据
+            - filename: 文件名（可选）
+        base_url: ComfyUI服务器地址
+        subfolder: 子文件夹名（默认'jaaz'）
+    
+    返回:
+        dict: 上传结果
+            成功时: {"success": True, "paths": [路径列表], "total": 总数, "message": 消息}
+            失败时: {"success": False, "error": 错误信息, "failed_index": 失败索引, "failed_filename": 失败文件名, "total": 总数, "message": 消息}
+        
+    示例:
+        images_data = [
+            {"image": binary_data1, "filename": "image1.png"},
+            {"image": binary_data2, "filename": "image2.jpg"},
+        ]
+        result = await upload_images_batch(images_data, "http://127.0.0.1:8188")
+        # 成功: {"success": True, "paths": ["jaaz/image1.png", "jaaz/image2.jpg"], "total": 2, "message": "成功上传 2 张图片"}
+        # 失败: {"success": False, "error": "...", "failed_index": 1, "failed_filename": "image2.jpg", "total": 2, "message": "上传失败：第 2 张图片 (image2.jpg) 上传出错"}
+    """
+    # 使用 asyncio.gather 并发上传所有图片
+    upload_tasks = []
+    
+    #此处filename仅直接使用序列排出，可采用其它算法如雪花算法等进行生成
+    for idx, img_data in enumerate(images_data):
+        image = img_data.get("image")
+        filename = img_data.get("filename") or f"image_{idx}.png"
+        
+        # 创建上传任务
+        task = upload_image(image, base_url, filename, subfolder)
+        upload_tasks.append((idx, filename, task))
+    
+    # 并发执行所有上传任务，捕获异常
+    results = await asyncio.gather(
+        *[task for _, _, task in upload_tasks],
+        return_exceptions=True  # 捕获异常而不是中断所有任务
+    )
+    
+    # 检查是否有任何上传失败
+    uploaded_paths = []
+    for (idx, filename, _), result in zip(upload_tasks, results):
+        if isinstance(result, Exception):
+            # 发现失败，立即返回失败信息
+            error_msg = str(result)
+            pprint(f"[bold red]Batch upload failed at image {idx} ({filename}): {error_msg}[/bold red]")
+            
+            return {
+                "success": False,
+                "error": error_msg,
+                "failed_index": idx,
+                "failed_filename": filename,
+                "total": len(images_data),
+                "message": f"上传失败：第 {idx + 1} 张图片 ({filename}) 上传出错"
+            }
+        else:
+            # 上传成功，保存路径
+            uploaded_paths.append(result)
+    
+    # 所有图片上传成功
+    pprint(f"[bold green]Batch upload completed successfully: {len(uploaded_paths)} images[/bold green]")
+    
+    return {
+        "success": True,
+        "paths": uploaded_paths,
+        "total": len(uploaded_paths),
+        "message": f"成功上传 {len(uploaded_paths)} 张图片"
+    }
