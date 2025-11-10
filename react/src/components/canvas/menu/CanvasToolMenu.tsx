@@ -607,7 +607,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
               // 添加文件
               excalidrawAPI.addFiles([fileData])
-              
+
               // 等待文件加载完成
               await new Promise(resolve => setTimeout(resolve, 100))
 
@@ -639,12 +639,12 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
           // 验证最终添加的元素
           const finalElements = excalidrawAPI.getSceneElements()
-          const psdElements = finalElements.filter(el => 
+          const psdElements = finalElements.filter(el =>
             el.customData?.psdFileId === psdData.file_id
           )
-          
+
           console.log(`成功添加 ${psdElements.length} 个图层到画布 (预期: ${newImageElements.length})`)
-          
+
           if (psdElements.length < newImageElements.length) {
             console.warn(`警告: 只添加了 ${psdElements.length}/${newImageElements.length} 个图层`)
           }

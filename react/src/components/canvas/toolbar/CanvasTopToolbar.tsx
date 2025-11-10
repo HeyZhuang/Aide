@@ -4,7 +4,7 @@ import { TextToolbar } from './TextToolbar'
 import { ImageToolbar } from './ImageToolbar'
 import { GroupToolbar } from './GroupToolbar'
 import { ShapeToolbar } from './ShapeToolbar'
-import { 
+import {
   ExcalidrawTextElement,
   ExcalidrawImageElement,
   ExcalidrawElement
@@ -39,7 +39,7 @@ export function CanvasTopToolbar() {
         setSelectedElement({ ...element })
         // 强制更新组件
         // setUpdateKey(prev => prev + 1)
-        
+
         if (element.type === 'text') {
           setSelectedElementType('text')
         } else if (element.type === 'image') {

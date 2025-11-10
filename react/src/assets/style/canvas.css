@@ -201,16 +201,19 @@
 
 /* 为深色模式设置适当的背景色和文本颜色 - 苹果风格 */
 .excalidraw.theme--dark {
-  --color-canvas-background: #000000 !important; /* 苹果风格的纯黑背景 */
+  --color-canvas-background: #000000 !important;
+  /* 苹果风格的纯黑背景 */
   background-color: #000000 !important;
-  color: #F5F5F7 !important; /* 苹果风格的柔和白色 */
+  color: #F5F5F7 !important;
+  /* 苹果风格的柔和白色 */
 }
 
 /* 确保深色模式下的文本元素颜色正确 - 苹果风格 */
 .excalidraw-wrapper .excalidraw.theme--dark .Layer_textarea {
   filter: none !important;
   color: #F5F5F7 !important;
-  background-color: #1C1C1E !important; /* 苹果风格的输入框背景 */
+  background-color: #1C1C1E !important;
+  /* 苹果风格的输入框背景 */
 }
 
 /* 确保深色模式下的UI元素颜色正确 - 苹果风格 */
@@ -230,8 +233,10 @@
 .excalidraw-wrapper .excalidraw.theme--dark textarea {
   filter: none !important;
   color: #F5F5F7 !important;
-  background-color: #1C1C1E !important; /* 苹果风格的输入框背景 */
-  border-color: rgba(255, 255, 255, 0.1) !important; /* 柔和的边框 */
+  background-color: #1C1C1E !important;
+  /* 苹果风格的输入框背景 */
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  /* 柔和的边框 */
 }
 
 /* 字体选择功能样式 */
@@ -431,6 +436,19 @@
   background-color: var(--muted);
   color: var(--foreground);
   transform: scale(1.1);
+}
+
+/* 图片询问模式按钮激活状态 */
+.bottom-chat-collapse-btn.bg-blue-500 {
+  background-color: #3b82f6;
+  color: white;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+.bottom-chat-collapse-btn.bg-blue-500:hover {
+  background-color: #2563eb;
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.6);
 }
 
 /* 聊天窗口内容区域 */

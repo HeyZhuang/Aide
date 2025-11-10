@@ -81,6 +81,8 @@ function CanvasContent() {
 
   // 聊天窗口最小化状态
   const [isChatMinimized, setIsChatMinimized] = useState(true)
+  // 图片询问模式状态
+  const [isImageQuestionMode, setIsImageQuestionMode] = useState(false)
   // AI助手窗口容器的引用
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -610,8 +612,14 @@ function CanvasContent() {
             isMinimized={isChatMinimized}
             onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
           />
+          
         </div>
       )}
     </div>
   )
 }
+
+
+
+
+

@@ -2,7 +2,7 @@ import { saveCanvas } from '@/api/canvas'
 import { useCanvas } from '@/contexts/canvas'
 import useDebounce from '@/hooks/use-debounce'
 import { useTheme } from '@/hooks/use-theme'
-import { eventBus } from '@/lib/event'
+import { eventBus, TImageQuestionClickEvent } from '@/lib/event'
 import * as ISocket from '@/types/socket'
 import { CanvasData } from '@/types/types'
 import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw'
@@ -20,13 +20,266 @@ import {
   BinaryFiles,
   ExcalidrawInitialDataState,
 } from '@excalidraw/excalidraw/types'
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
 import { VideoElement } from './VideoElement'
 import { CanvasTopToolbar } from './toolbar/CanvasTopToolbar'
 
 import '@/assets/style/canvas.css'
+
+// 图片询问对话框组件
+const ImageQuestionDialog = ({
+  imageInfo,
+  position,
+  onClose,
+  onAsk,
+  isMinimized,
+  onMinimize,
+  generationStatus,
+  aiResponse
+}: {
+  imageInfo: TImageQuestionClickEvent;
+  position: { x: number; y: number };
+  onClose: () => void;
+  onAsk: (question: string) => void;
+  isMinimized: boolean;
+  onMinimize: () => void;
+  generationStatus: 'idle' | 'generating' | 'success' | 'error';
+  aiResponse: string;
+}) => {
+  const [question, setQuestion] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (question.trim()) {
+      onAsk(question);
+      // 不再关闭对话框，而是最小化
+      onMinimize();
+    }
+  };
+
+  const handleDelete = () => {
+    setQuestion('');
+  };
+
+  // 计算悬浮框最终位置，确保不超出视口
+  const getPosition = () => {
+    if (!dialogRef.current) return { left: position.x, top: position.y };
+
+    const rect = dialogRef.current.getBoundingClientRect();
+    const container = document.querySelector('.excalidraw-wrapper') as HTMLElement;
+
+    if (!container) return { left: position.x, top: position.y };
+
+    const containerRect = container.getBoundingClientRect();
+    let left = position.x;
+    let top = position.y;
+
+    // 检查右边界
+    if (left + rect.width > containerRect.width) {
+      left = containerRect.width - rect.width - 20;
+    }
+
+    // 检查左边界
+    if (left < 0) {
+      left = 20;
+    }
+
+    // 检查下边界
+    if (top + rect.height > containerRect.height) {
+      top = containerRect.height - rect.height - 20;
+    }
+
+    // 检查上边界
+    if (top < 0) {
+      top = 20;
+    }
+
+    return { left, top };
+  };
+
+  const pos = getPosition();
+
+  // 如果是最小化状态，显示简化的卡片
+  if (isMinimized) {
+    return (
+      <div
+        ref={dialogRef}
+        className="absolute flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-lg z-50 cursor-pointer hover:shadow-xl transition-shadow"
+        style={{
+          left: `${pos.left}px`,
+          top: `${pos.top}px`,
+          minWidth: '280px',
+          maxWidth: '400px'
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onMinimize(); // 点击后恢复为正常大小
+        }}
+      >
+        {/* 小图片 */}
+        <div className="relative w-12 h-12 border-2 border-blue-500 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+          <img
+            src={imageInfo.imageUrl}
+            alt={imageInfo.imageName}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* 状态显示 */}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-gray-900 truncate">
+            {generationStatus === 'generating' && '💭 正在生成中...'}
+            {generationStatus === 'success' && '✅ 生成完成'}
+            {generationStatus === 'error' && '❌ 生成失败'}
+            {generationStatus === 'idle' && '📸 图片问答'}
+          </div>
+          {aiResponse && (
+            <div className="text-xs text-gray-500 truncate mt-1">
+              {aiResponse}
+            </div>
+          )}
+        </div>
+
+        {/* 关闭按钮 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+          title="关闭"
+        >
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={dialogRef}
+      className="absolute flex gap-4 p-4 bg-white rounded-2xl shadow-2xl z-50"
+      style={{
+        left: `${pos.left}px`,
+        top: `${pos.top}px`,
+        minWidth: '320px',
+        maxWidth: '500px'
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* 左边图片区域 */}
+      <div className="relative flex-shrink-0">
+        <div className="relative w-32 h-40 border-3 border-blue-500 rounded-lg overflow-hidden bg-gray-100">
+          <img
+            src={imageInfo.imageUrl}
+            alt={imageInfo.imageName}
+            className="w-full h-full object-cover"
+          />
+
+          {/* 数字标记
+          <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-lg">
+            2
+          </div> */}
+        </div>
+      </div>
+
+      {/* 右边对话区域 */}
+      <div className="flex-1 flex flex-col min-h-[160px]">
+        {/* 标题和操作按钮 */}
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-base font-medium text-gray-900">对话</h3>
+          <div className="flex gap-1">
+            <button
+              onClick={handleDelete}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="清空"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button
+              onClick={onMinimize}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="最小化"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="关闭"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* 生成状态显示 */}
+        {generationStatus !== 'idle' && (
+          <div className="mb-2 p-2 rounded bg-gray-50">
+            <div className="flex items-center gap-2">
+              {generationStatus === 'generating' && (
+                <>
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-gray-700">正在生成图片...</span>
+                </>
+              )}
+              {generationStatus === 'success' && (
+                <>
+                  <span className="text-green-500">✅</span>
+                  <span className="text-sm text-gray-700">图片生成完成</span>
+                </>
+              )}
+              {generationStatus === 'error' && (
+                <>
+                  <span className="text-red-500">❌</span>
+                  <span className="text-sm text-gray-700">生成失败，请重试</span>
+                </>
+              )}
+            </div>
+            {aiResponse && (
+              <div className="mt-2 text-xs text-gray-600">
+                {aiResponse}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 输入框 */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm text-gray-700 placeholder-gray-400 bg-gray-50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white resize-none"
+            placeholder="你想说什么？"
+            autoFocus
+          />
+
+          {/* 发送按钮 */}
+          <div className="mt-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={!question.trim()}
+              className="px-4 py-1 text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded transition-colors"
+            >
+              发送
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 // 图片替换相关接口
 interface DragImageData {
@@ -91,7 +344,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   const { authStatus } = useAuth()
 
   const { i18n } = useTranslation()
-  
+
   // 根据用户角色决定是否启用编辑模式
   // 未登录用户和 Viewer 只能查看，Editor 和 Admin 可以编辑
   const userRole = authStatus.is_logged_in ? (authStatus.user_info?.role || 'viewer') : 'viewer'
@@ -206,7 +459,239 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
   // 添加自定义类名以便应用我们的CSS修复
   const excalidrawClassName = `excalidraw-custom ${theme === 'dark' ? 'excalidraw-dark-fix' : ''}`
 
-  // 处理拖拽悬停事件
+  const [isImageQuestionMode, setIsImageQuestionMode] = useState(false)
+  const [clickedImageInfo, setClickedImageInfo] = useState<TImageQuestionClickEvent | null>(null)
+  const [showImageQuestionDialog, setShowImageQuestionDialog] = useState(false)
+  const [dialogPosition, setDialogPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const [isDialogMinimized, setIsDialogMinimized] = useState(false)
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle')
+  const [aiResponse, setAiResponse] = useState('')
+
+  // 处理Excalidraw中的点击事件，检测是否点击了图片
+  const lastPointerDownRef = useRef<{ x: number; y: number } | null>(null)
+  const pointerDownTimeRef = useRef<number>(0)
+
+  const handlePointerUp = useCallback(async (payload: any) => {
+    if (!isImageQuestionMode || !excalidrawAPI) return
+
+    // 检查是否是子捕获阶段的事件
+    if (!payload.button || payload.button !== 'up') return
+
+    // 计算点击执敢时间，仅处理短事件（排除拖拽）
+    const now = Date.now()
+    const timeDiff = now - pointerDownTimeRef.current
+    if (timeDiff > 200) return // 仅处理少于200ms的点击
+
+    if (!lastPointerDownRef.current) return
+
+    const elements = excalidrawAPI.getSceneElements()
+    const appState = excalidrawAPI.getAppState()
+    const files = excalidrawAPI.getFiles()
+
+    const sceneX = lastPointerDownRef.current.x
+    const sceneY = lastPointerDownRef.current.y
+
+    // console.log('🖱️ 点击画布，场景坐标:', { sceneX, sceneY })
+
+    // 查找鼠标位置下的图片元素
+    let clickedImageElement = null
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const el = elements[i]
+      if (el.type !== 'image' || el.isDeleted) continue
+
+      const elementLeft = el.x
+      const elementTop = el.y
+      const elementRight = el.x + el.width
+      const elementBottom = el.y + el.height
+
+      // console.log(`🔍 检查图片元素 ${el.id}:`, {
+      //   bounds: { left: elementLeft, top: elementTop, right: elementRight, bottom: elementBottom },
+      //   mouseIn: sceneX >= elementLeft && sceneX <= elementRight && sceneY >= elementTop && sceneY <= elementBottom
+      // })
+
+      if (sceneX >= elementLeft && sceneX <= elementRight && sceneY >= elementTop && sceneY <= elementBottom) {
+        clickedImageElement = el as ExcalidrawImageElement
+        // console.log('✅ 找到图片元素:', clickedImageElement.id)
+        break
+      }
+    }
+
+    // 如果点击到图片元素，显示对话悬浮框
+    if (clickedImageElement) {
+      const imageFile = files?.[clickedImageElement.fileId as string]
+      // console.log('📸 图片文件信息:', imageFile?.dataURL ? '有dataURL' : '无dataURL')
+      if (imageFile?.dataURL) {
+        // console.log('📤 显示图片询问对话框')
+        const imageInfo = {
+          imageId: clickedImageElement.id,
+          imageUrl: imageFile.dataURL,
+          imageName: `Image-${clickedImageElement.id.substring(0, 8)}`
+        };
+        setClickedImageInfo(imageInfo);
+
+        // 计算悬浮框位置（相对于画布容器）
+        const container = document.querySelector('.excalidraw-wrapper') as HTMLElement;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          // 将场景坐标转换为屏幕坐标，然后相对于容器定位
+          const sceneToScreenX = (sceneX: number) => {
+            return (sceneX + appState.scrollX) * appState.zoom.value;
+          };
+          const sceneToScreenY = (sceneY: number) => {
+            return (sceneY + appState.scrollY) * appState.zoom.value;
+          };
+
+          const screenX = sceneToScreenX(clickedImageElement.x + clickedImageElement.width / 2);
+          const screenY = sceneToScreenY(clickedImageElement.y + clickedImageElement.height / 2);
+
+          setDialogPosition({ x: screenX, y: screenY });
+        }
+
+        setShowImageQuestionDialog(true);
+
+        // 恢复光标为默认状态
+        if (container) {
+          container.style.cursor = 'default';
+        }
+
+        // 发送图片询问事件
+        eventBus.emit('Canvas::ImageQuestionClick', imageInfo);
+      }
+    } else {
+      console.log('❌ 没有找到图片元素')
+    }
+  }, [isImageQuestionMode, excalidrawAPI])
+
+  // 监听图片询问模式的切换
+  useEffect(() => {
+    const handleToggleImageQuestionMode = (isEnabled: boolean) => {
+      setIsImageQuestionMode(isEnabled)
+
+      // 改变光标样式
+      if (excalidrawAPI) {
+        const container = document.querySelector('.excalidraw') as HTMLElement
+        if (container) {
+          if (isEnabled) {
+            // 使用Base64编码的对话气泡SVG图标作为光标
+            // SVG: <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%232563eb' stroke='white' stroke-width='1.5'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>
+            const cursorUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPScyNCcgaGVpZ2h0PScyNCcgdmlld0JveD0nMCAwIDI0IDI0JyBmaWxsPScjMjU2M2ViJyBzdHJva2U9J3doaXRlJyBzdHJva2Utd2lkdGg9JzEuNSc+PHBhdGggZD0nTTIxIDE1YTIgMiAwIDAgMS0yIDJIN2wtNCA0VjVhMiAyIDAgMCAxIDItMmgxNGEyIDIgMCAwIDEgMiAyeic+PC9wYXRoPjwvc3ZnPg=='
+            container.style.cursor = `url('${cursorUrl}') 12 12, pointer`
+          } else {
+            container.style.cursor = 'default'
+          }
+        }
+      }
+    }
+
+    eventBus.on('Canvas::ToggleImageQuestionMode', handleToggleImageQuestionMode)
+    return () => {
+      eventBus.off('Canvas::ToggleImageQuestionMode', handleToggleImageQuestionMode)
+    }
+  }, [excalidrawAPI])
+
+  // 处理图片询问对话框提交
+  const handleImageQuestionSubmit = useCallback(async (question: string) => {
+    if (clickedImageInfo) {
+      // 设置生成状态
+      setGenerationStatus('generating');
+      setAiResponse('正在分析图片并生成新内容...');
+
+      // 调用后端AI接口生成新图片
+      try {
+        // 创建一个唯一的会话ID
+        const sessionId = `image-generation-${Date.now()}`;
+
+        // 构建提示词，结合用户输入和参考图片
+        const enhancedPrompt = `参考提供的图片样式，${question}`;
+
+        // 准备发送到后端的数据，使用图片生成工具
+        const payload = {
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: enhancedPrompt
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: clickedImageInfo.imageUrl,
+                    detail: 'high' // 使用高清模式以更好地理解图片样式
+                  }
+                }
+              ]
+            }
+          ],
+          session_id: sessionId,
+          canvas_id: canvasId,
+          text_model: {
+            model: 'gpt-4o',
+            provider: 'openai'
+          },
+          tool_list: [
+            {
+              type: 'image_generation',
+              model: 'dall-e-3',
+              provider: 'openai',
+              enabled: true
+            }
+          ],
+          system_prompt: '你是一个专业的图像生成助手。请根据用户提供的参考图片，理解其视觉风格、色彩方案、构图和艺术风格，然后根据用户的要求生成一张新图片，新图片应该保持参考图片的风格特征。'
+        };
+
+        console.log('🎨 开始生成图片，提示词:', enhancedPrompt);
+        console.log('📸 参考图片ID:', clickedImageInfo.imageId);
+
+        // 调用后端API
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        console.log('✅ 图片生成请求已发送，等待AI处理...');
+
+        // 设置成功状态
+        setGenerationStatus('success');
+        setAiResponse('图片正在生成中，请稍后...');
+
+        // 将问题和图片信息发送到聊天，让用户知道正在生成
+        eventBus.emit('Canvas::ImageQuestionClick', {
+          ...clickedImageInfo,
+          imageName: `正在生成: ${question}（参考样式：${clickedImageInfo.imageName}）`
+        });
+      } catch (error) {
+        console.error('❌ 调用图片生成AI接口失败:', error);
+
+        // 设置错误状态
+        setGenerationStatus('error');
+        setAiResponse('生成失败，请重试');
+
+        // 如果失败，通知用户
+        eventBus.emit('Canvas::ImageQuestionClick', {
+          ...clickedImageInfo,
+          imageName: `生成失败: ${question}`
+        });
+      }
+
+      // 不再关闭对话框，而是最小化
+      // setShowImageQuestionDialog(false);
+      // setClickedImageInfo(null);
+
+      // 不关闭图片询问模式
+      // setIsImageQuestionMode(false);
+      // eventBus.emit('Canvas::ToggleImageQuestionMode', false);
+    }
+  }, [clickedImageInfo, canvasId]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1291,19 +1776,70 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         zenModeEnabled={false}
         // Allow element manipulation
         onPointerUpdate={(payload) => {
-          // Minimal logging - only log significant pointer events
-          if (payload.button === 'down' && Math.random() < 0.05) {
-            // console.log('👇 Pointer down on:', payload.pointer.x, payload.pointer.y)
+          // 处理画布点击事件，检测是否点击了图片
+          if (payload.button === 'down') {
+            pointerDownTimeRef.current = Date.now()
+            lastPointerDownRef.current = { x: payload.pointer.x, y: payload.pointer.y }
+          } else if (payload.button === 'up') {
+            handlePointerUp(payload)
           }
         }}
       />
       <CanvasTopToolbar />
+
+      {/* 图片询问对话框 - 悬浮在画布上 */}
+      {showImageQuestionDialog && clickedImageInfo && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setShowImageQuestionDialog(false);
+            setClickedImageInfo(null);
+            setIsImageQuestionMode(false);
+            eventBus.emit('Canvas::ToggleImageQuestionMode', false);
+
+            // 恢复光标为默认状态
+            const container = document.querySelector('.excalidraw') as HTMLElement;
+            if (container) {
+              container.style.cursor = 'default';
+            }
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <ImageQuestionDialog
+              imageInfo={clickedImageInfo}
+              position={dialogPosition}
+              isMinimized={isDialogMinimized}
+              onMinimize={() => setIsDialogMinimized(!isDialogMinimized)}
+              generationStatus={generationStatus}
+              aiResponse={aiResponse}
+              onClose={() => {
+                setShowImageQuestionDialog(false);
+                setClickedImageInfo(null);
+                setIsImageQuestionMode(false);
+                setIsDialogMinimized(false);
+                setGenerationStatus('idle');
+                setAiResponse('');
+                eventBus.emit('Canvas::ToggleImageQuestionMode', false);
+
+                // 恢复光标为默认状态
+                const container = document.querySelector('.excalidraw') as HTMLElement;
+                if (container) {
+                  container.style.cursor = 'default';
+                }
+              }}
+              onAsk={handleImageQuestionSubmit}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 export { CanvasExcali }
 export default CanvasExcali
+
+
 
 
 

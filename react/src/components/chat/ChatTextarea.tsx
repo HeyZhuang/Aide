@@ -9,6 +9,7 @@ import {
   eventBus,
   TCanvasAddImagesToChatEvent,
   TMaterialAddImagesToChatEvent,
+  TImageQuestionClickEvent,
 } from '@/lib/event'
 import { cn, dataURLToFile } from '@/lib/utils'
 import { Message, MessageContent, Model } from '@/types/types'
@@ -27,6 +28,7 @@ import {
   Hash,
   Layers,
   FileImage,
+  MessageCirclePlus,
 } from 'lucide-react'
 import { AnimatePresence, color, motion } from 'motion/react'
 import Textarea, { TextAreaRef } from 'rc-textarea'
@@ -591,6 +593,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
           >
             <PlusIcon className="size-4" />
           </Button>
+
           {/* <Button
             variant="outline"
             size="sm"
