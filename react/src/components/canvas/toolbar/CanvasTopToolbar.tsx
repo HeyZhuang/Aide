@@ -68,7 +68,7 @@ export function CanvasTopToolbar() {
   }
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-5 z-20">
+    <div className="absolute left-1/2 -translate-x-1/2 top-5 z-20 max-w-[calc(100vw-140px)] px-4">
       {selectedElementType === 'text' && selectedElement && (
         <TextToolbar key={`text-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement as ExcalidrawTextElement} />
       )}

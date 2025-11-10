@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useCanvas } from '@/contexts/canvas'
+import { useTheme } from '@/hooks/use-theme'
 import { useTranslation } from 'react-i18next'
 import {
   AlignLeft,
@@ -45,6 +46,32 @@ interface TextToolbarProps {
 export function TextToolbar({ selectedElement }: TextToolbarProps) {
   const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
+  const { theme } = useTheme()
+  const [isDark, setIsDark] = useState(false)
+
+  // 监听主题变化
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
+
   const [selectedFont, setSelectedFont] = useState('Virgil')
   const [fontSize, setFontSize] = useState(20)
   const [textColor, setTextColor] = useState('#000000')
@@ -319,7 +346,14 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/60 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
+    <div
+      className="flex items-center gap-1 px-2 py-1.5 rounded-xl shadow-lg border backdrop-blur-md transition-all duration-200 overflow-x-auto max-w-full"
+      style={{
+        background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+        color: isDark ? '#F5F5F7' : '#000000',
+      }}
+    >
       {/* 字体选择 */}
       <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
         <DropdownMenuTrigger asChild>
@@ -333,8 +367,15 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 w-[400px] p-0 rounded-xl shadow-lg"
+          className="p-0 rounded-xl shadow-lg backdrop-blur-md"
           align="start"
+          style={{
+            background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+            border: '1px solid',
+            width: '400px',
+            color: isDark ? '#F5F5F7' : '#000000',
+          }}
         >
           <Tabs defaultValue="system" className="w-full">
             <TabsList className="w-full grid grid-cols-3 bg-white/30 backdrop-blur-sm rounded-t-xl">
@@ -547,7 +588,15 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
             <ChevronDown className="ml-1 h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 max-h-60 overflow-y-auto rounded-lg shadow-lg">
+        <DropdownMenuContent
+          className="max-h-60 overflow-y-auto rounded-lg shadow-lg backdrop-blur-md"
+          style={{
+            background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 1)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+            border: '1px solid',
+            color: isDark ? '#F5F5F7' : '#000000',
+          }}
+        >
           {fontSizes.map((size) => (
             <DropdownMenuItem
               key={size}

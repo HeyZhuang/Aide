@@ -587,9 +587,9 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             size="sm"
             onClick={() => imageInputRef.current?.click()}
             title="上传图片"
-            className="shadow-none bg-white transition-colors hover:bg-gray-50"
+            className="w-auto min-w-fit justify-between overflow-hidden text-foreground"
           >
-            <PlusIcon className="size-4 text-black" />
+            <PlusIcon className="size-4" />
           </Button>
           {/* <Button
             variant="outline"
@@ -609,12 +609,12 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
+                className="w-auto min-w-fit justify-between overflow-hidden flex items-center gap-1 text-foreground"
                 size={'sm'}
               >
-                <RectangleVertical className="size-4 text-black" />
+                <RectangleVertical className="size-4" />
                 <span className="text-sm">{selectedAspectRatio}</span>
-                <ChevronDown className="size-3 opacity-50" />
+                <ChevronDown className="size-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-32 z-[1000]">
@@ -639,12 +639,12 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
+                className="w-auto min-w-fit justify-between overflow-hidden flex items-center gap-1 text-foreground"
                 size={'sm'}
               >
-                <Hash className="size-4 text-black" />
+                <Hash className="size-4" />
                 <span className="text-sm">{quantity}</span>
-                <ChevronDown className="size-3 opacity-50" />
+                <ChevronDown className="size-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4">
@@ -677,25 +677,23 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 
         {pending ? (
           <Button
-            className="shrink-0 relative shadow-none bg-white transition-colors hover:bg-gray-50"
-            variant="default"
+            className="shrink-0 relative text-foreground"
+            variant="outline"
             size="icon"
             onClick={handleCancelChat}
-            style={{ border: '1px solid #9ca3af' }}
           >
             <Loader2 className="size-5.5 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black" />
+            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </Button>
         ) : (
           <Button
-            className="shrink-0 shadow-none bg-white transition-colors hover:bg-gray-50"
-            variant="default"
+            className="shrink-0 text-foreground"
+            variant="outline"
             size="icon"
             onClick={handleSendPrompt}
             disabled={!textModel || !selectedTools || prompt.length === 0}
-            style={{ border: '1px solid #9ca3af' }}
           >
-            <ArrowUp className="size-4 text-black" />
+            <ArrowUp className="size-4" />
           </Button>
         )}
       </div>

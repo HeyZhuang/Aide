@@ -480,7 +480,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className='text-muted-foreground text-base'
+                    className='text-foreground text-base font-medium'
                   >
                     <ShinyText text={t('chat.greeting')} />
                   </motion.span>
@@ -488,7 +488,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    className='text-muted-foreground text-sm'
+                    className='text-foreground/80 text-sm'
                   >
                     <ShinyText text={t('chat.assist_prompt')} />
                   </motion.span>

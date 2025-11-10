@@ -1,6 +1,6 @@
-import { Separator } from '@/components/ui/separator'
-import { useCanvas } from '@/contexts/canvas'
 import { useState, useEffect, useRef } from 'react'
+import { useCanvas } from '@/contexts/canvas'
+import { useTheme } from '@/hooks/use-theme'
 import { useTranslation } from 'react-i18next'
 import CanvasMenuButton from './CanvasMenuButton'
 import { ToolType } from './CanvasMenuIcon'
@@ -32,6 +32,31 @@ interface CanvasToolMenuProps {
 const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
+  const { theme } = useTheme()
+  const [isDark, setIsDark] = useState(false)
+
+  // 监听主题变化
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
 
   const [activeTool, setActiveTool] = useState<ToolType | undefined>(undefined)
   const [showTemplateManager, setShowTemplateManager] = useState(false)
@@ -924,7 +949,11 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   return (
     <>
       <div
-        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 rounded-xl p-1 shadow-lg border border-white/30 bg-white/50 backdrop-blur-md canvas-left-toolbar"
+        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-1 rounded-xl p-1 shadow-lg border backdrop-blur-md canvas-left-toolbar"
+        style={{
+          background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+        }}
       >
         {/* 手型/选择工具切换按钮 - 默认显示选择工具 */}
         <CanvasMenuButton
@@ -965,10 +994,11 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
           {showUploadMenu && (
             <div
-              className="absolute left-16 top-0 z-30 w-48 rounded-xl overflow-hidden shadow-lg backdrop-blur-md border border-white/30"
+              className="absolute left-16 top-0 z-30 w-48 rounded-xl overflow-hidden shadow-lg backdrop-blur-md border"
               ref={uploadMenuRef}
               style={{
-                background: 'rgba(255, 255, 255, 0.5)',
+                background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
               }}
             >
               <div className="p-2 text-sm font-medium text-foreground">{t('canvas:toolbar.menu.addContent')}</div>
@@ -1074,10 +1104,11 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
 
           {showShapeMenu && (
             <div
-              className="absolute left-16 top-0 z-30 w-64 rounded-xl p-4 shadow-lg backdrop-blur-md border border-white/30"
+              className="absolute left-16 top-0 z-30 w-64 rounded-xl p-4 shadow-lg backdrop-blur-md border"
               ref={shapeMenuRef}
               style={{
-                background: 'rgba(255, 255, 255, 0.5)',
+                background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+                borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
               }}
             >
               <div className="text-base font-medium mb-3 text-foreground">{t('canvas:toolbar.menu.shapeTools')}</div>

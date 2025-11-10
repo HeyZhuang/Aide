@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
@@ -21,6 +22,31 @@ type StrokeStyle = 'solid' | 'dashed' | 'dotted'
 export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
   const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
+  const { theme } = useTheme()
+  const [isDark, setIsDark] = useState(false)
+
+  // 监听主题变化
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
   const [strokeColor, setStrokeColor] = useState('#000000')
   const [backgroundColor, setBackgroundColor] = useState('transparent')
   const [strokeWidth, setStrokeWidth] = useState(1)
@@ -84,7 +110,14 @@ export function ShapeToolbar({ selectedElement }: ShapeToolbarProps) {
   }, [excalidrawAPI])
 
   return (
-    <div className="flex items-center gap-2 bg-white/50 backdrop-blur-md border border-white/30 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
+    <div
+      className="flex items-center gap-2 backdrop-blur-md border text-foreground px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto max-w-full"
+      style={{
+        background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+        color: isDark ? '#F5F5F7' : '#000000',
+      }}
+    >
       {/* 描边颜色 */}
       <div className="relative group">
         <input
