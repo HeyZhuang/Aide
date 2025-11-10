@@ -59,15 +59,15 @@ import {
     TemplateSearchFilters,
 } from '@/types/types'
 import {
-    getTemplates,
-    getTemplateCategories,
-    getTemplateCollections,
-    createTemplateCategory,
+    listTemplates,
     deleteTemplate,
-    toggleTemplateFavorite,
-    incrementTemplateUsage,
-    searchTemplates,
-    getTemplateStats,
+    // getTemplateCategories, // TODO: 实现分类功能
+    // getTemplateCollections, // TODO: 实现集合功能
+    // createTemplateCategory, // TODO: 实现分类创建功能
+    // toggleTemplateFavorite, // TODO: 实现收藏功能
+    // incrementTemplateUsage, // TODO: 实现使用统计功能
+    // searchTemplates, // TODO: 实现搜索功能
+    // getTemplateStats, // TODO: 实现统计功能
 } from '@/api/template'
 import { applyTemplateToExcalidraw } from '@/utils/templateCanvas'
 import { useCanvas } from '@/contexts/canvas'
@@ -134,17 +134,23 @@ export function TemplateManager({
     const loadData = useCallback(async () => {
         setLoading(true)
         try {
-            const [templatesData, categoriesData, collectionsData, statsData] = await Promise.all([
-                getTemplates(filters),
-                getTemplateCategories(),
-                getTemplateCollections(),
-                getTemplateStats(),
-            ])
+            const templatesData = await listTemplates() // TODO: 实现过滤功能
+            // 转换Template类型为TemplateItem类型
+            const templateItems: TemplateItem[] = templatesData.map(t => ({
+                ...t,
+                category_id: t.category || '',
+                type: 'image' as const,
+                metadata: {},
+                usage_count: 0,
+                is_favorite: false,
+                is_public: true,
+                tags: t.tags ? (typeof t.tags === 'string' ? t.tags.split(',').filter(Boolean) : t.tags) : [],
+            }))
 
-            setTemplates(templatesData)
-            setCategories(categoriesData)
-            setCollections(collectionsData)
-            setStats(statsData)
+            setTemplates(templateItems)
+            setCategories([]) // TODO: 实现分类功能
+            setCollections([]) // TODO: 实现集合功能
+            setStats(null) // TODO: 实现统计功能
         } catch (error) {
             console.error('Failed to load template data:', error)
             toast.error('加载模板数据失败')
@@ -162,8 +168,20 @@ export function TemplateManager({
 
         setLoading(true)
         try {
-            const results = await searchTemplates(query, filters)
-            setTemplates(results)
+            // const results = await searchTemplates(query, filters) // TODO: 实现搜索功能
+            const results = await listTemplates() // 临时使用列表API
+            // 转换Template类型为TemplateItem类型
+            const templateItems: TemplateItem[] = results.map(t => ({
+                ...t,
+                category_id: t.category || '',
+                type: 'image' as const,
+                metadata: {},
+                usage_count: 0,
+                is_favorite: false,
+                is_public: true,
+                tags: t.tags ? (typeof t.tags === 'string' ? t.tags.split(',').filter(Boolean) : t.tags) : [],
+            }))
+            setTemplates(templateItems)
         } catch (error) {
             console.error('Search failed:', error)
             toast.error('搜索失败')
@@ -190,9 +208,9 @@ export function TemplateManager({
             }
 
             // 更新使用次数
-            await incrementTemplateUsage(template.id)
+            await // incrementTemplateUsage(template.id)
 
-            onApplyTemplate?.(template)
+                onApplyTemplate?.(template)
             toast.success('模板已应用到画布')
         } catch (error) {
             console.error('Failed to apply template:', error)
@@ -202,7 +220,7 @@ export function TemplateManager({
 
     const handleToggleFavorite = useCallback(async (templateId: string) => {
         try {
-            await toggleTemplateFavorite(templateId)
+            // await toggleTemplateFavorite(templateId) // TODO: 实现收藏功能
             setTemplates(prev => prev.map(t =>
                 t.id === templateId ? { ...t, is_favorite: !t.is_favorite } : t
             ))
@@ -236,9 +254,11 @@ export function TemplateManager({
                     case 'delete':
                         return deleteTemplate(id)
                     case 'favorite':
-                        return toggleTemplateFavorite(id)
+                        // return toggleTemplateFavorite(id) // TODO: 实现收藏功能
+                        return Promise.resolve()
                     case 'unfavorite':
-                        return toggleTemplateFavorite(id)
+                        // return toggleTemplateFavorite(id) // TODO: 实现收藏功能
+                        return Promise.resolve()
                     default:
                         return Promise.resolve()
                 }
@@ -657,7 +677,7 @@ export function TemplateManager({
                                             onApply={() => handleApplyTemplate(template)}
                                             onToggleFavorite={() => handleToggleFavorite(template.id)}
                                             onDelete={() => handleDeleteTemplate(template.id)}
-                                            onEdit={() => {}}
+                                            onEdit={() => { }}
                                         />
                                     ))}
                                 </div>

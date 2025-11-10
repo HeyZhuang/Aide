@@ -66,17 +66,7 @@ app = FastAPI(lifespan=lifespan)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3001", 
-        "http://localhost:3004", 
-        "http://127.0.0.1:3001", 
-        "http://127.0.0.1:3004",
-        "http://54.189.143.120",
-        "http://54.189.143.120:3004",
-        "http://prototype.atcommgroup.com",
-        "https://prototype.atcommgroup.com",
-        "https://54.189.143.120",
-    ],  # Vite dev server and production domains (HTTP and HTTPS)
+    allow_origins=["*"],  # 允许所有来源，生产环境建议限制为特定域名
 
     allow_credentials=True,
     allow_methods=["*"],
@@ -105,8 +95,8 @@ app.include_router(chat_router.router)
 app.include_router(tool_confirmation.router)
 # 注意：template_router已经在root_router中包含，不需要再次包含
 
-# 为模板路由器添加前缀
-app.include_router(template_router.router, prefix="/api/templates")
+# 包含模板路由器（路由已在router中定义）
+app.include_router(template_router.router)
 
 # 包含认证路由器
 if auth_router:
@@ -195,4 +185,4 @@ if __name__ == "__main__":
     import uvicorn
     print("🌟Starting server, UI_DIST_DIR:", os.environ.get('UI_DIST_DIR'))
 
-    uvicorn.run(socket_app, host="127.0.0.1", port=args.port)
+    uvicorn.run(socket_app, host="0.0.0.0", port=args.port)

@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/contexts/AuthContext'
 import CanvasExport from './CanvasExport'
 import { PSDCanvasUploader } from './PSDCanvasUploader'
 import TopMenu from '../TopMenu'
@@ -22,6 +23,11 @@ const CanvasHeader: React.FC<CanvasHeaderProps> = ({
   onPSDUpdate,
   onApplyTemplate,
 }) => {
+  const { authStatus } = useAuth()
+  // 未登录用户视为 viewer（只读模式）
+  const userRole = authStatus.is_logged_in ? (authStatus.user_info?.role || 'viewer') : 'viewer'
+  const isViewer = userRole === 'viewer' || !authStatus.is_logged_in
+
   return (
     <TopMenu
       middle={
@@ -32,15 +38,20 @@ const CanvasHeader: React.FC<CanvasHeaderProps> = ({
             onChange={(e) => onNameChange(e.target.value)}
             onBlur={onNameSave}
             placeholder="画布名称"
+            disabled={isViewer}
+            readOnly={isViewer}
           />
         // {/* </div> */}
       }
       right={
         <div className="flex items-center gap-2">
-          <PSDCanvasUploader
-            canvasId={canvasId}
-            onPSDUploaded={onPSDUpdate}
-          />
+          {/* 只有 Editor 和 Admin 可以上传 PSD */}
+          {!isViewer && (
+            <PSDCanvasUploader
+              canvasId={canvasId}
+              onPSDUploaded={onPSDUpdate}
+            />
+          )}
           <CanvasExport />
         </div>
       }
