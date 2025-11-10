@@ -27,44 +27,6 @@
   background-color: hsl(var(--foreground));
 }
 
-/* 订阅弹窗滚动条样式 - 黑白极简风格 */
-.subscription-dialog::-webkit-scrollbar {
-  width: 10px;
-}
-
-.subscription-dialog::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.subscription-dialog::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 5px;
-  transition: all 0.3s ease;
-}
-
-.subscription-dialog::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
-
-/* 浅色模式滚动条 */
-.subscription-dialog.light-mode::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.subscription-dialog.light-mode::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-/* Firefox 滚动条样式 */
-.subscription-dialog {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-}
-
-.subscription-dialog.light-mode {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
 /* 确保模板管理相关组件的z-index足够高 */
 [data-radix-dialog-content] {
   z-index: 99999 !important;
