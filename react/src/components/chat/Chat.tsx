@@ -392,12 +392,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Chat content - only show when not minimized */}
         {!isMinimized && (
           <>
-            <ScrollArea className='bottom-chat-messages bg-white/50 backdrop-blur-md border border-white/30' viewportRef={scrollRef}>
+            <ScrollArea className='bottom-chat-messages bg-white/50 backdrop-blur-md border border-white/30' viewportRef={scrollRef} onMouseDown={(e) => e.stopPropagation()}>
               {messages.length > 0 ? (
                 <div className='flex flex-col flex-1'>
                   {/* Messages */}
                   {messages.map((message, idx) => (
-                    <div key={`${idx}`} className='flex flex-col gap-2 mb-2'>
+                    <div key={`${idx}`} className='flex flex-col gap-2 mb-2' onMouseDown={(e) => e.stopPropagation()}>
                       {/* Regular message content */}
                       {typeof message.content == 'string' &&
                         (message.role !== 'tool' ? (
@@ -493,7 +493,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                 </div>
               ) : (
-                <motion.div className='flex flex-col h-full items-start justify-start select-none p-2'>
+                <motion.div className='flex flex-col h-full items-start justify-start select-none p-2' onMouseDown={(e) => e.stopPropagation()}>
                   <motion.span
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -514,7 +514,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               )}
             </ScrollArea>
 
-            <div className='bottom-chat-input bg-white/50 backdrop-blur-md border border-white/30 rounded-b-xl'>
+            <div className='bottom-chat-input bg-white/50 backdrop-blur-md border border-white/30 rounded-b-xl' onMouseDown={(e) => e.stopPropagation()}>
               <ChatTextarea
                 sessionId={sessionId!}
                 pending={!!pending}

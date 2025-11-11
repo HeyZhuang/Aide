@@ -94,8 +94,30 @@ function CanvasContent() {
         return
       }
 
+      const target = event.target as Node
+
       // 如果点击的是AI助手窗口内部，不关闭
-      if (chatContainerRef.current && chatContainerRef.current.contains(event.target as Node)) {
+      if (chatContainerRef.current && chatContainerRef.current.contains(target)) {
+        return
+      }
+
+      // 检查是否点击了任何弹窗或下拉菜单（使用 Portal 渲染）
+      // 这包括 DropdownMenu、Dialog、Tooltip 等组件
+      const element = target as HTMLElement
+      
+      // 检查点击目标是否在 Portal 容器中
+      let isInPortal = false
+      
+      // 遍历所有可能的 Portal 容器
+      const portalElements = document.querySelectorAll('[role="dialog"], [role="menu"], [role="tooltip"]')
+      for (const portal of portalElements) {
+        if (portal.contains(target)) {
+          isInPortal = true
+          break
+        }
+      }
+
+      if (isInPortal) {
         return
       }
 
