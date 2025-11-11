@@ -104,10 +104,10 @@ function CanvasContent() {
       // 检查是否点击了任何弹窗或下拉菜单（使用 Portal 渲染）
       // 这包括 DropdownMenu、Dialog、Tooltip 等组件
       const element = target as HTMLElement
-      
+
       // 检查点击目标是否在 Portal 容器中
       let isInPortal = false
-      
+
       // 遍历所有可能的 Portal 容器
       const portalElements = document.querySelectorAll('[role="dialog"], [role="menu"], [role="tooltip"]')
       for (const portal of portalElements) {
@@ -634,7 +634,7 @@ function CanvasContent() {
             isMinimized={isChatMinimized}
             onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
           />
-          
+
         </div>
       )}
     </div>

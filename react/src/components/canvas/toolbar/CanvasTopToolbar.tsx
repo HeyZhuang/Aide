@@ -4,6 +4,7 @@ import { TextToolbar } from './TextToolbar'
 import { ImageToolbar } from './ImageToolbar'
 import { GroupToolbar } from './GroupToolbar'
 import { ShapeToolbar } from './ShapeToolbar'
+import { FrameToolbar } from './FrameToolbar'
 import {
   ExcalidrawTextElement,
   ExcalidrawImageElement,
@@ -12,7 +13,7 @@ import {
 
 export function CanvasTopToolbar() {
   const { excalidrawAPI } = useCanvas()
-  const [selectedElementType, setSelectedElementType] = useState<'text' | 'image' | 'shape' | 'group' | null>(null)
+  const [selectedElementType, setSelectedElementType] = useState<'text' | 'image' | 'shape' | 'frame' | 'group' | null>(null)
   const [selectedElement, setSelectedElement] = useState<ExcalidrawElement | null>(null)
   const [updateKey, setUpdateKey] = useState(0)
 
@@ -44,6 +45,8 @@ export function CanvasTopToolbar() {
           setSelectedElementType('text')
         } else if (element.type === 'image') {
           setSelectedElementType('image')
+        } else if (element.type === 'frame') {
+          setSelectedElementType('frame')
         } else if (['rectangle', 'ellipse', 'diamond', 'line', 'arrow'].includes(element.type)) {
           setSelectedElementType('shape')
         } else {
@@ -77,6 +80,9 @@ export function CanvasTopToolbar() {
       )}
       {selectedElementType === 'shape' && selectedElement && (
         <ShapeToolbar key={`shape-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement} />
+      )}
+      {selectedElementType === 'frame' && selectedElement && (
+        <FrameToolbar key={`frame-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement} />
       )}
       {selectedElementType === 'group' && (
         <GroupToolbar />
