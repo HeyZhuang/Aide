@@ -94,7 +94,7 @@ const CanvasToolMenu = ({ canvasId }: CanvasToolMenuProps) => {
   const uploadButtonRef = useRef<HTMLDivElement>(null);
   const shapeMenuRef = useRef<HTMLDivElement>(null);
   const uploadMenuRef = useRef<HTMLDivElement>(null);
-  const shapeButtonRef = useRef<HTMLButtonElement>(null);
+  const shapeButtonRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 判断是否选中了形状工具

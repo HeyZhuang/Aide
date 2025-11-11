@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { eventBus, TImageQuestionClickEvent } from '@/lib/event'
 import * as ISocket from '@/types/socket'
 import { CanvasData } from '@/types/types'
-import { Excalidraw, convertToExcalidrawElements } from '@excalidraw/excalidraw'
+import { Excalidraw, convertToExcalidrawElements, exportToCanvas } from '@excalidraw/excalidraw'
 import {
   ExcalidrawImageElement,
   ExcalidrawEmbeddableElement,
@@ -377,9 +377,177 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
     }
   }
 
+  // 辅助函数：加载文件URL为dataURL（使用 useCallback 包装）
+  const loadFileAsDataURL = useCallback(async (url: string): Promise<string> => {
+    try {
+      // 如果已经是dataURL，直接返回
+      if (url.startsWith('data:')) {
+        return url
+      }
+
+      // 如果是相对路径，添加协议和域名
+      let fullUrl = url
+      if (url.startsWith('/')) {
+        fullUrl = window.location.origin + url
+      }
+
+      const response = await fetch(fullUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to load file: ${response.status}`)
+      }
+
+      const blob = await response.blob()
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+    } catch (error) {
+      console.error('加载文件失败:', url, error)
+      throw error
+    }
+  }, [])
+
+  // 辅助函数：确保所有文件都有dataURL（用于生成缩略图，使用 useCallback 包装）
+  const ensureFilesHaveDataURL = useCallback(async (files: BinaryFiles): Promise<BinaryFiles> => {
+    const filesWithDataURL: BinaryFiles = {}
+
+    for (const [fileId, file] of Object.entries(files)) {
+      if (file.dataURL) {
+        // 如果已经有dataURL，检查是否需要加载
+        if (file.dataURL.startsWith('data:')) {
+          // 已经是base64，直接使用
+          filesWithDataURL[fileId] = file
+        } else {
+          // 是URL，需要加载
+          try {
+            const dataURL = await loadFileAsDataURL(file.dataURL)
+            filesWithDataURL[fileId] = {
+              ...file,
+              dataURL: dataURL as any,
+            }
+          } catch (error) {
+            console.warn(`无法加载文件 ${fileId}:`, error)
+            // 如果加载失败，仍然保留原文件（exportToCanvas可能会处理）
+            filesWithDataURL[fileId] = file
+          }
+        }
+      } else {
+        // 没有dataURL，保留原文件
+        filesWithDataURL[fileId] = file
+      }
+    }
+
+    return filesWithDataURL
+  }, [loadFileAsDataURL])
+
+  // 生成完整画布缩略图的函数（使用 useCallback 包装以避免重复创建）
+  const generateCanvasThumbnail = useCallback(async (
+    elements: Readonly<OrderedExcalidrawElement[]>,
+    appState: AppState,
+    files: BinaryFiles
+  ): Promise<string> => {
+    try {
+      // 过滤掉已删除的元素
+      const visibleElements = elements.filter((el) => !el.isDeleted)
+
+      // 只有当画布中有元素时才生成缩略图
+      if (visibleElements.length === 0) {
+        return ''
+      }
+
+      // 确保所有文件都有dataURL（用于exportToCanvas）
+      const filesWithDataURL = await ensureFilesHaveDataURL(files)
+
+      // 计算所有元素的边界框，确保缩略图包含所有内容
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+
+      visibleElements.forEach((element) => {
+        const x = element.x
+        const y = element.y
+        const width = 'width' in element ? element.width : 0
+        const height = 'height' in element ? element.height : 0
+
+        minX = Math.min(minX, x)
+        minY = Math.min(minY, y)
+        maxX = Math.max(maxX, x + width)
+        maxY = Math.max(maxY, y + height)
+      })
+
+      // 如果所有元素都在同一位置（边界框无效），使用默认值
+      if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
+        // 使用默认视口
+        const defaultAppState = {
+          ...appState,
+          selectedElementIds: {},
+        }
+        const canvas = await exportToCanvas({
+          elements: visibleElements,
+          appState: defaultAppState,
+          files: filesWithDataURL,
+          mimeType: 'image/png',
+          maxWidthOrHeight: 800,
+          quality: 0.8,
+        })
+        return canvas.toDataURL('image/png', 0.8)
+      }
+
+      // 计算画布的中心点和尺寸
+      const centerX = (minX + maxX) / 2
+      const centerY = (minY + maxY) / 2
+      const canvasWidth = maxX - minX
+      const canvasHeight = maxY - minY
+
+      // 添加边距（20%）
+      const padding = Math.max(canvasWidth, canvasHeight) * 0.2
+      const viewportWidth = canvasWidth + padding * 2
+      const viewportHeight = canvasHeight + padding * 2
+
+      // 计算缩放比例，确保所有内容都在视图中
+      const scale = Math.min(1, 800 / Math.max(viewportWidth, viewportHeight))
+
+      // 调整 appState，使所有元素都在视图中
+      const adjustedAppState = {
+        ...appState,
+        // 清除选中状态，确保缩略图显示所有元素
+        selectedElementIds: {},
+        // 调整视口位置，使所有元素居中
+        scrollX: -centerX + viewportWidth / 2,
+        scrollY: -centerY + viewportHeight / 2,
+        // 调整缩放，确保所有内容可见
+        zoom: {
+          value: scale,
+        },
+        // 设置视口尺寸
+        width: viewportWidth,
+        height: viewportHeight,
+      }
+
+      // 使用 exportToCanvas 导出整个画布（包含所有元素）
+      const canvas = await exportToCanvas({
+        elements: visibleElements,
+        appState: adjustedAppState,
+        files: filesWithDataURL, // 使用包含dataURL的文件对象
+        mimeType: 'image/png',
+        maxWidthOrHeight: 800, // 缩略图最大尺寸800px，保持性能
+        quality: 0.8, // 质量0.8，平衡文件大小和清晰度
+      })
+
+      // 将 canvas 转换为 base64 作为缩略图
+      return canvas.toDataURL('image/png', 0.8)
+    } catch (error) {
+      console.error('生成画布缩略图失败:', error)
+      throw error
+    }
+  }, [ensureFilesHaveDataURL])
+
   // 用于保存的去抖处理器（性能优化）
   const handleSave = useDebounce(
-    (
+    async (
       elements: Readonly<OrderedExcalidrawElement[]>,
       appState: AppState,
       files: BinaryFiles
@@ -420,15 +588,31 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         files: optimizedFiles, // 使用优化后的files对象
       }
 
+      // 生成包含所有元素的完整画布缩略图
       let thumbnail = ''
-      const latestImage = elements
-        .filter((element) => element.type === 'image')
-        .sort((a, b) => b.updated - a.updated)[0]
-      if (latestImage) {
-        const file = files[latestImage.fileId!]
-        if (file) {
-          // 缩略图仍然使用完整的dataURL（通常很小）
-          thumbnail = file.dataURL
+      try {
+        thumbnail = await generateCanvasThumbnail(elements, appState, files)
+      } catch (error) {
+        console.error('生成画布缩略图失败:', error)
+        // 如果生成失败，尝试使用最新的图片作为后备方案
+        const latestImage = elements
+          .filter((element) => element.type === 'image' && !element.isDeleted)
+          .sort((a, b) => b.updated - a.updated)[0] as ExcalidrawImageElement | undefined
+        if (latestImage && latestImage.fileId) {
+          const file = files[latestImage.fileId]
+          if (file && file.dataURL) {
+            // 如果是URL，尝试加载
+            if (file.dataURL.startsWith('data:')) {
+              thumbnail = file.dataURL
+            } else {
+              try {
+                thumbnail = await loadFileAsDataURL(file.dataURL)
+              } catch {
+                // 如果加载失败，使用空字符串
+                thumbnail = ''
+              }
+            }
+          }
         }
       }
 
@@ -1736,6 +1920,153 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
       eventBus.off('Socket::Session::VideoGenerated', handleVideoGenerated)
     }
   }, [handleImageGenerated, handleVideoGenerated])
+
+  // 在画布加载后恢复所有图像文件（确保文件能够正确加载）
+  useEffect(() => {
+    if (!excalidrawAPI || !initialData) {
+      return
+    }
+
+    // 延迟执行，确保画布完全加载
+    const timer = setTimeout(async () => {
+      try {
+        const files = excalidrawAPI.getFiles()
+        const elements = excalidrawAPI.getSceneElements()
+
+        // 检查所有图像元素对应的文件
+        const imageElements = elements.filter(
+          (el) => el.type === 'image' && !el.isDeleted && 'fileId' in el
+        ) as ExcalidrawImageElement[]
+
+        // 需要恢复的文件列表
+        const filesToRestore: BinaryFileData[] = []
+
+        for (const imageElement of imageElements) {
+          if (!imageElement.fileId) continue
+
+          const file = files[imageElement.fileId]
+          if (!file) {
+            // 文件不存在，尝试从 initialData 中恢复
+            if (initialData?.files?.[imageElement.fileId]) {
+              const savedFile = initialData.files[imageElement.fileId]
+              if (savedFile.dataURL && !savedFile.dataURL.startsWith('data:')) {
+                // 如果是 URL，尝试加载为 dataURL
+                try {
+                  const dataURL = await loadFileAsDataURL(savedFile.dataURL)
+                  filesToRestore.push({
+                    id: savedFile.id || imageElement.fileId,
+                    mimeType: savedFile.mimeType || 'image/png',
+                    dataURL: dataURL as any,
+                    created: savedFile.created || Date.now(),
+                  })
+                } catch (error) {
+                  console.warn(`无法恢复文件 ${imageElement.fileId}:`, error)
+                }
+              } else if (savedFile.dataURL) {
+                // 已经是 dataURL，直接使用
+                filesToRestore.push({
+                  id: savedFile.id || imageElement.fileId,
+                  mimeType: savedFile.mimeType || 'image/png',
+                  dataURL: savedFile.dataURL as any,
+                  created: savedFile.created || Date.now(),
+                })
+              }
+            }
+          } else if (file.dataURL && !file.dataURL.startsWith('data:')) {
+            // 文件存在但只有 URL（不是 dataURL），需要加载为 dataURL
+            // 检查是否已经在恢复列表中，避免重复
+            const alreadyInList = filesToRestore.some(f => f.id === file.id)
+            if (!alreadyInList) {
+              try {
+                const dataURL = await loadFileAsDataURL(file.dataURL)
+                // 更新现有文件，而不是添加新文件
+                excalidrawAPI.addFiles([{
+                  ...file,
+                  dataURL: dataURL as any,
+                }])
+              } catch (error) {
+                console.warn(`无法加载文件 ${imageElement.fileId}:`, error)
+              }
+            }
+          }
+        }
+
+        // 如果有需要恢复的文件，添加到 Excalidraw
+        if (filesToRestore.length > 0) {
+          console.log(`正在恢复 ${filesToRestore.length} 个文件...`)
+          excalidrawAPI.addFiles(filesToRestore)
+          console.log('✅ 文件恢复完成')
+        }
+      } catch (error) {
+        console.warn('恢复文件时出错:', error)
+      }
+    }, 1000) // 延迟1秒，确保画布完全加载
+
+    return () => clearTimeout(timer)
+  }, [excalidrawAPI, initialData, loadFileAsDataURL])
+
+  // 在画布加载完成后自动生成缩略图（如果还没有或需要更新）
+  useEffect(() => {
+    if (!excalidrawAPI || !initialData) {
+      return
+    }
+
+    // 延迟执行，确保画布完全加载
+    const timer = setTimeout(async () => {
+      try {
+        const elements = excalidrawAPI.getSceneElements()
+        const appState = excalidrawAPI.getAppState()
+        const files = excalidrawAPI.getFiles()
+
+        // 检查是否有元素
+        const visibleElements = elements.filter((el) => !el.isDeleted)
+        if (visibleElements.length === 0) {
+          return
+        }
+
+        // 生成缩略图
+        try {
+          const thumbnail = await generateCanvasThumbnail(elements, appState, files)
+          if (thumbnail) {
+            // 优化files对象：只保留URL引用，不保存base64数据
+            const optimizedFiles: BinaryFiles = {}
+            for (const [fileId, file] of Object.entries(files)) {
+              const hasServerUrl = file.dataURL && (
+                file.dataURL.startsWith('http://') ||
+                file.dataURL.startsWith('https://') ||
+                file.dataURL.startsWith('/api/')
+              )
+
+              optimizedFiles[fileId] = {
+                id: file.id,
+                mimeType: file.mimeType,
+                created: file.created,
+                ...(hasServerUrl ? { dataURL: file.dataURL } : {}),
+              } as any
+            }
+
+            // 保存缩略图和数据（使用优化后的files）
+            const data: CanvasData = {
+              elements,
+              appState: {
+                ...appState,
+                collaborators: undefined!,
+              },
+              files: optimizedFiles,
+            }
+            await saveCanvas(canvasId, { data, thumbnail })
+            console.log('✅ 画布加载后自动生成缩略图成功')
+          }
+        } catch (error) {
+          console.warn('画布加载后生成缩略图失败:', error)
+        }
+      } catch (error) {
+        console.warn('画布加载后检查缩略图失败:', error)
+      }
+    }, 2000) // 延迟2秒，确保画布完全加载
+
+    return () => clearTimeout(timer)
+  }, [excalidrawAPI, initialData, canvasId, generateCanvasThumbnail])
 
   return (
     <div
