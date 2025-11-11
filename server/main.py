@@ -17,6 +17,14 @@ from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WE
 print('Importing routers')
 from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, layer_arrangement_router, template_router
 
+# 导入管理员路由器
+try:
+    from routers import manager_route
+    print('✅ Manager route imported')
+except ImportError as e:
+    print(f'⚠️  Manager route import failed: {e}')
+    manager_route = None
+
 # 导入认证路由器
 try:
     from routers import auth_router
@@ -96,6 +104,11 @@ app.include_router(tool_confirmation.router)
 
 # 包含模板路由器（路由已在router中定义）
 app.include_router(template_router.router)
+
+# 包含管理员路由器
+if manager_route:
+    app.include_router(manager_route.router)
+    print('✅ Manager route included')
 
 # 包含认证路由器
 if auth_router:
