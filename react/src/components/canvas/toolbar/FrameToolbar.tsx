@@ -56,6 +56,7 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
   const [showDialog, setShowDialog] = useState(false)
   const [frameElements, setFrameElements] = useState<FrameChild[]>([])
   const [selectedElements, setSelectedElements] = useState<Set<string>>(new Set())
+  const [selectedAssets, setSelectedAssets] = useState<Set<string>>(new Set())
   const [materialAssets, setMaterialAssets] = useState<MaterialAsset[]>([])
   const [hoveredElementId, setHoveredElementId] = useState<string | null>(null)
   const [elementThumbnails, setElementThumbnails] = useState<Map<string, string>>(new Map())
@@ -356,20 +357,42 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     setFrameElements(childrenData)
   }, [excalidrawAPI, selectedElement, generateElementThumbnail])
 
-  // 加载素材库（模拟数据）
-  const loadMaterialAssets = useCallback(() => {
-    // 这里应该从实际的素材库加载，现在使用模拟数据
-    const mockAssets: MaterialAsset[] = [
-      { id: '1', name: '素材 1', type: 'image' },
-      { id: '2', name: '素材 2', type: 'image' },
-      { id: '3', name: '素材 3', type: 'image' },
-      { id: '4', name: '素材 4', type: 'image' },
-      { id: '5', name: '素材 5', type: 'image' },
-      { id: '6', name: '素材 6', type: 'image' },
-      { id: '7', name: '模板 1', type: 'template' },
-      { id: '8', name: '模板 2', type: 'template' },
-    ]
-    setMaterialAssets(mockAssets)
+  // 加载素材库 - 从 PSDLayerSidebar 中的素材数据
+  const loadMaterialAssets = useCallback(async () => {
+    try {
+      // 使用与PSDLayerSidebar 中相同的素材数据
+      const mockPlatformImages = [
+        // 素材模板中的图片
+        '01-momo-M09-鋪底_專業抗敏護齦牙膏100g-8入+買舒酸定指定品-送_1200x1200.jpg',
+        '02-momo-舒酸定-M09-0905,0908-滿888現折100_1200x1200.jpg',
+        '04-9288701-好便宜0912-_1200x628.jpg',
+        '60000000201964 舒酸定專業抗敏護齦牙膏 100g_正面立體圖.png',
+        '60000000201964 舒酸定專業抗敏護齦牙膏 100g_正面立體圖.png',
+        '60000000201964 舒酸定專業抗敏護齦牙膏 100g_直式立體圖.png',
+        '60000000211457 舒酸定專業抗敏護齦強化琺瑯質牙膏_tube.png',
+        'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_正面立體圖.png',
+        'SSD SENSITIVITY_GUM_&_ENAMEL_100_g_直式立體圖.png',
+        '主圖測試.jpg',
+        // 新增的图片
+        '1.5倍渗透.png',
+        '3重焕齿.png',
+        '多效呵护.png'
+      ]
+
+      // 直接转换为 MaterialAsset 格式，不生成缩略图
+      // 参考 PSDLayerSidebar 的实现，直接加载原始图片
+      const assets: MaterialAsset[] = mockPlatformImages.map((imageName, index) => ({
+        id: `asset-${index}`,
+        name: imageName.replace(/\.\w+$/, ''), // 移除文件扩展名
+        type: 'image',
+        thumbnail: `/assets/${imageName}`, // 直接使用原图路径
+      }))
+
+      setMaterialAssets(assets)
+    } catch (error) {
+      console.error('加载素材库失败:', error)
+      setMaterialAssets([])
+    }
   }, [])
 
   // 获取元素类型的图标
@@ -398,12 +421,25 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     setSelectedElements(new Set())
   }, [loadFrameElements, loadMaterialAssets])
 
-  // 切换元素选择
-  const toggleElementSelection = (elementId: string) => {
-    const newSelected = new Set(selectedElements)
-    if (newSelected.has(elementId)) {
-      newSelected.delete(elementId)
+  // 切换素材选择
+  const toggleAssetSelection = (assetId: string) => {
+    const newSelected = new Set(selectedAssets)
+    if (newSelected.has(assetId)) {
+      newSelected.delete(assetId)
     } else {
+      newSelected.add(assetId)
+    }
+    setSelectedAssets(newSelected)
+  }
+
+  // ... existing code ...
+  const toggleElementSelection = (elementId: string) => {
+    const newSelected = new Set<string>()
+    // 如果点击的是当前选中的元素，取消选择
+    if (selectedElements.has(elementId)) {
+      // 保持空选中状态
+    } else {
+      // 选择新的元素（单选模式）
       newSelected.add(elementId)
     }
     setSelectedElements(newSelected)
@@ -477,58 +513,65 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     onToggleSelect: () => void
     onMouseEnter: () => void
     onMouseLeave: () => void
-  }) => (
-    <div
-      className="flex items-center justify-between px-3 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer gap-2"
-      onClick={onToggleSelect}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      style={{
-        background: isSelected
-          ? isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)'
-          : 'transparent',
-      }}
-    >
-      {/* 元素缩略图 */}
-      <div className="w-12 h-12 flex-shrink-0 rounded border border-border bg-muted/40 overflow-hidden relative flex items-center justify-center" style={{
-        background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-        borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-      }}>
-        {element.thumbnail && element.thumbnail.length > 100 ? (
-          <img
-            src={element.thumbnail}
-            alt={element.label}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              console.warn('Thumbnail failed to load:', element.id)
-              const img = e.target as HTMLImageElement
-              img.style.display = 'none'
-            }}
-          />
-        ) : null}
-        {(!element.thumbnail || element.thumbnail.length <= 100) && (
-          <div className="flex items-center justify-center text-muted-foreground/70">
-            {getElementIcon(element.type)}
-          </div>
-        )}
+  }) => {
+    const hasSelection = selectedElements.size > 0
+    const isDisabled = hasSelection && !isSelected
+
+    return (
+      <div
+        className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border transition-all cursor-pointer gap-2 ${isDisabled ? 'opacity-40 pointer-events-none' : 'hover:bg-accent/50'
+          }`}
+        onClick={!isDisabled ? onToggleSelect : undefined}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={{
+          background: isSelected
+            ? isDark ? 'rgba(59, 130, 246, 0.15)' : 'rgba(59, 130, 246, 0.1)'
+            : 'transparent',
+        }}
+      >
+        {/* 元素缩略图 */}
+        <div className="w-12 h-12 flex-shrink-0 rounded border border-border bg-muted/40 overflow-hidden relative flex items-center justify-center" style={{
+          background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+          borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        }}>
+          {element.thumbnail && element.thumbnail.length > 100 ? (
+            <img
+              src={element.thumbnail}
+              alt={element.label}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                console.warn('Thumbnail failed to load:', element.id)
+                const img = e.target as HTMLImageElement
+                img.style.display = 'none'
+              }}
+            />
+          ) : null}
+          {(!element.thumbnail || element.thumbnail.length <= 100) && (
+            <div className="flex items-center justify-center text-muted-foreground/70">
+              {getElementIcon(element.type)}
+            </div>
+          )}
+        </div>
+        {/* 元素信息 */}
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {getElementIcon(element.type)}
+          <span className="truncate text-sm">{element.label}</span>
+          <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+            {Math.round(element.width)} × {Math.round(element.height)}
+          </Badge>
+        </div>
+        {/* Checkbox */}
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={!isDisabled ? onToggleSelect : undefined}
+          className="cursor-pointer flex-shrink-0 ml-2"
+          onClick={(e) => e.stopPropagation()}
+          disabled={isDisabled}
+        />
       </div>
-      {/* 元素信息 */}
-      <div className="flex items-center gap-2 min-w-0 flex-1">
-        {getElementIcon(element.type)}
-        <span className="truncate text-sm">{element.label}</span>
-        <Badge variant="outline" className="text-xs px-1 py-0 h-4">
-          {Math.round(element.width)} × {Math.round(element.height)}
-        </Badge>
-      </div>
-      {/* Checkbox */}
-      <Checkbox
-        checked={isSelected}
-        onCheckedChange={onToggleSelect}
-        className="cursor-pointer flex-shrink-0 ml-2"
-        onClick={(e) => e.stopPropagation()}
-      />
-    </div>
-  )
+    )
+  }
 
   return (
     <>
@@ -566,23 +609,23 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
           <DialogHeader className="p-4 border-b" style={{
             borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
           }}>
-            <DialogTitle>批量生成样式</DialogTitle>
+            <DialogTitle>批量生成</DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-1 overflow-hidden">
             {/* 左侧：Frame 内的元素列表 - 参考 sidebar 风格 */}
-            <div className="w-1/2 border-r flex flex-col" style={{
+            <div className="w-1/2 border-r flex flex-col min-h-0" style={{
               borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
               background: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.3)',
             }}>
-              <div className="p-4 border-b font-semibold text-sm flex items-center gap-2" style={{
+              <div className="p-4 border-b font-semibold text-sm flex items-center gap-2 flex-shrink-0" style={{
                 borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
               }}>
                 <Layers className="h-4 w-4" />
                 Frame 元素 <span className="text-xs font-normal text-muted-foreground">({frameElements.length})</span>
               </div>
-              <ScrollArea className="flex-1">
-                <div className="p-3 space-y-4">
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-3 space-y-4 pr-4">
                   {frameElements.length === 0 ? (
                     <div className="text-sm text-muted-foreground text-center py-12 flex flex-col items-center gap-2">
                       <Layers className="h-8 w-8 opacity-30" />
@@ -662,17 +705,17 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
             </div>
 
             {/* 右侧：素材库 */}
-            <div className="w-1/2 flex flex-col" style={{
+            <div className="w-1/2 flex flex-col min-h-0" style={{
               background: isDark ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.2)',
             }}>
-              <div className="p-4 border-b font-semibold text-sm flex items-center gap-2" style={{
+              <div className="p-4 border-b font-semibold text-sm flex items-center gap-2 flex-shrink-0" style={{
                 borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
               }}>
                 <ImageIcon className="h-4 w-4" />
                 素材库
               </div>
-              <ScrollArea className="flex-1">
-                <div className="p-3 grid grid-cols-2 gap-2.5">
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-3 grid grid-cols-2 gap-2.5 pr-4">
                   {materialAssets.length === 0 ? (
                     <div className="col-span-2 text-sm text-muted-foreground text-center py-12 flex flex-col items-center gap-2">
                       <ImageIcon className="h-8 w-8 opacity-30" />
@@ -682,23 +725,36 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
                     materialAssets.map(asset => (
                       <div
                         key={asset.id}
-                        className="aspect-square rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-105 hover:border-primary/50 group"
+                        className="rounded-xl border bg-gray-50/60 hover:bg-gray-100/80 shadow-sm hover:shadow-md transition-all overflow-hidden cursor-pointer aspect-square relative group"
                         style={{
-                          background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-                          borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.12)',
+                          background: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.6)',
+                          borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
                         }}
                         title={asset.name}
                       >
-                        <div className="flex flex-col items-center justify-center h-full gap-2 p-2">
-                          {asset.type === 'image' ? (
-                            <ImageIcon className="h-6 w-6 text-muted-foreground group-hover:text-foreground transition-colors" />
-                          ) : (
-                            <Square className="h-6 w-6 text-muted-foreground group-hover:text-foreground transition-colors" />
-                          )}
-                          <div className="text-xs text-muted-foreground group-hover:text-foreground text-center truncate transition-colors line-clamp-2 max-w-full px-1">
-                            {asset.name}
-                          </div>
-                        </div>
+                        {/* 缩略图 */}
+                        <img
+                          src={asset.thumbnail}
+                          alt={asset.name}
+                          className="w-full h-full object-cover transition-opacity duration-200 group-hover:opacity-80"
+                          draggable
+                          onLoad={() => {
+                            console.log('Material image loaded:', asset.id, asset.name)
+                          }}
+                          onError={(e) => {
+                            console.warn('Material thumbnail failed to load:', asset.id, asset.name, asset.thumbnail)
+                            const img = e.target as HTMLImageElement
+                            // 加载失败时，使用 SVG 占位符
+                            img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Cpath d="M50 30C60 30 68 38 68 48C68 58 60 66 50 66C40 66 32 58 32 48C32 38 40 30 50 30ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20ZM50 75C36.2 75 25 63.8 25 50C25 36.2 36.2 25 50 25C63.8 25 75 36.2 75 50C75 63.8 63.8 75 50 75Z" fill="%23dddddd"/%3E%3C/svg%3E'
+                          }}
+                        />
+                        {/* 右上角多选框 */}
+                        <Checkbox
+                          checked={selectedAssets.has(asset.id)}
+                          onCheckedChange={() => toggleAssetSelection(asset.id)}
+                          className="absolute top-2 right-2 w-5 h-5 rounded"
+                          onClick={(e) => e.stopPropagation()}
+                        />
                       </div>
                     ))
                   )}
@@ -722,7 +778,7 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
               className="gap-2"
             >
               <Check className="h-4 w-4" />
-              应用样式 ({selectedElements.size})
+              应用 ({selectedAssets.size})
             </Button>
           </DialogFooter>
         </DialogContent>
