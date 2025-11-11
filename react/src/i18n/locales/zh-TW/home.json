@@ -35,8 +35,10 @@
         "close": "關閉"
     },
     "userMenu": {
+        "my": "我的",
         "myWorks": "我的作品",
         "accountSettings": "賬戶設置",
+        "adminPanel": "管理員面板",
         "signOut": "退出登錄"
     },
     "accountDialog": {

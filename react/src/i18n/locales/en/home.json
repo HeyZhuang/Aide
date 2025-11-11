@@ -37,8 +37,10 @@
     "close": "Close"
   },
   "userMenu": {
+    "my": "My",
     "myWorks": "My Works",
     "accountSettings": "Account Settings",
+    "adminPanel": "Admin Panel",
     "signOut": "Sign Out"
   },
   "accountDialog": {

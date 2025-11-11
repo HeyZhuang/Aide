@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useConfigs } from '@/contexts/configs'
 import { DEFAULT_SYSTEM_PROMPT } from '@/constants'
 import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { nanoid } from 'nanoid'
 import { useState, useEffect } from 'react'
@@ -35,8 +35,8 @@ import {
   LogOut,
   Copy,
   ExternalLink,
-  Shield,
   Loader2,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import i18n from '@/i18n'
@@ -109,14 +109,6 @@ function Home() {
   })
 
   const handleCreateNew = () => {
-    const userRole = authStatus.user_info?.role || 'viewer'
-
-    // Viewer 角色不能创建新画布
-    if (userRole === 'viewer') {
-      toast.error('查看者角色无法创建新画布，只能查看模板')
-      return
-    }
-
     setShowChatTextarea(true)
   }
 
@@ -161,22 +153,8 @@ function Home() {
   }
 
   // 处理PSD模板点击 - 创建新画布并导航
-  // 未登录用户和 Viewer 角色不能创建新画布，只能查看
   const handlePsdTemplateClick = (template: PSDTemplateInfo) => {
-    // 未登录用户不能创建新画布
-    if (!authStatus.is_logged_in) {
-      toast.error('请先登录以创建新画布')
-      return
-    }
-
-    const userRole = authStatus.user_info?.role || 'viewer'
-
-    // Viewer 角色不能创建新画布
-    if (userRole === 'viewer') {
-      toast.error('查看者角色无法创建新画布，只能查看模板')
-      return
-    }
-
+    // 未登录用户也可以创建画布，但需要登录后才能保存
     // 保存模板信息到 sessionStorage，以便画布加载后应用
     const templateInfo = {
       templateId: template.template_id || null,
@@ -221,7 +199,7 @@ function Home() {
                 )}
               >
                 <LayoutGrid className='w-5 h-5' />
-                <span>{t('home:userMenu.myWorks')}</span>
+                <span>{t('home:userMenu.my')}</span>
                 <ChevronDown className='w-4 h-4 ml-auto' />
               </Button>
             </DropdownMenuTrigger>
@@ -251,22 +229,21 @@ function Home() {
                 <Crown className='w-4 h-4 mr-2' />
                 {t('home:userMenu.accountSettings')}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                asChild
+                className={cn(
+                  'cursor-pointer',
+                  'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
+                )}
+              >
+                <Link to="/admin/dashboard" className="flex items-center">
+                  <Shield className='w-4 h-4 mr-2' />
+                  {t('home:userMenu.adminPanel')}
+                </Link>
+              </DropdownMenuItem>
               {authStatus.is_logged_in && (
                 <>
                   <div className={cn('my-1 h-px', 'bg-gray-200 dark:bg-border')} />
-                  {/* 管理员入口 */}
-                  {authStatus.user_info?.role === 'admin' && (
-                    <DropdownMenuItem
-                      onClick={() => navigate({ to: '/admin/dashboard' })}
-                      className={cn(
-                        'cursor-pointer',
-                        'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
-                      )}
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>管理仪表盘</span>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className={cn(
@@ -283,8 +260,8 @@ function Home() {
           </DropdownMenu>
         </div>
 
-        {/* 只有 Editor 和 Admin 可以创建新画布 */}
-        {authStatus.is_logged_in && authStatus.user_info?.role !== 'viewer' && (
+        {/* 所有用户都可以创建新画布 */}
+        {authStatus.is_logged_in && (
           <div className='px-4 pb-4'>
             <Button
               onClick={handleCreateNew}
@@ -514,16 +491,6 @@ function Home() {
             {/* 显示项目列表（Projects标签时） */}
             {activeTab === 'projects' && (
               <div className="space-y-4">
-                {/* Viewer 角色提示 */}
-                {authStatus.is_logged_in && authStatus.user_info?.role === 'viewer' && (
-                  <div className="px-4 pb-2">
-                    <div className="w-full p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        <strong>{t('home:project.viewerMode.title')}</strong>{t('home:project.viewerMode.description')}
-                      </p>
-                    </div>
-                  </div>
-                )}
                 <CanvasList />
               </div>
             )}

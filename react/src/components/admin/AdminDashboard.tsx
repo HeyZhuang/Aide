@@ -1,15 +1,13 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from '@tanstack/react-router'
 import { TemplateList } from './TemplateList'
 import { TemplateUpload } from './TemplateUpload'
 import { RBACManagement } from './RBACManagement'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Upload, 
-  List, 
-  Shield, 
+import {
+  Upload,
+  Shield,
   LogOut,
   Home,
   Users,
@@ -17,95 +15,137 @@ import {
 } from 'lucide-react'
 import { logout } from '@/api/auth'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/hooks/use-theme'
+import { Link } from '@tanstack/react-router'
 
 export function AdminDashboard() {
   const { authStatus, refreshAuth } = useAuth()
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('templates')
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  console.log('AdminDashboard rendering, authStatus:', authStatus)
 
   const handleLogout = async () => {
     try {
       await logout()
       await refreshAuth()
-      navigate({ to: '/' })
       toast.success('已退出登录')
+      // 使用 window.location 跳转而不是 navigate
+      window.location.href = '/'
     } catch (error) {
       console.error('退出登录失败:', error)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 relative overflow-hidden">
-      {/* 背景装饰 */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500/20 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
-      </div>
-
-      {/* 主要内容 */}
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* 顶部导航栏 */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 rounded-2xl p-6 mb-8 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-sm border border-blue-200/50 dark:border-blue-700/50">
-                <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  管理仪表盘
-                </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  欢迎，{authStatus.user_info?.username}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => navigate({ to: '/' })}
-                className="bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200/50 dark:hover:bg-slate-600/50"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                返回首页
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={handleLogout}
-                className="bg-slate-100/50 dark:bg-slate-700/50 hover:bg-slate-200/50 dark:hover:bg-slate-600/50"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                退出登录
-              </Button>
-            </div>
+    <div className={cn(
+      'min-h-screen',
+      'bg-gray-50 dark:bg-black'
+    )}>
+      {/* 顶部导航栏 */}
+      <header className={cn(
+        'border-b h-20 flex items-center justify-between px-8',
+        'bg-white dark:bg-card border-gray-200 dark:border-border',
+        'shadow-sm'
+      )}>
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            'p-3 rounded-xl',
+            'bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30'
+          )}>
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-foreground">
+              管理仪表盘
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-muted-foreground">
+              欢迎，{authStatus.user_info?.username}
+            </p>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <Link to="/">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'h-10 px-4 font-medium',
+                'text-gray-700 dark:text-foreground',
+                'hover:bg-gray-100 dark:hover:bg-secondary',
+                'transition-colors'
+              )}
+            >
+              <Home className="w-4 h-4 mr-2" />
+              返回首页
+            </Button>
+          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className={cn(
+              'h-10 px-4 font-medium',
+              'text-red-600 dark:text-red-400',
+              'hover:bg-red-50 dark:hover:bg-red-900/20',
+              'transition-colors'
+            )}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            退出登录
+          </Button>
+        </div>
+      </header>
 
-        {/* 主要内容区域 */}
-        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl">
+      {/* 主要内容区域 */}
+      <main className="container mx-auto px-8 py-8">
+        <div className={cn(
+          'rounded-2xl border p-8',
+          'bg-white dark:bg-card border-gray-200 dark:border-border',
+          'shadow-sm'
+        )}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100/50 dark:bg-slate-700/50">
-              <TabsTrigger 
-                value="templates" 
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
+            <TabsList className={cn(
+              'grid w-full grid-cols-3 mb-8 h-12',
+              'bg-gray-100 dark:bg-secondary/50 rounded-xl p-1'
+            )}>
+              <TabsTrigger
+                value="templates"
+                className={cn(
+                  'h-10 rounded-lg font-medium transition-all',
+                  'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                  'data-[state=active]:text-gray-900 dark:data-[state=active]:text-foreground',
+                  'data-[state=active]:shadow-sm'
+                )}
               >
                 <LayoutGrid className="w-4 h-4 mr-2" />
                 模板管理
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="upload"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
+                className={cn(
+                  'h-10 rounded-lg font-medium transition-all',
+                  'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                  'data-[state=active]:text-gray-900 dark:data-[state=active]:text-foreground',
+                  'data-[state=active]:shadow-sm'
+                )}
               >
                 <Upload className="w-4 h-4 mr-2" />
                 上传模板
               </TabsTrigger>
-              <TabsTrigger 
+              <TabsTrigger
                 value="rbac"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
+                className={cn(
+                  'h-10 rounded-lg font-medium transition-all',
+                  'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                  'data-[state=active]:text-gray-900 dark:data-[state=active]:text-foreground',
+                  'data-[state=active]:shadow-sm'
+                )}
               >
                 <Users className="w-4 h-4 mr-2" />
-                RBAC 管理
+                用户管理
               </TabsTrigger>
             </TabsList>
 
@@ -122,30 +162,7 @@ export function AdminDashboard() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-
-      <style>{`
-        @keyframes blob {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-      `}</style>
+      </main>
     </div>
   )
 }

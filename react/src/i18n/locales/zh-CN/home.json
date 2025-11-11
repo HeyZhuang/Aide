@@ -37,8 +37,10 @@
     "close": "关闭"
   },
   "userMenu": {
+    "my": "我的",
     "myWorks": "我的作品",
     "accountSettings": "账户设置",
+    "adminPanel": "管理员面板",
     "signOut": "退出登录"
   },
   "accountDialog": {
