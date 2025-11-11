@@ -11,7 +11,8 @@ import {
   Circle,
   Diamond,
   Check,
-  Layers
+  Layers,
+  Upload
 } from 'lucide-react'
 import { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
 import {
@@ -45,6 +46,7 @@ interface MaterialAsset {
   name: string
   thumbnail?: string
   type: 'image' | 'template'
+  url?: string
 }
 
 export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
@@ -60,6 +62,8 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
   const [materialAssets, setMaterialAssets] = useState<MaterialAsset[]>([])
   const [hoveredElementId, setHoveredElementId] = useState<string | null>(null)
   const [elementThumbnails, setElementThumbnails] = useState<Map<string, string>>(new Map())
+  const [userUploadedImages, setUserUploadedImages] = useState<Array<{ id: string, name: string, url: string }>>([])
+  const [materialSource, setMaterialSource] = useState<'platform' | 'uploads'>('platform')
   const [groupedElements, setGroupedElements] = useState<{
     text: FrameChild[]
     image: FrameChild[]
@@ -379,21 +383,37 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
         '多效呵护.png'
       ]
 
-      // 直接转换为 MaterialAsset 格式，不生成缩略图
-      // 参考 PSDLayerSidebar 的实现，直接加载原始图片
-      const assets: MaterialAsset[] = mockPlatformImages.map((imageName, index) => ({
-        id: `asset-${index}`,
-        name: imageName.replace(/\.\w+$/, ''), // 移除文件扩展名
-        type: 'image',
-        thumbnail: `/assets/${imageName}`, // 直接使用原图路径
-      }))
+      // 清理多余的已上传图片，确保 url 存在
+      const filteredUserImages = userUploadedImages.filter(img => img.url && img.name)
 
-      setMaterialAssets(assets)
+      // 根据选择的来源显示不同的素材
+      let allAssets: MaterialAsset[] = []
+      if (materialSource === 'platform') {
+        // 平台素材
+        allAssets = mockPlatformImages.map((imageName, index) => ({
+          id: `platform-${index}`,
+          name: imageName.replace(/\.[^.]+$/, ''),
+          type: 'image' as const,
+          thumbnail: `/assets/${imageName}`,
+          url: `/assets/${imageName}`,
+        }))
+      } else {
+        // 用户上传的图片
+        allAssets = filteredUserImages.map((image) => ({
+          id: `uploaded-${image.id}`,
+          name: image.name.replace(/\.[^.]+$/, ''),
+          type: 'image' as const,
+          thumbnail: image.url, // 直接使用 Data URL
+          url: image.url,
+        }))
+      }
+
+      setMaterialAssets(allAssets)
     } catch (error) {
       console.error('加载素材库失败:', error)
       setMaterialAssets([])
     }
-  }, [])
+  }, [userUploadedImages, materialSource])
 
   // 获取元素类型的图标
   const getElementIcon = (type: string) => {
@@ -419,6 +439,7 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     loadMaterialAssets()
     setShowDialog(true)
     setSelectedElements(new Set())
+    setSelectedAssets(new Set()) // 清空素材选择
   }, [loadFrameElements, loadMaterialAssets])
 
   // 切换素材选择
@@ -432,7 +453,71 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     setSelectedAssets(newSelected)
   }
 
-  // ... existing code ...
+  // 处理图片上传
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+
+    try {
+      // 使用 FileReader 读取图片并转换为 Data URL
+      const readFileAsDataURL = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result)
+            } else {
+              reject(new Error('无法读取文件内容'))
+            }
+          }
+          reader.onerror = () => reject(new Error('读取文件失败'))
+          reader.readAsDataURL(file)
+        })
+      }
+
+      const newImages: Array<{ id: string; name: string; url: string; type: string; size: number }> = []
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        try {
+          // 验证是否为有效的图片文件
+          if (!file.type.startsWith('image/')) {
+            console.warn('跳过非图片文件:', file.name)
+            continue
+          }
+
+          // 使用 FileReader 读取文件为 Data URL
+          const dataUrl = await readFileAsDataURL(file)
+          console.log('成功创建Data URL:', '文件名:', file.name)
+
+          const imageObj = {
+            id: Date.now() + '-' + i + '-' + Math.random().toString(36).substr(2, 9),
+            name: file.name,
+            url: dataUrl,
+            type: file.type,
+            size: file.size
+          }
+
+          newImages.push(imageObj)
+        } catch (fileError) {
+          console.error('读取文件失败:', fileError, '文件:', file.name)
+        }
+      }
+
+      // 使用函数式更新确保状态正确合并
+      setUserUploadedImages(prev => {
+        const updated = [...prev, ...newImages]
+        console.log('更新后的上传图片列表:', updated.length, '张图片')
+        return updated
+      })
+
+      // 清空文件输入
+      event.target.value = ''
+    } catch (err) {
+      console.error('上传处理失败:', err)
+    }
+  }
+
   const toggleElementSelection = (elementId: string) => {
     const newSelected = new Set<string>()
     // 如果点击的是当前选中的元素，取消选择
@@ -714,14 +799,163 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
                 <ImageIcon className="h-4 w-4" />
                 素材库
               </div>
+              {/* 来源切换 Tabs */}
+              <div className="px-3 pt-3 grid grid-cols-2 gap-2">
+                <div className="text-center">
+                  <button
+                    className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${materialSource === 'platform'
+                      ? 'font-semibold shadow-sm bg-primary text-primary-foreground'
+                      : 'opacity-80 hover:opacity-100 bg-background'
+                      }`}
+                    onClick={() => setMaterialSource('platform')}
+                  >
+                    平台素材
+                  </button>
+                </div>
+                <div className="text-center">
+                  <button
+                    className={`py-2 w-full rounded-md border text-xs transition-all duration-200 font-medium ${materialSource === 'uploads'
+                      ? 'font-semibold shadow-sm bg-primary text-primary-foreground'
+                      : 'opacity-80 hover:opacity-100 bg-background'
+                      }`}
+                    onClick={() => setMaterialSource('uploads')}
+                  >
+                    我的上传
+                  </button>
+                </div>
+              </div>
               <ScrollArea className="flex-1 min-h-0">
                 <div className="p-3 grid grid-cols-2 gap-2.5 pr-4">
-                  {materialAssets.length === 0 ? (
-                    <div className="col-span-2 text-sm text-muted-foreground text-center py-12 flex flex-col items-center gap-2">
-                      <ImageIcon className="h-8 w-8 opacity-30" />
-                      <p>暂无素材</p>
-                    </div>
+                  {/* 材料卡片 */}
+                  {materialSource === 'uploads' ? (
+                    // 我的上传 - 只显示上传的图片和上传按钮
+                    <>
+                      {/* 上传按钮 - 参考sidebar中的样式 */}
+                      <div className="col-span-2 mb-2">
+                        <button
+                          onClick={() => document.getElementById('material-upload')?.click()}
+                          className="w-full py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2.5 group relative overflow-hidden"
+                          style={{
+                            background: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.6)',
+                            backdropFilter: 'blur(12px) saturate(150%)',
+                            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
+                            border: isDark ? '1.5px dashed rgba(255, 255, 255, 0.2)' : '1.5px dashed rgba(156, 163, 175, 0.4)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.85)';
+                            e.currentTarget.style.borderColor = isDark ? 'rgba(99, 102, 241, 0.7)' : 'rgba(99, 102, 241, 0.5)';
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = isDark
+                              ? '0 4px 12px rgba(99, 102, 241, 0.2)'
+                              : '0 4px 12px rgba(99, 102, 241, 0.12)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.6)';
+                            e.currentTarget.style.borderColor = isDark ? '1.5px dashed rgba(255, 255, 255, 0.2)' : '1.5px dashed rgba(156, 163, 175, 0.4)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.06)';
+                          }}
+                        >
+                          <Upload className="h-4 w-4 text-gray-600 group-hover:text-indigo-600 transition-colors duration-300 flex-shrink-0" />
+                          <span className="text-xs font-medium text-gray-700 group-hover:text-indigo-700 transition-colors">
+                            上传图片
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* 用户上传的图片 */}
+                      {userUploadedImages.map((image) => (
+                        <div
+                          key={image.id}
+                          className="rounded-xl overflow-hidden cursor-pointer relative group"
+                          style={{
+                            background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.5)',
+                            backdropFilter: 'blur(10px) saturate(150%)',
+                            WebkitBackdropFilter: 'blur(10px) saturate(150%)',
+                            border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(255, 255, 255, 0.3)',
+                            boxShadow: isDark ? '0 4px 16px rgba(0, 0, 0, 0.2)' : '0 4px 16px rgba(0, 0, 0, 0.08)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                            e.currentTarget.style.boxShadow = isDark
+                              ? '0 12px 32px rgba(0, 0, 0, 0.3)'
+                              : '0 12px 32px rgba(0, 0, 0, 0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                            e.currentTarget.style.boxShadow = isDark
+                              ? '0 4px 16px rgba(0, 0, 0, 0.2)'
+                              : '0 4px 16px rgba(0, 0, 0, 0.08)';
+                          }}
+                        >
+                          <div className="relative w-full h-full">
+                            <img
+                              src={image.url}
+                              alt={image.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                              draggable
+                              onLoad={() => {
+                                console.log('User uploaded image loaded:', image.id, image.name)
+                              }}
+                              onError={(e) => {
+                                console.warn('User uploaded image failed to load:', image.id, image.name, image.url)
+                                const img = e.target as HTMLImageElement
+                                // 加载失败时，使用 SVG 占位符
+                                img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none"%3E%3Crect width="100" height="100" fill="%23f0f0f0"/%3E%3Cpath d="M50 30C60 30 68 38 68 48C68 58 60 66 50 66C40 66 32 58 32 48C32 38 40 30 50 30ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20ZM50 75C36.2 75 25 63.8 25 50C25 36.2 36.2 25 50 25C63.8 25 75 36.2 75 50C75 63.8 63.8 75 50 75Z" fill="%23dddddd"/%3E%3C/svg%3E'
+                              }}
+                            />
+                            {/* 渐变遮罩层 - 用于文字可读性 */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+
+                            {/* 显示图片名称 - 优化样式 */}
+                            <div className="absolute bottom-0 left-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <div
+                                className="text-white text-xs font-medium truncate"
+                                style={{
+                                  textShadow: '0 2px 8px rgba(0, 0, 0, 0.5)',
+                                }}
+                              >
+                                {image.name}
+                              </div>
+                            </div>
+
+                            {/* 多选框 - 参考sidebar中的样式 */}
+                            <div
+                              className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100"
+                              style={{
+                                background: isDark ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                backdropFilter: 'blur(8px) saturate(150%)',
+                                WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                                border: isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.1)',
+                                boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                              }}
+                            >
+                              <Checkbox
+                                checked={selectedAssets.has(`uploaded-${image.id}`)}
+                                onCheckedChange={() => toggleAssetSelection(`uploaded-${image.id}`)}
+                                className="w-4 h-4 rounded data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* 如果没有上传的图片，显示提示 */}
+                      {userUploadedImages.length === 0 && (
+                        <div className="col-span-2 flex flex-col items-center justify-center py-8 text-muted-foreground">
+                          <ImageIcon className="h-12 w-12 mb-2 opacity-50" />
+                          <p className="text-sm">暂无上传图片</p>
+                          <p className="text-xs mt-1 opacity-70">点击上方按钮上传图片</p>
+                        </div>
+                      )}
+                    </>
                   ) : (
+                    // 平台素材
                     materialAssets.map(asset => (
                       <div
                         key={asset.id}
@@ -760,6 +994,16 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
                   )}
                 </div>
               </ScrollArea>
+              {/* 隐藏的文件输入 */}
+              <input
+                id="material-upload"
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageUpload}
+                aria-label="上传图片"
+              />
             </div>
           </div>
 
