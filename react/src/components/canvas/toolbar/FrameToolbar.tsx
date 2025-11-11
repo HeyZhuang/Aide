@@ -530,66 +530,210 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
     setSelectedElements(newSelected)
   }
 
-  // 应用样式到选中的元素
+  // 应用样式到选中的元素 - 生成多个Frame
   const applyStylesToSelected = useCallback(async () => {
-    if (!excalidrawAPI || selectedElements.size === 0) return
+    if (!excalidrawAPI || selectedElements.size === 0 || selectedAssets.size === 0) {
+      console.warn('缺少必要的选择:', { selectedElements: selectedElements.size, selectedAssets: selectedAssets.size })
+      return
+    }
 
     setIsGenerating(true)
     try {
       const elements = excalidrawAPI.getSceneElements()
+      const selectedElementArray = Array.from(selectedElements)
+      const selectedAssetsArray = Array.from(selectedAssets)
 
-      const updatedElements = elements.map(el => {
-        if (!selectedElements.has(el.id)) return el
+      // 获取当前Frame（基准Frame）
+      const currentFrame = elements.find(el => el.id === selectedElement.id)
+      if (!currentFrame) {
+        console.error('未找到当前Frame')
+        return
+      }
 
-        const baseStyles: Partial<ExcalidrawElement> = {
-          versionNonce: el.versionNonce + 1,
-          updated: Date.now(),
-        }
-
-        if (el.type === 'text') {
-          return {
-            ...el,
-            ...baseStyles,
-            fontSize: 16,
-            fontFamily: 1,
-            textAlign: 'left' as const,
-            opacity: 100,
-          }
-        } else if (['rectangle', 'ellipse', 'diamond'].includes(el.type)) {
-          return {
-            ...el,
-            ...baseStyles,
-            strokeWidth: 2,
-            strokeColor: '#000000',
-            backgroundColor: 'transparent',
-            fillStyle: 'solid',
-            opacity: 100,
-          }
-        } else if (el.type === 'image') {
-          return {
-            ...el,
-            ...baseStyles,
-            opacity: 100,
-          }
-        }
-
-        return el
+      // 获取Frame内的所有子元素
+      const frameChildren = elements.filter(el => {
+        return (
+          el.id !== currentFrame.id &&
+          el.x >= currentFrame.x &&
+          el.y >= currentFrame.y &&
+          el.x + el.width <= currentFrame.x + currentFrame.width &&
+          el.y + el.height <= currentFrame.y + currentFrame.height
+        )
       })
 
+      // 找出要替换的元素（被选中的元素）
+      const elementsToReplace = frameChildren.filter(el => selectedElementArray.includes(el.id))
+
+      if (elementsToReplace.length === 0) {
+        console.warn('Frame内没有选中的元素')
+        return
+      }
+
+      // 计算新Frame的起始位置（在当前Frame右侧）
+      const baseX = currentFrame.x + currentFrame.width + 50
+      const baseY = currentFrame.y
+      const frameSpacing = 20 // Frame之间的间距
+      const framesPerRow = 3 // 每行3个Frame
+
+      // 存储所有新创建的元素
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allNewElements: any[] = []
+
+      // 为每个选中的素材生成一个新Frame
+      for (let i = 0; i < selectedAssetsArray.length; i++) {
+        const assetId = selectedAssetsArray[i]
+
+        // 查找对应的素材
+        let assetUrl = ''
+        let assetName = ''
+
+        if (assetId.startsWith('uploaded-')) {
+          const uploadId = assetId.replace('uploaded-', '')
+          const uploadedImage = userUploadedImages.find(img => img.id === uploadId)
+          if (uploadedImage) {
+            assetUrl = uploadedImage.url
+            assetName = uploadedImage.name
+          }
+        } else {
+          const platformAsset = materialAssets.find(a => a.id === assetId)
+          if (platformAsset && platformAsset.url) {
+            assetUrl = platformAsset.url
+            assetName = platformAsset.name
+          }
+        }
+
+        if (!assetUrl) {
+          console.warn('未找到素材:', assetId)
+          continue
+        }
+
+        // 计算新Frame的位置（网格布局）
+        const row = Math.floor(i / framesPerRow)
+        const col = i % framesPerRow
+        const newFrameX = baseX + col * (currentFrame.width + frameSpacing)
+        const newFrameY = baseY + row * (currentFrame.height + frameSpacing)
+
+        // 创建新Frame元素（复制当前Frame）
+        const newFrameId = `frame-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newFrame: any = {
+          ...currentFrame,
+          id: newFrameId,
+          x: newFrameX,
+          y: newFrameY,
+          versionNonce: Math.floor(Math.random() * 1000000000),
+          updated: Date.now(),
+          version: 1,
+          boundElements: [], // 清空绑定元素，稍后会重新设置
+        }
+        allNewElements.push(newFrame)
+
+        // 存储新创建的子元素ID，用于设置Frame的boundElements
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newChildIds: any[] = []
+
+        // 复制Frame内的所有元素
+        for (const child of frameChildren) {
+          const offsetX = child.x - currentFrame.x
+          const offsetY = child.y - currentFrame.y
+
+          const newChildId = `${child.id}-copy-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const newChild: any = {
+            ...child,
+            id: newChildId,
+            x: newFrameX + offsetX,
+            y: newFrameY + offsetY,
+            versionNonce: Math.floor(Math.random() * 1000000000),
+            updated: Date.now(),
+            version: 1,
+            frameId: newFrameId, // 关键：设置子元素的frameId指向新Frame
+            boundElements: null,
+          }
+
+          // 记录子元素ID
+          newChildIds.push({ id: newChildId, type: child.type })
+
+          // 如果这个元素是需要替换的元素，且是第一个图片元素，则替换为素材
+          if (elementsToReplace.some(el => el.id === child.id) && child.type === 'image') {
+            try {
+              // 创建新的fileId
+              const fileId = `asset-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`
+
+              // 添加文件到Excalidraw
+              if (assetUrl.startsWith('data:')) {
+                // 用户上传的图片（Data URL）
+                excalidrawAPI.addFiles([{
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  id: fileId as any,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  dataURL: assetUrl as any,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  mimeType: 'image/png' as any,
+                  created: Date.now()
+                }])
+              } else {
+                // 平台素材（需要先转换为Data URL）
+                const response = await fetch(assetUrl)
+                const blob = await response.blob()
+                const reader = new FileReader()
+                await new Promise<void>((resolve) => {
+                  reader.onload = () => {
+                    excalidrawAPI.addFiles([{
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      id: fileId as any,
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      dataURL: reader.result as any,
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      mimeType: blob.type as any,
+                      created: Date.now()
+                    }])
+                    resolve()
+                  }
+                  reader.readAsDataURL(blob)
+                })
+              }
+
+              // 更新子元素的fileId
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              newChild.fileId = fileId as any
+              newChild.customData = {
+                ...newChild.customData,
+                replacedWith: assetName,
+                replacedAt: Date.now()
+              }
+            } catch (error) {
+              console.error('替换素材失败:', error)
+            }
+          }
+
+          allNewElements.push(newChild)
+        }
+
+        // 更新Frame的boundElements，包含所有子元素的引用
+        if (newChildIds.length > 0) {
+          newFrame.boundElements = newChildIds
+        }
+      }
+
+      // 将所有新元素添加到画布
       excalidrawAPI.updateScene({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        elements: updatedElements as any
+        elements: [...elements, ...allNewElements] as any
       })
 
-      console.log(`已对 ${selectedElements.size} 个元素应用样式`)
+      console.log(`✅ 已生成 ${selectedAssetsArray.length} 个新Frame，共 ${allNewElements.length} 个元素`)
+
+      // 关闭对话框并清空选择
       setShowDialog(false)
       setSelectedElements(new Set())
+      setSelectedAssets(new Set())
     } catch (error) {
-      console.error('批量生成样式失败:', error)
+      console.error('❌ 批量生成Frame失败:', error)
     } finally {
       setIsGenerating(false)
     }
-  }, [excalidrawAPI, selectedElements])
+  }, [excalidrawAPI, selectedElements, selectedAssets, selectedElement, materialAssets, userUploadedImages])
 
   // 元素列表项组件
   const ElementListItem = ({ element, isSelected, onToggleSelect, onMouseEnter, onMouseLeave }: {
@@ -606,7 +750,8 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
       <div
         className={`flex items-center justify-between px-3 py-2 rounded-lg border border-border transition-all cursor-pointer gap-2 ${isDisabled ? 'opacity-40 pointer-events-none' : 'hover:bg-accent/50'
           }`}
-        onClick={!isDisabled ? onToggleSelect : undefined}
+       
+          onClick={!isDisabled ? onToggleSelect : undefined}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={{
@@ -1013,16 +1158,26 @@ export function FrameToolbar({ selectedElement }: FrameToolbarProps) {
             <Button
               variant="outline"
               onClick={() => setShowDialog(false)}
+              disabled={isGenerating}
             >
               取消
             </Button>
             <Button
               onClick={applyStylesToSelected}
-              disabled={selectedElements.size === 0 || isGenerating}
+              disabled={selectedElements.size === 0 || selectedAssets.size === 0 || isGenerating}
               className="gap-2"
             >
-              <Check className="h-4 w-4" />
-              应用 ({selectedAssets.size})
+              {isGenerating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>生成中...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>应用 ({selectedAssets.size} 个素材)</span>
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
