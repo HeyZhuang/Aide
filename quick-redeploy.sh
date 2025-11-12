@@ -25,3 +25,4 @@ echo "服务状态:"
 sudo systemctl status psd-backend --no-pager | head -3
 sudo systemctl status psd-frontend --no-pager | head -3
 
+

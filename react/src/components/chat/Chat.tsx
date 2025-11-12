@@ -1,5 +1,3 @@
-
-
 import { sendMessages } from '@/api/chat'
 import Blur from '@/components/common/Blur'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -43,7 +41,7 @@ import 'react-photo-view/dist/react-photo-view.css'
 import { DEFAULT_SYSTEM_PROMPT } from '@/constants'
 import { ModelInfo, ToolInfo } from '@/api/model'
 import { Button } from '@/components/ui/button'
-import { Share2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Share2, ChevronUp, ChevronDown, MessageCirclePlus } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQueryClient } from '@tanstack/react-query'
 import MixedContent, { MixedContentImages, MixedContentText } from './Message/MixedContent'
@@ -71,6 +69,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const { initCanvas, setInitCanvas } = useConfigs()
   const { authStatus } = useAuth()
   const [showShareDialog, setShowShareDialog] = useState(false)
+  const [isImageQuestionMode, setIsImageQuestionMode] = useState(false)
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -264,6 +263,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     )
     eventBus.on('Socket::Session::ToolCallResult', handleToolCallResult)
 
+    const handleToggleImageQuestionMode = (isEnabled: boolean) => {
+      setIsImageQuestionMode(isEnabled)
+    }
+
+    eventBus.on('Canvas::ToggleImageQuestionMode', handleToggleImageQuestionMode)
+
     return () => {
       eventBus.off('Socket::Session::Delta', handleDelta)
       eventBus.off('Socket::Session::ToolCall', handleToolCall)
@@ -272,6 +277,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         handleToolCallPendingConfirmation
       )
       eventBus.off('Socket::Session::ToolCallResult', handleToolCallResult)
+      eventBus.off('Canvas::ToggleImageQuestionMode', handleToggleImageQuestionMode)
     }
   }, [
     handleDelta,
@@ -342,12 +348,25 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   return (
     <PhotoProvider>
+
       <div className='flex flex-col h-full relative w-full'>
         {/* Chat header with minimize/close buttons */}
 
         <div className='bottom-chat-header' onClick={toggleMinimize}>
           <h3>{t('chat.ai_assistant')}</h3>
           <div className='flex gap-1'>
+            <button
+              className={`bottom-chat-collapse-btn ${isImageQuestionMode ? 'bg-primary text-white' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const newMode = !isImageQuestionMode;
+                setIsImageQuestionMode(newMode);
+                eventBus.emit('Canvas::ToggleImageQuestionMode', newMode);
+              }}
+              title='图片询问模式'
+            >
+              <MessageCirclePlus size={16} />
+            </button>
             <button
               className='bottom-chat-collapse-btn'
               onClick={(e) => {
@@ -364,8 +383,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 e.stopPropagation();
                 setShowShareDialog(true);
               }}
-              title='分享'
-            >
+              title='分享'>
               <Share2 size={16} />
             </button>
           </div>
@@ -374,12 +392,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         {/* Chat content - only show when not minimized */}
         {!isMinimized && (
           <>
-            <ScrollArea className='bottom-chat-messages bg-white/50 backdrop-blur-md border border-white/30' viewportRef={scrollRef}>
+            <ScrollArea className='bottom-chat-messages bg-white/50 backdrop-blur-md border border-white/30' viewportRef={scrollRef} onMouseDown={(e) => e.stopPropagation()}>
               {messages.length > 0 ? (
                 <div className='flex flex-col flex-1'>
                   {/* Messages */}
                   {messages.map((message, idx) => (
-                    <div key={`${idx}`} className='flex flex-col gap-2 mb-2'>
+                    <div key={`${idx}`} className='flex flex-col gap-2 mb-2' onMouseDown={(e) => e.stopPropagation()}>
                       {/* Regular message content */}
                       {typeof message.content == 'string' &&
                         (message.role !== 'tool' ? (
@@ -475,7 +493,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   )}
                 </div>
               ) : (
-                <motion.div className='flex flex-col h-full items-start justify-start select-none p-2'>
+                <motion.div className='flex flex-col h-full items-start justify-start select-none p-2' onMouseDown={(e) => e.stopPropagation()}>
                   <motion.span
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -496,7 +514,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               )}
             </ScrollArea>
 
-            <div className='bottom-chat-input bg-white/50 backdrop-blur-md border border-white/30 rounded-b-xl'>
+            <div className='bottom-chat-input bg-white/50 backdrop-blur-md border border-white/30 rounded-b-xl' onMouseDown={(e) => e.stopPropagation()}>
               <ChatTextarea
                 sessionId={sessionId!}
                 pending={!!pending}

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useCanvas } from '@/contexts/canvas'
+import { useTheme } from '@/hooks/use-theme'
 import { useTranslation } from 'react-i18next'
 import {
   AlignLeft,
@@ -28,6 +29,15 @@ import { ExcalidrawTextElement } from '@excalidraw/excalidraw/element/types'
 import { getFonts, type FontItem, toggleFontFavorite } from '@/api/font'
 import { FontUploadDialog } from '@/components/font/FontUploadDialog'
 import { toast } from 'sonner'
+import { CUSTOM_FONTS, loadCustomFont } from '@/components/canvas/fonts/CustomFonts'
+import FontManager from '@/components/canvas/fonts/FontManager'
+
+interface CustomFont {
+  name: string;
+  fontFamily: string;
+  filePath: string;
+  format: 'truetype' | 'opentype' | 'woff' | 'woff2';
+}
 
 interface TextToolbarProps {
   selectedElement: ExcalidrawTextElement
@@ -36,6 +46,32 @@ interface TextToolbarProps {
 export function TextToolbar({ selectedElement }: TextToolbarProps) {
   const { t } = useTranslation()
   const { excalidrawAPI } = useCanvas()
+  const { theme } = useTheme()
+  const [isDark, setIsDark] = useState(false)
+
+  // 监听主题变化
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
+
   const [selectedFont, setSelectedFont] = useState('Virgil')
   const [fontSize, setFontSize] = useState(20)
   const [textColor, setTextColor] = useState('#000000')
@@ -45,26 +81,54 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [loadingFonts, setLoadingFonts] = useState(false)
   const [fontMenuOpen, setFontMenuOpen] = useState(false)
+  const [localCustomFonts, setLocalCustomFonts] = useState<CustomFont[]>([])
 
   const selectedElementIdRef = useRef<string>(selectedElement.id)
 
   // Excalidraw 原生字体
-  const fonts = [
+  const systemFonts = [
     { name: 'Virgil', value: 1 },
     { name: 'Helvetica', value: 2 },
-    { name: 'Cascadia', value: 3 }
+    { name: 'Cascadia', value: 3 },
+    { name: 'Assistant', value: 4 },
+    { name: 'ComicShanns', value: 5 },
+    { name: 'Excalifont', value: 6 },
+    { name: 'Liberation', value: 7 },
+    { name: 'Lilita', value: 8 },
+    { name: 'Nunito', value: 9 }
   ]
 
   const fontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 64, 72, 96]
 
-  // 加载自定义字体
-  const loadCustomFonts = useCallback(async () => {
+  // 加载本地自定义字体
+  const loadLocalCustomFonts = useCallback(async () => {
+    try {
+      // 预加载所有本地自定义字体
+      for (const font of CUSTOM_FONTS) {
+        try {
+          // 构造正确的字体URL路径
+          const fontUrl = font.filePath.startsWith('/') ? font.filePath : `/${font.filePath}`;
+          // 使用字体管理器预加载字体
+          const fontManager = FontManager.getInstance();
+          fontManager.preloadFont(font.fontFamily, fontUrl);
+        } catch (error) {
+          console.warn(`本地自定义字体 ${font.name} 预加载失败:`, error);
+        }
+      }
+      setLocalCustomFonts(CUSTOM_FONTS);
+    } catch (error) {
+      console.error('Failed to load local custom fonts:', error);
+    }
+  }, []);
+
+  // 加载服务器自定义字体
+  const loadServerCustomFonts = useCallback(async () => {
     setLoadingFonts(true)
     try {
       const fonts = await getFonts()
       setCustomFonts(fonts)
 
-      // 预加载所有自定义字体
+      // 预加载所有服务器自定义字体
       fonts.forEach((font) => {
         const fontFace = new FontFace(font.font_family, `url(${font.font_file_url})`)
         fontFace.load().then(() => {
@@ -80,10 +144,11 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
     }
   }, [])
 
-  // 初始化加载自定义字体
+  // 初始化加载所有自定义字体
   useEffect(() => {
-    loadCustomFonts()
-  }, [loadCustomFonts])
+    loadLocalCustomFonts();
+    loadServerCustomFonts();
+  }, [loadLocalCustomFonts, loadServerCustomFonts])
 
   // 同步选中元素的状态
   useEffect(() => {
@@ -94,7 +159,13 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
       const fontFamilyNames: Record<number, string> = {
         1: 'Virgil',
         2: 'Helvetica',
-        3: 'Cascadia'
+        3: 'Cascadia',
+        4: 'Assistant',
+        5: 'ComicShanns',
+        6: 'Excalifont',
+        7: 'Liberation',
+        8: 'Lilita',
+        9: 'Nunito'
       }
       const fontName = fontFamilyNames[selectedElement.fontFamily] || 'Virgil'
       setSelectedFont(fontName)
@@ -139,21 +210,99 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
     })
   }, [excalidrawAPI])
 
-  const handleFontChange = (fontName: string, fontValue: number) => {
+  const handleSystemFontChange = (fontName: string, fontValue: number) => {
     setSelectedFont(fontName)
     updateTextElement({ fontFamily: fontValue })
+
+    // 清除自定义字体设置
+    document.documentElement.style.removeProperty('--excalidraw-custom-font-family')
   }
 
-  // 处理自定义字体选择
-  const handleCustomFontSelect = (font: FontItem) => {
+  // 处理本地自定义字体选择
+  const handleLocalCustomFontSelect = (font: CustomFont) => {
     setSelectedFont(font.name)
-    updateTextElement({ fontFamily: 2 }) // 使用 Helvetica 作为基础
 
-    // 确保字体已加载
-    const fontFace = new FontFace(font.font_family, `url(${font.font_file_url})`)
-    fontFace.load().then(() => {
-      document.fonts.add(fontFace)
-      toast.success(`字体 ${font.name} 已应用`)
+    // 使用字体管理器加载字体
+    const fontManager = FontManager.getInstance();
+
+    // 构造正确的字体URL路径
+    const fontUrl = font.filePath.startsWith('/') ? font.filePath : `/${font.filePath}`;
+
+    fontManager.loadFont(font.fontFamily, fontUrl).then((success) => {
+      if (success) {
+        // 应用字体到选中的文字元素
+        // 对于自定义字体，我们使用Helvetica作为基础字体，并通过CSS变量应用实际字体
+        updateTextElement({
+          fontFamily: 2 // 使用Helvetica (value: 2) 作为基础字体
+        })
+
+        // 通过CSS变量设置实际的字体族名称
+        document.documentElement.style.setProperty('--excalidraw-custom-font-family', font.fontFamily)
+
+        // 强制更新所有文本元素的字体显示
+        setTimeout(() => {
+          const textElements = document.querySelectorAll('.excalidraw .excalidraw-element[data-type="text"]')
+          textElements.forEach(element => {
+            (element as HTMLElement).style.fontFamily = font.fontFamily;
+          });
+
+          // 重新渲染画布
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              elements: excalidrawAPI.getSceneElements()
+            });
+          }
+        }, 50);
+
+        toast.success(`字体 ${font.name} 已应用`)
+      } else {
+        toast.error('字体加载失败')
+      }
+    }).catch((error) => {
+      console.error('Failed to load font:', error)
+      toast.error('字体加载失败')
+    })
+
+    setFontMenuOpen(false)
+  }
+
+  // 处理服务器自定义字体选择
+  const handleServerCustomFontSelect = (font: FontItem) => {
+    setSelectedFont(font.name)
+
+    // 使用字体管理器加载字体
+    const fontManager = FontManager.getInstance();
+
+    fontManager.loadFont(font.font_family, font.font_file_url).then((success) => {
+      if (success) {
+        // 应用字体到选中的文字元素
+        // 对于自定义字体，我们使用Helvetica作为基础字体，并通过CSS变量应用实际字体
+        updateTextElement({
+          fontFamily: 2 // 使用Helvetica (value: 2) 作为基础字体
+        })
+
+        // 通过CSS变量设置实际的字体族名称
+        document.documentElement.style.setProperty('--excalidraw-custom-font-family', font.font_family)
+
+        // 强制更新所有文本元素的字体显示
+        setTimeout(() => {
+          const textElements = document.querySelectorAll('.excalidraw .excalidraw-element[data-type="text"]')
+          textElements.forEach(element => {
+            (element as HTMLElement).style.fontFamily = font.font_family;
+          });
+
+          // 重新渲染画布
+          if (excalidrawAPI) {
+            excalidrawAPI.updateScene({
+              elements: excalidrawAPI.getSceneElements()
+            });
+          }
+        }, 50);
+
+        toast.success(`字体 ${font.name} 已应用`)
+      } else {
+        toast.error('字体加载失败')
+      }
     }).catch((error) => {
       console.error('Failed to load font:', error)
       toast.error('字体加载失败')
@@ -197,7 +346,14 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
   }
 
   return (
-    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/60 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
+    <div
+      className="flex items-center gap-1 px-2 py-1.5 rounded-xl shadow-lg border backdrop-blur-md transition-all duration-200 overflow-x-auto max-w-full"
+      style={{
+        background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+        color: isDark ? '#F5F5F7' : '#000000',
+      }}
+    >
       {/* 字体选择 */}
       <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
         <DropdownMenuTrigger asChild>
@@ -211,19 +367,32 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 w-[400px] p-0 rounded-xl shadow-lg"
+          className="p-0 rounded-xl shadow-lg backdrop-blur-md"
           align="start"
+          style={{
+            background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+            border: '1px solid',
+            width: '400px',
+            color: isDark ? '#F5F5F7' : '#000000',
+          }}
         >
           <Tabs defaultValue="system" className="w-full">
-            <TabsList className="w-full grid grid-cols-2 bg-white/30 backdrop-blur-sm rounded-t-xl">
+            <TabsList className="w-full grid grid-cols-3 bg-white/30 backdrop-blur-sm rounded-t-xl">
               <TabsTrigger
                 value="system"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tl-xl"
               >
-                {t('canvas:toolbar.text.customFonts')}
+                {t('canvas:toolbar.text.systemFonts')}
               </TabsTrigger>
               <TabsTrigger
-                value="upload"
+                value="local"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground"
+              >
+                {t('canvas:toolbar.text.localFonts')}
+              </TabsTrigger>
+              <TabsTrigger
+                value="server"
                 className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-foreground rounded-tr-xl"
               >
                 {t('canvas:toolbar.text.uploadFont')}
@@ -233,11 +402,11 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
             <TabsContent value="system" className="m-0">
               <ScrollArea className="h-[300px]">
                 <div className="p-2">
-                  {fonts.map((font) => (
+                  {systemFonts.map((font) => (
                     <div
                       key={font.value}
                       onClick={() => {
-                        handleFontChange(font.name, font.value)
+                        handleSystemFontChange(font.name, font.value)
                         setFontMenuOpen(false)
                       }}
                       className={`px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 ${selectedFont === font.name
@@ -252,16 +421,69 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="upload" className="m-0">
+            <TabsContent value="local" className="m-0">
               <div className="p-2">
                 <div className="flex items-center justify-between px-2 py-2 border-b border-white/20 rounded-t-lg">
-                  <span className="text-xs text-foreground">{t('canvas:toolbar.text.customFonts')}</span>
+                  <span className="text-xs text-foreground">{t('canvas:toolbar.text.localCustomFonts')}</span>
+                </div>
+
+                <ScrollArea className="h-[300px]">
+                  {localCustomFonts.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <Type className="h-8 w-8 mx-auto mb-2 text-foreground" />
+                      <p className="text-sm text-foreground mb-3">{t('canvas:toolbar.text.noLocalCustomFonts')}</p>
+                    </div>
+                  ) : (
+                    <div className="p-2 space-y-1">
+                      {localCustomFonts.map((font, index) => (
+                        <div
+                          key={index}
+                          onClick={() => handleLocalCustomFontSelect(font)}
+                          className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 hover:bg-white/30 text-foreground group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="font-medium truncate"
+                                  style={{ fontFamily: font.fontFamily }}
+                                >
+                                  {font.name}
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs border-white/30 text-foreground rounded"
+                                >
+                                  {font.format.toUpperCase()}
+                                </Badge>
+                              </div>
+                              <p
+                                className="text-xs text-foreground font-preview"
+                                style={{ fontFamily: font.fontFamily }}
+                              >
+                                {font.name} ABC abc 123
+                              </p>
+                            </div>
+
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="server" className="m-0">
+              <div className="p-2">
+                <div className="flex items-center justify-between px-2 py-2 border-b border-white/20 rounded-t-lg">
+                  <span className="text-xs text-foreground">{t('canvas:toolbar.text.serverCustomFonts')}</span>
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0 hover:bg-white/30 backdrop-blur-sm rounded-md"
-                      onClick={loadCustomFonts}
+                      onClick={loadServerCustomFonts}
                       disabled={loadingFonts}
                       title={t('canvas:toolbar.text.refreshFontList')}
                     >
@@ -290,7 +512,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                   ) : customFonts.length === 0 ? (
                     <div className="p-6 text-center">
                       <Type className="h-8 w-8 mx-auto mb-2 text-foreground" />
-                      <p className="text-sm text-foreground mb-3">{t('canvas:toolbar.text.noCustomFonts')}</p>
+                      <p className="text-sm text-foreground mb-3">{t('canvas:toolbar.text.noServerCustomFonts')}</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -309,7 +531,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
                       {customFonts.map((font) => (
                         <div
                           key={font.id}
-                          onClick={() => handleCustomFontSelect(font)}
+                          onClick={() => handleServerCustomFontSelect(font)}
                           className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 hover:bg-white/30 text-foreground group"
                         >
                           <div className="flex items-center justify-between">
@@ -366,7 +588,15 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
             <ChevronDown className="ml-1 h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="bg-white/50 backdrop-blur-md text-foreground border border-white/60 max-h-60 overflow-y-auto rounded-lg shadow-lg">
+        <DropdownMenuContent
+          className="max-h-60 overflow-y-auto rounded-lg shadow-lg backdrop-blur-md"
+          style={{
+            background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 1)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+            border: '1px solid',
+            color: isDark ? '#F5F5F7' : '#000000',
+          }}
+        >
           {fontSizes.map((size) => (
             <DropdownMenuItem
               key={size}
@@ -461,7 +691,7 @@ export function TextToolbar({ selectedElement }: TextToolbarProps) {
           onClose={() => setShowUploadDialog(false)}
           onSuccess={() => {
             setShowUploadDialog(false)
-            loadCustomFonts()
+            loadServerCustomFonts()
             toast.success('字体上传成功')
           }}
           categories={[]}

@@ -15,7 +15,15 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 print('Importing websocket_router')
 from routers.websocket_router import *  # DO NOT DELETE THIS LINE, OTHERWISE, WEBSOCKET WILL NOT WORK
 print('Importing routers')
-from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, layer_arrangement_router, template_router
+from routers import config_router, image_router, root_router, workspace, canvas, ssl_test, chat_router, settings, tool_confirmation, layer_arrangement_router, template_router, font_router
+
+# 导入管理员路由器
+try:
+    from routers import manager_route
+    print('✅ Manager route imported')
+except ImportError as e:
+    print(f'⚠️  Manager route import failed: {e}')
+    manager_route = None
 
 # 导入认证路由器
 try:
@@ -81,6 +89,7 @@ app.include_router(root_router.router)
 app.include_router(canvas.router)
 app.include_router(workspace.router)
 app.include_router(image_router.router)
+app.include_router(font_router.router)
 
 # 只有当PSD路由器成功导入时才包含它们
 if psd_router:
@@ -96,6 +105,11 @@ app.include_router(tool_confirmation.router)
 
 # 包含模板路由器（路由已在router中定义）
 app.include_router(template_router.router)
+
+# 包含管理员路由器
+if manager_route:
+    app.include_router(manager_route.router)
+    print('✅ Manager route included')
 
 # 包含认证路由器
 if auth_router:

@@ -62,6 +62,25 @@
         "plus": "上傳",
         "frame": "框架"
     },
+    "toolbar": {
+        "text": {
+            "customFonts": "自訂字體",
+            "refreshFontList": "重新整理字體列表",
+            "upload": "上傳",
+            "noCustomFonts": "暫無自訂字體",
+            "uploadFont": "上傳字體",
+            "opacity": "透明度",
+            "textAlignLeft": "左對齊",
+            "textAlignCenter": "置中對齊",
+            "textAlignRight": "右對齊",
+            "selectColor": "選擇文字顏色",
+            "systemFonts": "系統字體",
+            "fontApplied": "已套用字體: {{font}}",
+            "selectTextElement": "請選擇一個文字元素",
+            "system": "系統",
+            "custom": "自訂"
+        }
+    },
     "popbar": {
         "addToChat": "新增到聊天",
         "magicGenerate": "✨ 魔法生成"

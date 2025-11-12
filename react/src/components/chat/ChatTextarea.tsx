@@ -9,6 +9,7 @@ import {
   eventBus,
   TCanvasAddImagesToChatEvent,
   TMaterialAddImagesToChatEvent,
+  TImageQuestionClickEvent,
 } from '@/lib/event'
 import { cn, dataURLToFile } from '@/lib/utils'
 import { Message, MessageContent, Model } from '@/types/types'
@@ -27,6 +28,7 @@ import {
   Hash,
   Layers,
   FileImage,
+  MessageCirclePlus,
 } from 'lucide-react'
 import { AnimatePresence, color, motion } from 'motion/react'
 import Textarea, { TextAreaRef } from 'rc-textarea'
@@ -587,10 +589,11 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             size="sm"
             onClick={() => imageInputRef.current?.click()}
             title="上传图片"
-            className="shadow-none bg-white transition-colors hover:bg-gray-50"
+            className="w-auto min-w-fit justify-between overflow-hidden text-foreground"
           >
-            <PlusIcon className="size-4 text-black" />
+            <PlusIcon className="size-4" />
           </Button>
+
           {/* <Button
             variant="outline"
             size="sm"
@@ -609,19 +612,23 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
+                className="w-auto min-w-fit justify-between overflow-hidden flex items-center gap-1 text-foreground"
                 size={'sm'}
+                onClick={(e) => e.stopPropagation()}
               >
-                <RectangleVertical className="size-4 text-black" />
+                <RectangleVertical className="size-4" />
                 <span className="text-sm">{selectedAspectRatio}</span>
-                <ChevronDown className="size-3 opacity-50" />
+                <ChevronDown className="size-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-32 z-[1000]">
+            <DropdownMenuContent align="start" className="w-32 z-[1000]" onMouseDown={(e) => e.stopPropagation()}>
               {['auto', '1:1', '4:3', '3:4', '16:9', '9:16'].map((ratio) => (
                 <DropdownMenuItem
                   key={ratio}
-                  onClick={() => setSelectedAspectRatio(ratio)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedAspectRatio(ratio)
+                  }}
                   className="flex items-center justify-between"
                 >
                   <span>{ratio}</span>
@@ -639,16 +646,17 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="flex items-center gap-1 shadow-none bg-white transition-colors hover:bg-gray-50"
+                className="w-auto min-w-fit justify-between overflow-hidden flex items-center gap-1 text-foreground"
                 size={'sm'}
+                onClick={(e) => e.stopPropagation()}
               >
-                <Hash className="size-4 text-black" />
+                <Hash className="size-4" />
                 <span className="text-sm">{quantity}</span>
-                <ChevronDown className="size-3 opacity-50" />
+                <ChevronDown className="size-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4">
-              <div className="flex flex-col gap-3">
+            <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-64 p-4" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="flex flex-col gap-3" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{t('chat:textarea.quantity', 'Image Quantity')}</span>
                   <span className="text-sm text-muted-foreground">{quantity}</span>
@@ -660,7 +668,11 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
                     min="1"
                     max={MAX_QUANTITY}
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      setQuantity(Number(e.target.value))
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
                     className="flex-1 h-2 bg-muted rounded-lg appearance-none cursor-pointer
                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary
@@ -677,25 +689,23 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 
         {pending ? (
           <Button
-            className="shrink-0 relative shadow-none bg-white transition-colors hover:bg-gray-50"
-            variant="default"
+            className="shrink-0 relative text-foreground"
+            variant="outline"
             size="icon"
             onClick={handleCancelChat}
-            style={{ border: '1px solid #9ca3af' }}
           >
             <Loader2 className="size-5.5 animate-spin absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black" />
+            <Square className="size-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </Button>
         ) : (
           <Button
-            className="shrink-0 shadow-none bg-white transition-colors hover:bg-gray-50"
-            variant="default"
+            className="shrink-0 text-foreground"
+            variant="outline"
             size="icon"
             onClick={handleSendPrompt}
             disabled={!textModel || !selectedTools || prompt.length === 0}
-            style={{ border: '1px solid #9ca3af' }}
           >
-            <ArrowUp className="size-4 text-black" />
+            <ArrowUp className="size-4" />
           </Button>
         )}
       </div>

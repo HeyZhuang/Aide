@@ -101,3 +101,4 @@ echo "  sudo journalctl -u psd-backend -f"
 echo "  sudo journalctl -u psd-frontend -f"
 echo "=========================================="
 
+
