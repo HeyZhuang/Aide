@@ -60,6 +60,21 @@ DEFAULT_PROVIDERS_CONFIG: AppConfig = {
         'api_key': '',
         'max_tokens': 8192,
     },
+    # ============ Google Gemini 配置 ============
+    'gemini': {
+        'models': {
+            # 文本模型（用于对话和推理）
+            'gemini-2.5-flash': {'type': 'text'},
+            # 图像生成模型（硬编码，不会从 config.toml 读取）
+            'gemini-2.5-flash-image': {'type': 'image'},
+        },
+        'url': 'https://generativelanguage.googleapis.com/v1beta',
+        'api_key': '',  # 从 config.toml 或前端配置
+        # Vertex AI 配置（企业用户）
+        'use_vertexai': False,  # 是否使用 Vertex AI
+        'project': '',          # GCP 项目 ID（使用 Vertex AI 时必填）
+        'location': 'us-central1',  # GCP 区域（使用 Vertex AI 时必填）
+    },
 
 }
 
