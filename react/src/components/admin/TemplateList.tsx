@@ -20,7 +20,12 @@ export function TemplateList() {
 
   const { data: templates, isLoading, error } = useQuery({
     queryKey: ['templates', selectedCategory],
-    queryFn: () => listTemplates(selectedCategory),
+    queryFn: async () => {
+      console.log('Fetching templates...')
+      const result = await listTemplates(selectedCategory)
+      console.log('Templates fetched:', result)
+      return result
+    },
     retry: 1,
   })
 
@@ -89,18 +94,18 @@ export function TemplateList() {
   return (
     <div className="space-y-4">
       {/* 模板网格 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {templates.map((template) => (
           <Card
             key={template.id}
             className={cn(
               'overflow-hidden group transition-all',
               'bg-white dark:bg-card border-gray-200 dark:border-border',
-              'hover:shadow-lg hover:border-gray-400 dark:hover:border-primary/40'
+              'hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-700'
             )}
           >
             <div className={cn(
-              'relative h-40 overflow-hidden',
+              'relative h-48 overflow-hidden',
               'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
             )}>
               {template.thumbnail_path ? (
@@ -111,27 +116,27 @@ export function TemplateList() {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <ImageIcon className="w-12 h-12 text-gray-300 dark:text-gray-600" />
+                  <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
                 </div>
               )}
               <div className="absolute top-2 right-2">
                 <span className={cn(
-                  'px-2 py-0.5 text-xs rounded-md font-medium',
-                  'bg-black/50 backdrop-blur-sm text-white'
+                  'px-2.5 py-1 text-xs rounded-lg font-semibold',
+                  'bg-black/60 backdrop-blur-sm text-white'
                 )}>
                   {template.file_type.toUpperCase()}
                 </span>
               </div>
             </div>
 
-            <CardHeader className="p-4">
+            <CardHeader className="p-4 pb-3">
               <CardTitle className={cn(
-                'text-sm line-clamp-1',
+                'text-base font-bold line-clamp-1',
                 'text-gray-900 dark:text-foreground'
               )}>{template.name}</CardTitle>
               {template.description && (
                 <CardDescription className={cn(
-                  'text-xs line-clamp-2',
+                  'text-sm line-clamp-2 mt-1',
                   'text-gray-600 dark:text-muted-foreground'
                 )}>
                   {template.description}
@@ -142,20 +147,20 @@ export function TemplateList() {
             <CardContent className="p-4 pt-0 space-y-3">
               {/* 模板信息 */}
               <div className={cn(
-                'space-y-1.5 text-xs',
+                'space-y-2 text-sm',
                 'text-gray-600 dark:text-muted-foreground'
               )}>
                 {template.category && (
-                  <div className="flex items-center gap-1.5">
-                    <Tag className="w-3.5 h-3.5" />
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
                     <span>{template.category}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
                   <span>{new Date(template.created_at).toLocaleDateString()}</span>
                 </div>
-                <div className="text-xs">
+                <div className="text-sm">
                   大小: {(template.file_size / 1024).toFixed(2)} KB
                 </div>
               </div>
@@ -166,14 +171,15 @@ export function TemplateList() {
                 size="sm"
                 onClick={() => handleDelete(template.id)}
                 className={cn(
-                  'w-full h-8',
+                  'w-full h-9',
                   'border-red-200 dark:border-red-900/30',
                   'text-red-600 dark:text-red-400',
-                  'hover:bg-red-50 dark:hover:bg-red-900/20'
+                  'hover:bg-red-50 dark:hover:bg-red-900/20',
+                  'transition-colors'
                 )}
               >
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                删除
+                <Trash2 className="w-4 h-4 mr-2" />
+                删除模板
               </Button>
             </CardContent>
           </Card>

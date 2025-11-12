@@ -1,9 +1,12 @@
 import { createCanvas } from '@/api/canvas'
 import ChatTextarea from '@/components/chat/ChatTextarea'
 import CanvasList from '@/components/home/CanvasList'
+import { TemplateList } from '@/components/admin/TemplateList'
+import { TemplateUpload } from '@/components/admin/TemplateUpload'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useConfigs } from '@/contexts/configs'
 import { DEFAULT_SYSTEM_PROMPT } from '@/constants'
 import { useMutation } from '@tanstack/react-query'
@@ -37,6 +40,8 @@ import {
   ExternalLink,
   Loader2,
   Shield,
+  Upload,
+  List,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import i18n from '@/i18n'
@@ -57,6 +62,7 @@ function Home() {
   const { theme, setTheme } = useTheme()
   const { authStatus, refreshAuth } = useAuth()
   const [activeTab, setActiveTab] = useState('projects')
+  const [templateSubTab, setTemplateSubTab] = useState('browse')
   const [showChatTextarea, setShowChatTextarea] = useState(false)
   const [psdTemplates, setPsdTemplates] = useState<PSDTemplateInfo[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
@@ -112,12 +118,15 @@ function Home() {
     setShowChatTextarea(true)
   }
 
-  // 获取PSD模板列表
+  // 获取PSD模板列表 - 只在模板标签页激活时加载
   useEffect(() => {
+    if (activeTab !== 'templates') return
+
     const fetchPsdTemplates = async () => {
       setLoadingTemplates(true)
       try {
         const templates = await listPSDTemplates()
+        console.log('PSD Templates loaded:', templates)
 
         // 前端去重：基于文件名去重，保留最新的模板
         const templatesMap = new Map<string, PSDTemplateInfo>()
@@ -136,6 +145,7 @@ function Home() {
 
         const uniqueTemplates = Array.from(templatesMap.values())
         setPsdTemplates(uniqueTemplates)
+        console.log('Unique PSD Templates:', uniqueTemplates)
       } catch (err) {
         console.error('获取PSD模板失败:', err)
         toast.error(t('home:messages.fetchTemplatesFailed'))
@@ -145,7 +155,7 @@ function Home() {
     }
 
     fetchPsdTemplates()
-  }, [])
+  }, [activeTab, t])
 
   // 处理缩略图加载错误
   const handleThumbnailError = (templateName: string) => {
@@ -309,16 +319,16 @@ function Home() {
 
           <Button
             variant="ghost"
-            onClick={() => setActiveTab('all-maps')}
+            onClick={() => setActiveTab('templates')}
             className={cn(
               'w-full justify-start gap-3 mb-1',
-              activeTab === 'all-maps'
+              activeTab === 'templates'
                 ? 'bg-gray-100 dark:bg-secondary'
                 : 'hover:bg-gray-100 dark:hover:bg-secondary'
             )}
           >
-            <Grid3x3 className='w-5 h-5' />
-            {t('home:sidebar.allMaps')}
+            <FileImage className='w-5 h-5' />
+            {t('home:header.allMaps')}
           </Button>
 
           <Button
@@ -412,10 +422,10 @@ function Home() {
         </header>
 
         <ScrollArea className='flex-1'>
-          <div className='p-6 pr-0'>
-            {/* 只在首次进入（templates标签）显示模板区 */}
+          <div className='p-6 pr-6'>
+            {/* templates标签页 - 模板浏览和管理 */}
             {activeTab === 'templates' && (
-              <div className='flex flex-col px-10 mt-10 gap-4 select-none max-w-[1200px] mx-auto w-full'>
+              <div className='flex flex-col px-10 mt-10 gap-6 max-w-[1200px] mx-auto w-full pb-20'>
                 <motion.span
                   className='text-2xl font-bold'
                   initial={{ opacity: 0, y: 10 }}
@@ -425,66 +435,121 @@ function Home() {
                   {t('home:header.allMaps')}
                 </motion.span>
 
-                <div className='grid grid-cols-4 gap-4 w-full pb-10'>
-                  {loadingTemplates ? (
-                    <div className='col-span-4 flex items-center justify-center py-12'>
-                      <span className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
-                        {t('home:templates.loading')}
-                      </span>
+                {/* 子标签页 */}
+                <Tabs value={templateSubTab} onValueChange={setTemplateSubTab} className="w-full">
+                  <TabsList className={cn(
+                    'grid w-full grid-cols-3 mb-6 h-10',
+                    'bg-gray-100 dark:bg-secondary/50'
+                  )}>
+                    <TabsTrigger
+                      value="browse"
+                      className={cn(
+                        'h-9 text-sm font-medium transition-all',
+                        'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                        'data-[state=active]:shadow-sm'
+                      )}
+                    >
+                      <Grid3x3 className='w-4 h-4 mr-2' />
+                      浏览模板
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="manage"
+                      className={cn(
+                        'h-9 text-sm font-medium transition-all',
+                        'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                        'data-[state=active]:shadow-sm'
+                      )}
+                    >
+                      <List className='w-4 h-4 mr-2' />
+                      管理模板
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="upload"
+                      className={cn(
+                        'h-9 text-sm font-medium transition-all',
+                        'data-[state=active]:bg-white dark:data-[state=active]:bg-card',
+                        'data-[state=active]:shadow-sm'
+                      )}
+                    >
+                      <Upload className='w-4 h-4 mr-2' />
+                      上传模板
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* 浏览模板 */}
+                  <TabsContent value="browse" className="mt-0">
+                    <div className='grid grid-cols-4 gap-4 w-full pb-10'>
+                      {loadingTemplates ? (
+                        <div className='col-span-4 flex items-center justify-center py-12'>
+                          <span className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
+                            {t('home:templates.loading')}
+                          </span>
+                        </div>
+                      ) : psdTemplates.length === 0 ? (
+                        <div className='col-span-4 flex flex-col items-center justify-center py-12'>
+                          <FileImage className={cn('w-8 h-8 mb-2', 'text-gray-300 dark:text-muted-foreground')} />
+                          <span className={cn('text-xs', 'text-gray-400 dark:text-muted-foreground')}>
+                            {t('home:templates.noTemplates')}
+                          </span>
+                        </div>
+                      ) : (
+                        psdTemplates.map((template, index) => {
+                          const hasThumbnailError = thumbnailLoadErrors.has(template.name)
+                          return (
+                            <motion.div
+                              key={template.name}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              onClick={() => handlePsdTemplateClick(template)}
+                              className={cn(
+                                'w-full aspect-square rounded-lg border transition-all cursor-pointer overflow-hidden group',
+                                'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-gray-400 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
+                              )}
+                            >
+                              <div className={cn(
+                                'w-full h-[calc(100%-2rem)] flex items-center justify-center overflow-hidden',
+                                'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
+                              )}>
+                                {template.thumbnail_url && !hasThumbnailError ? (
+                                  <img
+                                    src={template.thumbnail_url}
+                                    alt={template.display_name || template.name}
+                                    className='w-full h-full object-cover'
+                                    onError={() => handleThumbnailError(template.name)}
+                                  />
+                                ) : (
+                                  <FileImage className={cn(
+                                    'w-12 h-12',
+                                    'text-gray-300 dark:text-muted-foreground'
+                                  )} />
+                                )}
+                              </div>
+                              <div className='h-8 px-3 flex items-center justify-center'>
+                                <span className={cn(
+                                  'text-xs truncate w-full text-center',
+                                  'text-gray-600 dark:text-muted-foreground group-hover:text-gray-900 dark:group-hover:text-foreground'
+                                )}>
+                                  {template.display_name || template.name}
+                                </span>
+                              </div>
+                            </motion.div>
+                          )
+                        })
+                      )}
                     </div>
-                  ) : psdTemplates.length === 0 ? (
-                    <div className='col-span-4 flex flex-col items-center justify-center py-12'>
-                      <FileImage className={cn('w-8 h-8 mb-2', 'text-gray-300 dark:text-muted-foreground')} />
-                      <span className={cn('text-xs', 'text-gray-400 dark:text-muted-foreground')}>
-                        {t('home:templates.noTemplates')}
-                      </span>
-                    </div>
-                  ) : (
-                    psdTemplates.map((template, index) => {
-                      const hasThumbnailError = thumbnailLoadErrors.has(template.name)
-                      return (
-                        <motion.div
-                          key={template.name}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          onClick={() => handlePsdTemplateClick(template)}
-                          className={cn(
-                            'w-full aspect-square rounded-lg border transition-all cursor-pointer overflow-hidden group',
-                            'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-gray-400 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
-                          )}
-                        >
-                          <div className={cn(
-                            'w-full h-[calc(100%-2rem)] flex items-center justify-center overflow-hidden',
-                            'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
-                          )}>
-                            {template.thumbnail_url && !hasThumbnailError ? (
-                              <img
-                                src={template.thumbnail_url}
-                                alt={template.display_name || template.name}
-                                className='w-full h-full object-cover'
-                                onError={() => handleThumbnailError(template.name)}
-                              />
-                            ) : (
-                              <FileImage className={cn(
-                                'w-12 h-12',
-                                'text-gray-300 dark:text-muted-foreground'
-                              )} />
-                            )}
-                          </div>
-                          <div className='h-8 px-3 flex items-center justify-center'>
-                            <span className={cn(
-                              'text-xs truncate w-full text-center',
-                              'text-gray-600 dark:text-muted-foreground group-hover:text-gray-900 dark:group-hover:text-foreground'
-                            )}>
-                              {template.display_name || template.name}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )
-                    })
-                  )}
-                </div>
+                  </TabsContent>
+
+                  {/* 管理模板 */}
+                  <TabsContent value="manage" className="mt-0">
+                    <TemplateList />
+                  </TabsContent>
+
+                  {/* 上传模板 */}
+                  <TabsContent value="upload" className="mt-0 pb-20">
+                    <TemplateUpload onUploadSuccess={() => setTemplateSubTab('manage')} />
+                  </TabsContent>
+                </Tabs>
               </div>
             )}
 
@@ -503,79 +568,7 @@ function Home() {
                 </p>
               </div>
             )}
-            {activeTab === 'all-maps' && (
-              <div className='flex flex-col px-10 mt-10 gap-4 select-none max-w-[1200px] mx-auto w-full'>
-                <motion.span
-                  className='text-2xl font-bold'
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {t('home:header.allMaps')}
-                </motion.span>
 
-                <div className='grid grid-cols-4 gap-4 w-full pb-10'>
-                  {loadingTemplates ? (
-                    <div className='col-span-4 flex items-center justify-center py-12'>
-                      <span className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
-                        {t('home:templates.loading')}
-                      </span>
-                    </div>
-                  ) : psdTemplates.length === 0 ? (
-                    <div className='col-span-4 flex flex-col items-center justify-center py-12'>
-                      <FileImage className={cn('w-8 h-8 mb-2', 'text-gray-300 dark:text-muted-foreground')} />
-                      <span className={cn('text-xs', 'text-gray-400 dark:text-muted-foreground')}>
-                        {t('home:templates.noTemplates')}
-                      </span>
-                    </div>
-                  ) : (
-                    psdTemplates.map((template, index) => {
-                      const hasThumbnailError = thumbnailLoadErrors.has(template.name)
-                      return (
-                        <motion.div
-                          key={template.name}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          onClick={() => handlePsdTemplateClick(template)}
-                          className={cn(
-                            'w-full aspect-square rounded-lg border transition-all cursor-pointer overflow-hidden group',
-                            'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-gray-400 dark:hover:border-primary/40 shadow-sm hover:shadow-md'
-                          )}
-                        >
-                          <div className={cn(
-                            'w-full h-[calc(100%-2rem)] flex items-center justify-center overflow-hidden',
-                            'bg-gradient-to-br from-gray-100 to-blue-100 dark:from-gray-500/20 dark:to-blue-500/20'
-                          )}>
-                            {template.thumbnail_url && !hasThumbnailError ? (
-                              <img
-                                src={template.thumbnail_url}
-                                alt={template.display_name || template.name}
-                                className='w-full h-full object-cover'
-                                onError={() => handleThumbnailError(template.name)}
-                              />
-                            ) : (
-                              <FileImage className={cn(
-                                'w-12 h-12',
-                                'text-gray-300 dark:text-muted-foreground'
-                              )} />
-                            )}
-                          </div>
-                          <div className='h-8 px-3 flex items-center justify-center'>
-                            <span className={cn(
-                              'text-xs truncate w-full text-center',
-                              'text-gray-600 dark:text-muted-foreground group-hover:text-gray-900 dark:group-hover:text-foreground'
-                            )}>
-                              {template.display_name || template.name}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )}
             {activeTab === 'shared' && (
               <div className='text-center py-12'>
                 <p className={cn('text-sm', 'text-gray-400 dark:text-muted-foreground')}>
