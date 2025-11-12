@@ -78,11 +78,8 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
   const { i18n } = useTranslation()
 
-  // 根据用户角色决定是否启用编辑模式
-  // 未登录用户和 Viewer 只能查看，Editor 和 Admin 可以编辑
-  const userRole = authStatus.is_logged_in ? (authStatus.user_info?.role || 'viewer') : 'viewer'
-  const isViewer = userRole === 'viewer' || !authStatus.is_logged_in
-  const viewModeEnabled = isViewer // Viewer 和未登录用户只能查看，其他角色可以编辑
+  // 所有用户都可以编辑，不启用只读模式
+  const viewModeEnabled = false
 
   // Immediate handler for UI updates (no debounce)
   const handleSelectionChange = (
@@ -1349,8 +1346,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
           // Allow all URLs - return true for everything
           return true
         }}
-        // 根据用户角色启用/禁用编辑模式
-        // Viewer 只能查看，Editor 和 Admin 可以编辑
+        // 所有用户都可以编辑
         viewModeEnabled={viewModeEnabled}
         zenModeEnabled={false}
         // Allow element manipulation

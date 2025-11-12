@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { useConfigs } from '@/contexts/configs'
 import { DEFAULT_SYSTEM_PROMPT } from '@/constants'
 import { useMutation } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { motion } from 'motion/react'
 import { nanoid } from 'nanoid'
 import { useState, useEffect } from 'react'
@@ -35,8 +35,8 @@ import {
   LogOut,
   Copy,
   ExternalLink,
-  Shield,
   Loader2,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import i18n from '@/i18n'
@@ -109,14 +109,6 @@ function Home() {
   })
 
   const handleCreateNew = () => {
-    const userRole = authStatus.user_info?.role || 'viewer'
-
-    // Viewer 角色不能创建新画布
-    if (userRole === 'viewer') {
-      toast.error('查看者角色无法创建新画布，只能查看模板')
-      return
-    }
-
     setShowChatTextarea(true)
   }
 
@@ -161,22 +153,8 @@ function Home() {
   }
 
   // 处理PSD模板点击 - 创建新画布并导航
-  // 未登录用户和 Viewer 角色不能创建新画布，只能查看
   const handlePsdTemplateClick = (template: PSDTemplateInfo) => {
-    // 未登录用户不能创建新画布
-    if (!authStatus.is_logged_in) {
-      toast.error('请先登录以创建新画布')
-      return
-    }
-
-    const userRole = authStatus.user_info?.role || 'viewer'
-
-    // Viewer 角色不能创建新画布
-    if (userRole === 'viewer') {
-      toast.error('查看者角色无法创建新画布，只能查看模板')
-      return
-    }
-
+    // 未登录用户也可以创建画布，但需要登录后才能保存
     // 保存模板信息到 sessionStorage，以便画布加载后应用
     const templateInfo = {
       templateId: template.template_id || null,
@@ -221,7 +199,7 @@ function Home() {
                 )}
               >
                 <LayoutGrid className='w-5 h-5' />
-                <span>{t('home:userMenu.myWorks')}</span>
+                <span>{t('home:userMenu.my')}</span>
                 <ChevronDown className='w-4 h-4 ml-auto' />
               </Button>
             </DropdownMenuTrigger>
@@ -251,22 +229,21 @@ function Home() {
                 <Crown className='w-4 h-4 mr-2' />
                 {t('home:userMenu.accountSettings')}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                asChild
+                className={cn(
+                  'cursor-pointer',
+                  'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
+                )}
+              >
+                <Link to="/admin/dashboard" className="flex items-center">
+                  <Shield className='w-4 h-4 mr-2' />
+                  {t('home:userMenu.adminPanel')}
+                </Link>
+              </DropdownMenuItem>
               {authStatus.is_logged_in && (
                 <>
                   <div className={cn('my-1 h-px', 'bg-gray-200 dark:bg-border')} />
-                  {/* 管理员入口 */}
-                  {authStatus.user_info?.role === 'admin' && (
-                    <DropdownMenuItem
-                      onClick={() => navigate({ to: '/admin/dashboard' })}
-                      className={cn(
-                        'cursor-pointer',
-                        'hover:bg-gray-100 dark:hover:bg-secondary focus:bg-gray-100 dark:focus:bg-secondary'
-                      )}
-                    >
-                      <Shield className="mr-2 h-4 w-4" />
-                      <span>管理仪表盘</span>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem
                     onClick={handleLogout}
                     className={cn(
@@ -283,8 +260,8 @@ function Home() {
           </DropdownMenu>
         </div>
 
-        {/* 只有 Editor 和 Admin 可以创建新画布 */}
-        {authStatus.is_logged_in && authStatus.user_info?.role !== 'viewer' && (
+        {/* 所有用户都可以创建新画布 */}
+        {authStatus.is_logged_in && (
           <div className='px-4 pb-4'>
             <Button
               onClick={handleCreateNew}
@@ -431,15 +408,6 @@ function Home() {
             >
               <Crown className='w-5 h-5' />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'text-gray-700 dark:text-foreground hover:bg-gray-100 dark:hover:bg-secondary'
-              )}
-            >
-              <Settings className='w-5 h-5' />
-            </Button>
           </div>
         </header>
 
@@ -523,59 +491,6 @@ function Home() {
             {/* 显示项目列表（Projects标签时） */}
             {activeTab === 'projects' && (
               <div className="space-y-4">
-                {/* 新建项目按钮 - 只有 Editor 和 Admin 可以创建 */}
-                {authStatus.is_logged_in && authStatus.user_info?.role !== 'viewer' && (
-                  <div className="px-4 pb-2">
-                    <Button
-                      onClick={() => {
-                        const newCanvasId = nanoid()
-                        createCanvasMutation({
-                          name: `新项目 ${new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`,
-                          canvas_id: newCanvasId,
-                          messages: [],
-                          session_id: nanoid(),
-                          text_model: textModel || { provider: 'openai', model: 'gpt-4', url: '' },
-                          tool_list: toolList || [],
-                          system_prompt: localStorage.getItem('system_prompt') || DEFAULT_SYSTEM_PROMPT,
-                        })
-                      }}
-                      disabled={isPending}
-                      className="w-full h-12 text-base font-semibold relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
-                      style={{
-                        background: 'linear-gradient(135deg, #007AFF 0%, #0051D5 100%)',
-                        color: '#ffffff',
-                        boxShadow: '0 4px 16px rgba(0, 122, 255, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset',
-                      }}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-2 text-white">
-                        {isPending ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin text-white" />
-                            <span className="text-white">创建中...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Plus className="w-5 h-5 text-white" />
-                            <span className="text-white">新建项目</span>
-                          </>
-                        )}
-                      </span>
-                      {!isPending && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                      )}
-                    </Button>
-                  </div>
-                )}
-                {/* Viewer 角色提示 */}
-                {authStatus.is_logged_in && authStatus.user_info?.role === 'viewer' && (
-                  <div className="px-4 pb-2">
-                    <div className="w-full p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        <strong>查看者模式：</strong>您当前以查看者身份登录，只能查看模板和项目，无法创建新项目或编辑内容。
-                      </p>
-                    </div>
-                  </div>
-                )}
                 <CanvasList />
               </div>
             )}
@@ -843,28 +758,21 @@ function Home() {
       <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
         <DialogContent
           className={cn(
-            'max-w-5xl max-h-[90vh] overflow-y-auto',
-            'bg-white dark:bg-popover border-gray-200 dark:border-border text-gray-900 dark:text-foreground'
+            'max-w-5xl max-h-[90vh] overflow-y-auto subscription-dialog',
+            isDark ? 'dark-mode' : 'light-mode'
           )}
           style={{
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: isDark ? 'rgba(0, 0, 0, 0.98)' : 'rgba(255, 255, 255, 0.98)',
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(229, 229, 229, 0.5)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
+            boxShadow: isDark ? '0 8px 32px rgba(0, 0, 0, 0.9)' : '0 8px 32px rgba(0, 0, 0, 0.12)',
           }}
         >
-          <style>{`
-            .dark .dialog-content {
-              background: rgba(15, 15, 15, 0.98) !important;
-              border: 1px solid rgba(55, 55, 55, 0.6) !important;
-              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
-            }
-          `}</style>
           <DialogHeader>
             <DialogTitle className={cn(
               'text-2xl font-bold text-center w-full',
-              'text-gray-900 dark:text-foreground'
+              isDark ? 'text-white' : 'text-black'
             )}>
               {t('home:subscription.title')}
             </DialogTitle>
@@ -876,14 +784,14 @@ function Home() {
               <button
                 onClick={() => setSubscriptionType('monthly')}
                 className={cn(
-                  'px-6 py-2.5 rounded-xl font-semibold transition-all border-2',
+                  'px-8 py-3 rounded-full font-bold transition-all',
                   subscriptionType === 'monthly'
                     ? isDark
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'border-blue-500 bg-blue-50 text-blue-600 shadow-md'
+                      ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.5)] border-2 border-white'
+                      : 'bg-black text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] border-2 border-black'
                     : isDark
-                      ? 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:bg-gray-800'
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                      ? 'bg-transparent text-white/60 border-2 border-white/20 hover:border-white/40'
+                      : 'bg-transparent text-black/60 border-2 border-black/20 hover:border-black/40'
                 )}
               >
                 {t('home:subscription.monthly')}
@@ -891,14 +799,14 @@ function Home() {
               <button
                 onClick={() => setSubscriptionType('yearly')}
                 className={cn(
-                  'px-6 py-2.5 rounded-xl font-semibold transition-all border-2',
+                  'px-8 py-3 rounded-full font-bold transition-all',
                   subscriptionType === 'yearly'
                     ? isDark
-                      ? 'border-blue-500 bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'border-blue-500 bg-blue-50 text-blue-600 shadow-md'
+                      ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.5)] border-2 border-white'
+                      : 'bg-black text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] border-2 border-black'
                     : isDark
-                      ? 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:bg-gray-800'
-                      : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
+                      ? 'bg-transparent text-white/60 border-2 border-white/20 hover:border-white/40'
+                      : 'bg-transparent text-black/60 border-2 border-black/20 hover:border-black/40'
                 )}
               >
                 {t('home:subscription.yearly')}
@@ -917,27 +825,31 @@ function Home() {
                   <div
                     key={planKey}
                     className={cn(
-                      'rounded-2xl border-2 p-6 space-y-4 transition-all flex flex-col',
-                      'bg-white dark:bg-card border-gray-200 dark:border-border hover:border-blue-400 dark:hover:border-primary/40 shadow-sm hover:shadow-lg'
+                      'rounded-3xl border p-6 space-y-4 transition-all flex flex-col',
+                      isDark
+                        ? 'bg-black border-white/10 hover:border-white/30 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]'
+                        : 'bg-white border-black/10 hover:border-black/30 hover:shadow-[0_0_30px_rgba(0,0,0,0.1)]'
                     )}
                   >
                     <h3 className={cn(
                       'font-bold text-lg',
-                      'text-gray-900 dark:text-foreground'
+                      isDark ? 'text-white' : 'text-black'
                     )}>{plan.name}</h3>
                     <div className='flex items-baseline gap-2'>
                       <span className={cn(
                         'text-3xl font-bold',
-                        'text-gray-900 dark:text-foreground'
+                        isDark ? 'text-white' : 'text-black'
                       )}>${price}</span>
                       <span className={cn(
                         'text-sm',
-                        'opacity-70 dark:text-muted-foreground'
+                        isDark ? 'text-white/60' : 'text-black/60'
                       )}>/{subscriptionType === 'monthly' ? t('home:subscription.monthly') : t('home:subscription.yearly')}</span>
                       {subscriptionType === 'yearly' && savings > 0 && (
                         <span className={cn(
                           'text-xs font-medium ml-auto px-2 py-1 rounded-md',
-                          'bg-green-100 dark:bg-emerald-500/20 text-green-700 dark:text-emerald-400 border border-green-700 dark:border-emerald-500/30'
+                          isDark
+                            ? 'bg-white/10 text-white border border-white/20'
+                            : 'bg-black/10 text-black border border-black/20'
                         )}>
                           省${savings}
                         </span>
@@ -945,31 +857,36 @@ function Home() {
                     </div>
                     <p className={cn(
                       'text-xs',
-                      'opacity-70 dark:text-muted-foreground'
+                      isDark ? 'text-white/60' : 'text-black/60'
                     )}>
                       {plan.monthlyCredits}算力/月
                     </p>
                     <Button className={cn(
                       'w-full font-semibold py-6 rounded-xl transition-all',
-                      planKey === 'starter'
-                        ? 'bg-gradient-to-r from-green-500 to-green-600 dark:from-emerald-500 dark:to-emerald-600 hover:from-green-600 hover:to-green-700 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white shadow-md dark:shadow-lg dark:shadow-emerald-500/30'
-                        : 'bg-gradient-to-r from-gray-800 to-gray-900 dark:from-blue-600 dark:to-blue-700 hover:from-gray-900 hover:to-black dark:hover:from-blue-700 dark:hover:to-blue-800 text-white shadow-md dark:shadow-lg dark:shadow-blue-600/30'
+                      isDark
+                        ? 'bg-white text-black hover:bg-white/90 shadow-lg shadow-white/20'
+                        : 'bg-black text-white hover:bg-black/90 shadow-lg shadow-black/20'
                     )}>
                       {t('home:subscription.upgrade')}
                     </Button>
                     <div className='flex-1'>
                       <h4 className={cn(
                         'text-sm font-semibold mb-3 pb-2 border-b',
-                        'text-gray-700 dark:text-foreground border-gray-200 dark:border-border'
+                        isDark
+                          ? 'text-white border-white/10'
+                          : 'text-black border-black/10'
                       )}>
                         {t('home:subscription.features')}
                       </h4>
-                      <ul className={cn('text-xs space-y-2', 'text-gray-600 dark:text-muted-foreground')}>
+                      <ul className={cn(
+                        'text-xs space-y-2',
+                        isDark ? 'text-white/70' : 'text-black/70'
+                      )}>
                         {features.slice(0, 8).map((feature: string, idx: number) => (
                           <li key={idx} className='flex items-start gap-2'>
                             <span className={cn(
                               'mt-0.5 flex-shrink-0 font-bold',
-                              'text-green-500 dark:text-emerald-400'
+                              isDark ? 'text-white' : 'text-black'
                             )}>✓</span>
                             <span>{feature}</span>
                           </li>
