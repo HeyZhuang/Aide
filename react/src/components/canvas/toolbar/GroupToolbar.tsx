@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useTheme } from '@/hooks/use-theme'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
@@ -31,6 +32,31 @@ import { useTranslation } from 'react-i18next'
 export function GroupToolbar() {
   const { excalidrawAPI, setOverlay, clearOverlay } = useCanvas()
   const { t } = useTranslation()
+  const { theme } = useTheme()
+  const [isDark, setIsDark] = useState(false)
+  // 监听主题变化
+  useEffect(() => {
+    const getActualTheme = (): boolean => {
+      if (theme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches
+      }
+      return theme === 'dark'
+    }
+
+    const updateTheme = () => {
+      setIsDark(getActualTheme())
+    }
+
+    updateTheme()
+
+    // 监听系统主题变化
+    if (theme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      mediaQuery.addEventListener('change', updateTheme)
+      return () => mediaQuery.removeEventListener('change', updateTheme)
+    }
+  }, [theme])
+
   const [showAlignMenu, setShowAlignMenu] = useState(false)
   const [showResizeMenu, setShowResizeMenu] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -456,7 +482,14 @@ export function GroupToolbar() {
   ]
 
   return (
-    <div className="flex items-center gap-1 bg-white/50 backdrop-blur-md border border-white/30 text-foreground px-2 py-1.5 rounded-xl shadow-lg">
+    <div
+      className="flex items-center gap-1 backdrop-blur-md border text-foreground px-2 py-1.5 rounded-xl shadow-lg overflow-x-auto max-w-full"
+      style={{
+        background: isDark ? 'rgba(24, 24, 24, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        borderColor: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.6)',
+        color: isDark ? '#F5F5F7' : '#000000',
+      }}
+    >
       {/* Group按钮 */}
       <Button
         variant="ghost"

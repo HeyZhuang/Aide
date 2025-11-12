@@ -74,7 +74,12 @@
       "textAlignLeft": "Left align",
       "textAlignCenter": "Center align",
       "textAlignRight": "Right align",
-      "selectColor": "Select text color"
+      "selectColor": "Select text color",
+      "systemFonts": "System Fonts",
+      "fontApplied": "Font applied: {{font}}",
+      "selectTextElement": "Please select a text element",
+      "system": "System",
+      "custom": "Custom"
     },
     "image": {
       "opacity": "Opacity",

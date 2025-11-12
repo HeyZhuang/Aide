@@ -3,7 +3,7 @@ import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { PostHogProvider } from 'posthog-js/react'
-import '@/assets/style/index.css'
+import './assets/style/index.css'
 
 // 添加全局錯誤處理
 window.addEventListener('error', (event) => {

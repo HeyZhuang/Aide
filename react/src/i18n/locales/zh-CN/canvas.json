@@ -73,7 +73,18 @@
       "textAlignLeft": "左对齐",
       "textAlignCenter": "居中对齐",
       "textAlignRight": "右对齐",
-      "selectColor": "选择文字颜色"
+      "selectColor": "选择文字颜色",
+      "systemFonts": "系统字体",
+      "localFonts": "本地字体",
+      "serverFonts": "上传字体",
+      "localCustomFonts": "本地自定义字体",
+      "serverCustomFonts": "上传自定义字体",
+      "noLocalCustomFonts": "暂无本地自定义字体",
+      "noServerCustomFonts": "未上传自定义字体",
+      "fontApplied": "已应用字体: {{font}}",
+      "selectTextElement": "请选择一个文字元素",
+      "system": "系统",
+      "custom": "自定义"
     },
     "image": {
       "opacity": "透明度",
