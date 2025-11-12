@@ -501,15 +501,18 @@ export function LoginDialog() {
                   </div>
                 </div>
               ) : (
-                // Email 登录子页面
+                // Email 登录/注册子页面
                 <div className="space-y-6">
                   {/* 返回按钮 */}
                   <button
                     onClick={() => {
                       setShowEmailLogin(false)
+                      setIsRegisterMode(false)
                       setAuthMessage('')
+                      setUsername('')
                       setEmail('')
                       setPassword('')
+                      setConfirmPassword('')
                     }}
                     className="flex items-center gap-2 text-white/60 hover:text-white transition-colors mb-8"
                     aria-label="Back to main login"
@@ -525,7 +528,7 @@ export function LoginDialog() {
                       alt="Aide Logo"
                       className="w-10 h-10 rounded-lg object-contain"
                     />
-                    <h1 className="text-2xl font-semibold text-white">Aide</h1>
+                    <h1 className="text-2xl font-semibold text-white">{isRegisterMode ? 'Create Account' : 'Aide'}</h1>
                   </div>
 
                   {/* 状态消息 */}
@@ -551,7 +554,8 @@ export function LoginDialog() {
                     </div>
                   )}
 
-                  {!isSuccess && (
+                  {!isSuccess && !isRegisterMode && (
+                    // 登录表单
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-sm text-white/80">
@@ -625,11 +629,133 @@ export function LoginDialog() {
                         <span className="text-white/60 text-sm">Don't have an account? </span>
                         <button
                           type="button"
-                          onClick={() => setIsRegisterMode(true)}
+                          onClick={() => {
+                            setIsRegisterMode(true)
+                            setAuthMessage('')
+                          }}
                           className="text-white text-sm font-medium hover:underline"
                           aria-label="Register new account"
                         >
                           Register
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {!isSuccess && isRegisterMode && (
+                    // 注册表单
+                    <form onSubmit={handleRegister} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="username" className="text-sm text-white/80">
+                          Username
+                        </Label>
+                        <Input
+                          id="username"
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          disabled={isSubmitting}
+                          className="h-11 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 rounded-lg"
+                          placeholder="Enter your username (min 3 characters)"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="register-email" className="text-sm text-white/80">
+                          Email address
+                        </Label>
+                        <Input
+                          id="register-email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          disabled={isSubmitting}
+                          className="h-11 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 rounded-lg"
+                          placeholder="Enter your email"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="register-password" className="text-sm text-white/80">
+                          Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="register-password"
+                            type={showPassword ? 'text' : 'password'}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            disabled={isSubmitting}
+                            className="h-11 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 rounded-lg pr-11"
+                            placeholder="Enter your password (min 6 characters)"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password" className="text-sm text-white/80">
+                          Confirm Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="confirm-password"
+                            type={showPassword ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            disabled={isSubmitting}
+                            className="h-11 bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-white/40 rounded-lg pr-11"
+                            placeholder="Confirm your password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 注册按钮 */}
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting || !username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()}
+                        className="w-full h-12 text-sm font-semibold bg-white hover:bg-white/90 text-black rounded-lg transition-all mt-4"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          'Create Account'
+                        )}
+                      </Button>
+
+                      {/* 返回登录链接 */}
+                      <div className="text-center mt-4">
+                        <span className="text-white/60 text-sm">Already have an account? </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsRegisterMode(false)
+                            setAuthMessage('')
+                            setUsername('')
+                            setConfirmPassword('')
+                          }}
+                          className="text-white text-sm font-medium hover:underline"
+                          aria-label="Back to login"
+                        >
+                          Login
                         </button>
                       </div>
                     </form>
