@@ -37,6 +37,7 @@ class StreamProcessor:
             await self._handle_chunk(chunk)
 
         # 发送完成事件
+        print(f'📤 [WebSocket发送] done 事件')
         await self.websocket_service(self.session_id, {
             'type': 'done'
         })
@@ -60,10 +61,15 @@ class StreamProcessor:
             oai_messages = [oai_messages] if oai_messages else []
 
         # 发送所有消息到前端
-        await self.websocket_service(self.session_id, {
+        ws_data = {
             'type': 'all_messages',
             'messages': oai_messages
-        })
+        }
+        print(f'📤 [WebSocket发送] all_messages: 共 {len(oai_messages)} 条消息')
+        if oai_messages:
+            last_msg = oai_messages[-1]
+            print(f'📤 [WebSocket发送] 最后一条消息: role={last_msg.get("role")}, content={str(last_msg.get("content"))[:200]}...')
+        await self.websocket_service(self.session_id, ws_data)
 
         # 保存新消息到数据库
         for i in range(self.last_saved_message_index + 1, len(oai_messages)):
@@ -86,11 +92,13 @@ class StreamProcessor:
                 # 工具调用结果之后会在 values 类型中发送到前端，这里会更快出现一些
                 oai_message = convert_to_openai_messages([ai_message_chunk])[0]
                 print('👇toolcall res oai_message', oai_message)
-                await self.websocket_service(self.session_id, {
+                ws_data = {
                     'type': 'tool_call_result',
                     'id': ai_message_chunk.tool_call_id,
                     'message': oai_message
-                })
+                }
+                print(f'📤 [WebSocket发送] tool_call_result: {ws_data}')
+                await self.websocket_service(self.session_id, ws_data)
             elif content:
                 # 发送文本内容
                 await self.websocket_service(self.session_id, {

@@ -95,30 +95,41 @@ async def langgraph_multi_agent(
         system_prompt: 系统提示词
     """
     try:
+        print('🤖 [LangGraph] 开始多智能体处理')
+        print(f'🤖 text_model: {text_model}')
+        print(f'🤖 tool_list: {tool_list}')
+        print(f'🤖 messages 数量: {len(messages)}')
+
         # 0. 修复消息历史
         fixed_messages = _fix_chat_history(messages)
+        print(f'🤖 修复后 messages 数量: {len(fixed_messages)}')
 
         # 2. 文本模型
+        print(f'🤖 [创建模型] 创建 {text_model.get("provider")} 模型: {text_model.get("model")}')
         text_model_instance = _create_text_model(text_model)
+        print(f'🤖 [创建模型] 模型实例创建成功: {type(text_model_instance).__name__}')
 
         # 3. 创建智能体
+        print(f'🤖 [创建智能体] 开始创建智能体...')
         agents = AgentManager.create_agents(
             text_model_instance,
             tool_list,  # 传入所有注册的工具
             system_prompt or ""
         )
         agent_names = [agent.name for agent in agents]
-        print('👇agent_names', agent_names)
+        print(f'🤖 [创建智能体] 创建的智能体: {agent_names}')
         last_agent = AgentManager.get_last_active_agent(
             fixed_messages, agent_names)
 
-        print('👇last_agent', last_agent)
+        print(f'🤖 [创建智能体] 上次活跃智能体: {last_agent}')
 
         # 4. 创建智能体群组
+        print(f'🤖 [创建群组] 创建智能体群组...')
         swarm = create_swarm(
             agents=agents,  # type: ignore
             default_active_agent=last_agent if last_agent else agent_names[0]
         )
+        print(f'🤖 [创建群组] 群组创建成功，默认智能体: {last_agent if last_agent else agent_names[0]}')
 
         # 5. 创建上下文
         context = {
@@ -126,13 +137,19 @@ async def langgraph_multi_agent(
             'session_id': session_id,
             'tool_list': tool_list,
         }
+        print(f'🤖 [上下文] 上下文创建完成')
 
         # 6. 流处理
+        print(f'🤖 [开始处理] 开始处理流数据...')
         processor = StreamProcessor(
             session_id, db_service, send_to_websocket)  # type: ignore
         await processor.process_stream(swarm, fixed_messages, context)
+        print(f'🤖 [处理完成] 流数据处理完成')
 
     except Exception as e:
+        print(f"❌ [LangGraph错误] Error in langgraph_agent {type(e).__name__}: {e}")
+        print(f"❌ [LangGraph错误] Full traceback:")
+        traceback.print_exc()
         await _handle_error(e, session_id)
 
 
@@ -153,7 +170,11 @@ def _create_text_model(text_model: ModelInfo) -> Any:
             base_url=url,
         )
     elif provider == 'gemini':
-        # Gemini 使用 ChatGoogleGenerativeAI (通过 langchain-google-genai)
+        # TODO: [Gemini集成] Gemini 文本模型作为 LangGraph planner
+        # 用途: 替代 OpenAI 进行工具选择和推理，避免依赖 OpenAI API Key
+        # 支持的模型: gemini-2.0-flash-exp (默认), gemini-2.5-flash
+        # 配置位置: server/user_data/config.toml [gemini] section
+        # 自动切换逻辑: 见 chat_service.py handle_chat() 函数
         from langchain_google_genai import ChatGoogleGenerativeAI
         return ChatGoogleGenerativeAI(
             model=model,
