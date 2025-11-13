@@ -1,4 +1,4 @@
-# Gemini 图片生成配置指南
+# Gemini 集成配置指南
 
 ## 🔑 获取 API Key
 
@@ -18,10 +18,23 @@ url = "https://generativelanguage.googleapis.com/v1beta"
 api_key = "AIzaSy..."  # 你的 API Key（39 字符）
 use_vertexai = false
 
-[gemini.models]
-"gemini-2.5-flash" = { type = "text" }
-"gemini-2.5-flash-image" = { type = "image" }
+# Gemini 文本模型（用于 LangGraph planner 工具选择和推理）
+[gemini.models."gemini-2.0-flash-exp"]
+type = "text"  # 默认 planner 模型，自动替代 OpenAI
+
+[gemini.models."gemini-2.5-flash"]
+type = "text"
+
+# Gemini 图片生成模型
+[gemini.models."gemini-2.5-flash-image"]
+type = "image"
 ```
+
+**重要说明**：
+- ✅ 系统会**自动使用 Gemini** 作为 LangGraph planner，避免依赖 OpenAI API Key
+- ✅ 如果前端指定使用 OpenAI/jaaz 但 API Key 无效，后端会**自动切换**到 Gemini
+- 📍 自动切换逻辑：`server/services/chat_service.py` handle_chat() 函数
+- 📍 模型创建逻辑：`server/services/langgraph_service/agent_service.py` _create_text_model() 函数
 
 ### 2. 配置代理（仅在中国大陆需要）
 
