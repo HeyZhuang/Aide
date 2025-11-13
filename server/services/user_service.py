@@ -244,6 +244,142 @@ class UserService:
                 for row in rows
             ]
 
+    async def leave_organization(self, user_id: str, organization_id: str) -> bool:
+        """
+        用户退出组织
+        
+        Args:
+            user_id: 用户ID
+            organization_id: 组织ID
+            
+        Returns:
+            是否成功退出
+        """
+        async with aiosqlite.connect(db_service.db_path) as db:
+            # 检查用户是否是组织成员
+            cursor = await db.execute("""
+                SELECT id FROM organization_members
+                WHERE user_id = ? AND organization_id = ?
+            """, (user_id, organization_id))
+            
+            member = await cursor.fetchone()
+            if not member:
+                return False
+            
+            # 删除成员关系
+            await db.execute("""
+                DELETE FROM organization_members
+                WHERE user_id = ? AND organization_id = ?
+            """, (user_id, organization_id))
+            await db.commit()
+            
+            logger.info(f"User {user_id} left organization: {organization_id}")
+            return True
+
+    async def get_organization_members(
+        self, 
+        organization_id: str, 
+        skip: int = 0, 
+        limit: int = 100
+    ) -> list[Dict[str, Any]]:
+        """
+        获取组织成员列表
+        
+        Args:
+            organization_id: 组织ID
+            skip: 跳过的记录数
+            limit: 返回的记录数
+            
+        Returns:
+            成员列表（包含用户基本信息和角色）
+        """
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            cursor = await db.execute("""
+                SELECT 
+                    om.id as member_id,
+                    om.role,
+                    om.joined_at,
+                    u.id as user_id,
+                    u.username,
+                    u.email,
+                    u.image_url
+                FROM organization_members om
+                JOIN users u ON om.user_id = u.id
+                WHERE om.organization_id = ?
+                ORDER BY om.joined_at ASC
+                LIMIT ? OFFSET ?
+            """, (organization_id, limit, skip))
+            
+            rows = await cursor.fetchall()
+            
+            return [
+                {
+                    "member_id": row["member_id"],
+                    "role": row["role"],
+                    "joined_at": row["joined_at"],
+                    "user": {
+                        "id": row["user_id"],
+                        "username": row["username"],
+                        "email": row["email"],
+                        "image_url": row["image_url"],
+                    }
+                }
+                for row in rows
+            ]
+
+    async def search_organizations(
+        self, 
+        keyword: str, 
+        skip: int = 0, 
+        limit: int = 100
+    ) -> list[Dict[str, Any]]:
+        """
+        搜索组织（通过组织名称或描述）
+        仅返回激活状态的组织
+        
+        Args:
+            keyword: 搜索关键词
+            skip: 跳过的记录数
+            limit: 返回的记录数
+            
+        Returns:
+            匹配的组织列表
+        """
+        async with aiosqlite.connect(db_service.db_path) as db:
+            db.row_factory = aiosqlite.Row
+            search_pattern = f"%{keyword}%"
+            cursor = await db.execute("""
+                SELECT 
+                    id,
+                    name,
+                    description,
+                    logo_url,
+                    max_members,
+                    owner_id,
+                    created_at
+                FROM organizations
+                WHERE (name LIKE ? OR description LIKE ?)
+                  AND is_active = TRUE
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?
+            """, (search_pattern, search_pattern, limit, skip))
+            
+            rows = await cursor.fetchall()
+            
+            return [
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "description": row["description"],
+                    "logo_url": row["logo_url"],
+                    "max_members": row["max_members"],
+                    "owner_id": row["owner_id"],
+                    "created_at": row["created_at"],
+                }
+                for row in rows
+            ]
+
 
 # 创建单例
 user_service = UserService()
