@@ -56,7 +56,7 @@ async def list_templates(
     """
     列出模板
     游客可以查看模板列表，但只能看到基本信息（不包含文件路径）
-    
+
     接口名：列出模板
     请求地址：/api/templates
     请求方法：GET
@@ -67,21 +67,31 @@ async def list_templates(
     出参：
       - list[TemplateResponse] - 模板列表
     """
-    templates = await template_service.list_templates(
-        category=category,
-        limit=limit,
-        offset=offset
-    )
-    
-    user_role = get_user_role_optional(current_user)
-    
-    # 如果是游客，只返回基本信息（不包含文件路径）
-    if user_role == "guest":
-        for template in templates:
-            template.pop("file_path", None)
-            template.pop("thumbnail_path", None)
-    
-    return templates
+    # TODO: [数据库迁移] 临时禁用模板功能
+    # 原因: templates 表尚未创建（需要 v8_create_templates_table.py 迁移文件）
+    # 修复步骤:
+    #   1. 创建 server/services/migrations/v8_create_templates_table.py
+    #   2. 在 manager.py 中取消注释 V8CreateTemplatesTable 导入
+    #   3. 将 CURRENT_VERSION 改为 8
+    #   4. 取消下面代码的注释
+    # 影响范围: 前端模板页面会显示空列表，不影响 Gemini 图片生成功能
+    return []
+
+    # templates = await template_service.list_templates(
+    #     category=category,
+    #     limit=limit,
+    #     offset=offset
+    # )
+    #
+    # user_role = get_user_role_optional(current_user)
+    #
+    # # 如果是游客，只返回基本信息（不包含文件路径）
+    # if user_role == "guest":
+    #     for template in templates:
+    #         template.pop("file_path", None)
+    #         template.pop("thumbnail_path", None)
+    #
+    # return templates
 
 
 @router.get("/api/templates/{template_id}", response_model=TemplateResponse)
@@ -92,7 +102,7 @@ async def get_template(
     """
     获取模板详情
     游客只能查看基本信息（不包含文件路径）
-    
+
     接口名：获取模板详情
     请求地址：/api/templates/{template_id}
     请求方法：GET
@@ -101,19 +111,22 @@ async def get_template(
     出参：
       - TemplateResponse - 模板详细信息
     """
-    template = await template_service.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="模板不存在")
-    
-    user_role = get_user_role_optional(current_user)
-    
-    # 如果是游客，不返回文件路径
-    if user_role == "guest":
-        template.pop("file_path", None)
-        template.pop("thumbnail_path", None)
-    
-    return template
+    # TODO: [数据库迁移] 临时禁用模板功能 - 需要创建 v8_create_templates_table.py 后恢复
+    raise HTTPException(status_code=503, detail="模板功能暂时不可用，请稍后再试")
+
+    # template = await template_service.get_template(template_id)
+    #
+    # if not template:
+    #     raise HTTPException(status_code=404, detail="模板不存在")
+    #
+    # user_role = get_user_role_optional(current_user)
+    #
+    # # 如果是游客，不返回文件路径
+    # if user_role == "guest":
+    #     template.pop("file_path", None)
+    #     template.pop("thumbnail_path", None)
+    #
+    # return template
 
 
 @router.get("/api/templates/{template_id}/download")
@@ -124,7 +137,7 @@ async def download_template(
     """
     下载模板文件
     游客无法下载，需要登录后才能下载
-    
+
     接口名：下载模板文件
     请求地址：/api/templates/{template_id}/download
     请求方法：GET
@@ -133,29 +146,32 @@ async def download_template(
     出参：
       - FileResponse - 模板文件
     """
-    user_role = get_user_role_optional(current_user)
-    
-    if user_role == "guest":
-        raise HTTPException(
-            status_code=403,
-            detail="游客无法下载模板，请先登录"
-        )
-    
-    template = await template_service.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="模板不存在")
-    
-    file_path = Path(template["file_path"])
-    
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="模板文件不存在")
-    
-    return FileResponse(
-        path=str(file_path),
-        filename=file_path.name,
-        media_type=ALLOWED_FILE_TYPES.get(template["file_type"], "application/octet-stream")
-    )
+    # TODO: [数据库迁移] 临时禁用模板功能 - 需要创建 v8_create_templates_table.py 后恢复
+    raise HTTPException(status_code=503, detail="模板功能暂时不可用，请稍后再试")
+
+    # user_role = get_user_role_optional(current_user)
+    #
+    # if user_role == "guest":
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail="游客无法下载模板，请先登录"
+    #     )
+    #
+    # template = await template_service.get_template(template_id)
+    #
+    # if not template:
+    #     raise HTTPException(status_code=404, detail="模板不存在")
+    #
+    # file_path = Path(template["file_path"])
+    #
+    # if not file_path.exists():
+    #     raise HTTPException(status_code=404, detail="模板文件不存在")
+    #
+    # return FileResponse(
+    #     path=str(file_path),
+    #     filename=file_path.name,
+    #     media_type=ALLOWED_FILE_TYPES.get(template["file_type"], "application/octet-stream")
+    # )
 
 
 
@@ -167,7 +183,7 @@ async def get_template_thumbnail(
     """
     获取模板缩略图
     所有用户（包括游客）都可以查看缩略图
-    
+
     接口名：获取模板缩略图
     请求地址：/api/templates/{template_id}/thumbnail
     请求方法：GET
@@ -176,18 +192,21 @@ async def get_template_thumbnail(
     出参：
       - FileResponse - 缩略图文件
     """
-    template = await template_service.get_template(template_id)
-    
-    if not template:
-        raise HTTPException(status_code=404, detail="模板不存在")
-    
-    thumbnail_path = template.get("thumbnail_path")
-    
-    if not thumbnail_path or not Path(thumbnail_path).exists():
-        # 如果没有缩略图，返回默认图片或404
-        raise HTTPException(status_code=404, detail="缩略图不存在")
-    
-    return FileResponse(
-        path=thumbnail_path,
-        media_type="image/png"
-    )
+    # TODO: [数据库迁移] 临时禁用模板功能 - 需要创建 v8_create_templates_table.py 后恢复
+    raise HTTPException(status_code=503, detail="模板功能暂时不可用，请稍后再试")
+
+    # template = await template_service.get_template(template_id)
+    #
+    # if not template:
+    #     raise HTTPException(status_code=404, detail="模板不存在")
+    #
+    # thumbnail_path = template.get("thumbnail_path")
+    #
+    # if not thumbnail_path or not Path(thumbnail_path).exists():
+    #     # 如果没有缩略图，返回默认图片或404
+    #     raise HTTPException(status_code=404, detail="缩略图不存在")
+    #
+    # return FileResponse(
+    #     path=thumbnail_path,
+    #     media_type="image/png"
+    # )

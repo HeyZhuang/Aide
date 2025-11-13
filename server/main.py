@@ -195,6 +195,14 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=int, default=57988,
                         help='Port to run the server on')
     args = parser.parse_args()
+
+    # TODO: [端口同步] 设置 DEFAULT_PORT 环境变量，确保图片/视频 URL 使用正确端口
+    # 原因: common.py 中的 DEFAULT_PORT 用于生成文件访问 URL (http://localhost:{port}/api/file/...)
+    # 如果不同步，图片 URL 会使用默认的 57988 端口，导致前端无法加载图片
+    # 影响范围: 所有文件 URL 生成（图片、视频、PSD 等）
+    os.environ['DEFAULT_PORT'] = str(args.port)
+    print(f"✅ [端口同步] DEFAULT_PORT 已设置为: {args.port}")
+
     import uvicorn
     print("🌟Starting server, UI_DIST_DIR:", os.environ.get('UI_DIST_DIR'))
 
