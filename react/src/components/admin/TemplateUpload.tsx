@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Upload, FileText, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
+import { cn } from '@/lib/utils'
 
 interface TemplateUploadProps {
   onUploadSuccess?: () => void
@@ -72,132 +73,173 @@ export function TemplateUpload({ onUploadSuccess }: TemplateUploadProps) {
   }
 
   return (
-    <Card className="backdrop-blur-xl bg-white/10 dark:bg-black/20 border border-white/20">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          上传模板
-        </CardTitle>
-        <CardDescription className="text-slate-400">
-          支持 PSD、JSON、PNG、JPG、SVG 等格式
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 文件选择 */}
-          <div className="space-y-2">
-            <Label htmlFor="file" className="text-white">
-              选择文件
-            </Label>
-            <div className="relative">
-              <Input
-                id="file"
-                type="file"
-                onChange={handleFileChange}
-                accept=".psd,.json,.png,.jpg,.jpeg,.svg"
-                className="hidden"
-              />
-              <label
-                htmlFor="file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/30 rounded-lg cursor-pointer hover:bg-white/5 transition-colors backdrop-blur-sm bg-white/5"
-              >
-                {file ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <FileText className="w-8 h-8 text-purple-300" />
-                    <span className="text-sm text-white">{file.name}</span>
-                    <span className="text-xs text-slate-400">
-                      {(file.size / 1024).toFixed(2)} KB
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <Upload className="w-8 h-8 text-slate-400" />
-                    <span className="text-sm text-slate-400">点击选择文件或拖拽到此处</span>
-                  </div>
-                )}
-              </label>
+    <div className="max-w-2xl mx-auto">
+      <Card className={cn(
+        'bg-white dark:bg-card border-gray-200 dark:border-border',
+        'shadow-sm'
+      )}>
+        <CardHeader className="p-5 pb-3">
+          <CardTitle className={cn(
+            'text-lg flex items-center gap-2.5 font-bold',
+            'text-gray-900 dark:text-foreground'
+          )}>
+            <Upload className="w-5 h-5" />
+            上传模板
+          </CardTitle>
+          <CardDescription className={cn(
+            'text-sm mt-1',
+            'text-gray-600 dark:text-muted-foreground'
+          )}>
+            支持 PSD、JSON、PNG、JPG、SVG 等格式
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-5 pt-0">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 文件选择 */}
+            <div className="space-y-2">
+              <Label htmlFor="file" className={cn(
+                'text-sm font-semibold',
+                'text-gray-900 dark:text-foreground'
+              )}>
+                选择文件
+              </Label>
+              <div className="relative">
+                <Input
+                  id="file"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".psd,.json,.png,.jpg,.jpeg,.svg"
+                  className="hidden"
+                />
+                <label
+                  htmlFor="file"
+                  className={cn(
+                    'flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all',
+                    'border-gray-300 dark:border-border',
+                    'hover:bg-gray-50 dark:hover:bg-secondary/50',
+                    'bg-gray-50/50 dark:bg-secondary/20',
+                    'hover:border-blue-400 dark:hover:border-blue-600'
+                  )}
+                >
+                  {file ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                      <span className={cn(
+                        'text-base font-semibold',
+                        'text-gray-900 dark:text-foreground'
+                      )}>{file.name}</span>
+                      <span className={cn(
+                        'text-sm',
+                        'text-gray-600 dark:text-muted-foreground'
+                      )}>
+                        {(file.size / 1024).toFixed(2)} KB
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Upload className="w-8 h-8 text-gray-400 dark:text-muted-foreground" />
+                      <span className={cn(
+                        'text-base font-medium',
+                        'text-gray-700 dark:text-muted-foreground'
+                      )}>点击选择文件或拖拽到此处</span>
+                      <span className={cn(
+                        'text-sm',
+                        'text-gray-500 dark:text-muted-foreground/80'
+                      )}>支持 PSD, JSON, PNG, JPG, SVG</span>
+                    </div>
+                  )}
+                </label>
+              </div>
             </div>
-          </div>
 
-          {/* 模板名称 */}
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-white">
-              模板名称 <span className="text-red-400">*</span>
-            </Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="请输入模板名称"
-              required
-              className="backdrop-blur-sm bg-white/10 border-white/20 text-white placeholder:text-slate-500"
-            />
-          </div>
+            {/* 模板名称 */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-sm font-semibold text-gray-900 dark:text-foreground">
+                模板名称 <span className="text-red-600 dark:text-red-400">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="请输入模板名称"
+                required
+                className="h-9 text-sm"
+              />
+            </div>
 
-          {/* 描述 */}
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-white">
-              描述
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="请输入模板描述（可选）"
-              rows={3}
-              className="backdrop-blur-sm bg-white/10 border-white/20 text-white placeholder:text-slate-500"
-            />
-          </div>
+            {/* 描述 */}
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-sm font-semibold text-gray-900 dark:text-foreground">
+                描述
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="请输入模板描述（可选）"
+                rows={2}
+                className="text-sm resize-none"
+              />
+            </div>
 
-          {/* 分类 */}
-          <div className="space-y-2">
-            <Label htmlFor="category" className="text-white">
-              分类
-            </Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="例如：UI设计、图标、插画等（可选）"
-              className="backdrop-blur-sm bg-white/10 border-white/20 text-white placeholder:text-slate-500"
-            />
-          </div>
+            <div className="grid grid-cols-2 gap-4">
+              {/* 分类 */}
+              <div className="space-y-2">
+                <Label htmlFor="category" className="text-sm font-semibold text-gray-900 dark:text-foreground">
+                  分类
+                </Label>
+                <Input
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="例如：UI设计、图标等"
+                  className="h-9 text-sm"
+                />
+              </div>
 
-          {/* 标签 */}
-          <div className="space-y-2">
-            <Label htmlFor="tags" className="text-white">
-              标签
-            </Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="用逗号分隔多个标签（可选）"
-              className="backdrop-blur-sm bg-white/10 border-white/20 text-white placeholder:text-slate-500"
-            />
-          </div>
+              {/* 标签 */}
+              <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-semibold text-gray-900 dark:text-foreground">
+                  标签
+                </Label>
+                <Input
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="用逗号分隔多个标签"
+                  className="h-9 text-sm"
+                />
+              </div>
+            </div>
 
-          {/* 提交按钮 */}
-          <Button
-            type="submit"
-            disabled={uploadMutation.isPending || !file || !name.trim()}
-            className="w-full backdrop-blur-sm bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
-          >
-            {uploadMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                上传中...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                上传模板
-              </>
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            {/* 提交按钮 */}
+            <Button
+              type="submit"
+              disabled={uploadMutation.isPending || !file || !name.trim()}
+              className={cn(
+                'w-full h-10 text-sm font-semibold',
+                'bg-gradient-to-r from-blue-600 to-blue-700',
+                'hover:from-blue-700 hover:to-blue-800',
+                'text-white shadow-sm',
+                'transition-all'
+              )}
+            >
+              {uploadMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  上传中...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  上传模板
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 

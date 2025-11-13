@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Shield, Edit, Eye, Search, Plus, Trash2 } from 'lucide-react'
+import { Shield, Edit, Search, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 interface User {
   id: string
   username: string
   email: string
-  role: 'admin' | 'editor' | 'viewer'
+  role: 'admin' | 'editor'
 }
 
 export function RBACManagement() {
@@ -24,7 +24,6 @@ export function RBACManagement() {
     setUsers([
       { id: '1', username: 'admin', email: 'admin@example.com', role: 'admin' },
       { id: '2', username: 'editor1', email: 'editor1@example.com', role: 'editor' },
-      { id: '3', username: 'viewer1', email: 'viewer1@example.com', role: 'viewer' },
     ])
   }, [])
 
@@ -33,11 +32,11 @@ export function RBACManagement() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'editor' | 'viewer') => {
+  const handleRoleChange = async (userId: string, newRole: 'admin' | 'editor') => {
     try {
       setIsLoading(true)
       // TODO: 调用API更新用户角色
-      setUsers(users.map(user => 
+      setUsers(users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       ))
       toast.success('角色更新成功')
@@ -52,11 +51,9 @@ export function RBACManagement() {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'admin':
-        return <Shield className="w-4 h-4 text-blue-600" />
+        return <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
       case 'editor':
-        return <Edit className="w-4 h-4 text-purple-600" />
-      case 'viewer':
-        return <Eye className="w-4 h-4 text-gray-600" />
+        return <Edit className="w-4 h-4 text-purple-600 dark:text-purple-400" />
       default:
         return null
     }
@@ -65,11 +62,9 @@ export function RBACManagement() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+        return 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 border border-blue-200 dark:border-blue-800/30'
       case 'editor':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-      case 'viewer':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+        return 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 border border-purple-200 dark:border-purple-800/30'
       default:
         return ''
     }
@@ -77,18 +72,29 @@ export function RBACManagement() {
 
   return (
     <div className="space-y-6">
-      {/* 搜索栏 */}
-      <div className="flex items-center gap-4">
+      {/* 顶部搜索和操作栏 */}
+      <div className="flex items-center gap-3">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className={cn(
+            'absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4',
+            'text-gray-400 dark:text-muted-foreground'
+          )} />
           <Input
             placeholder="搜索用户名或邮箱..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+            className={cn(
+              'pl-10 h-10 text-sm',
+              'bg-white dark:bg-input border-gray-200 dark:border-border',
+              'focus:border-blue-500 dark:focus:border-blue-400 transition-colors'
+            )}
           />
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button className={cn(
+          'h-10 px-4 font-medium shadow-sm',
+          'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800',
+          'text-white transition-all'
+        )}>
           <Plus className="w-4 h-4 mr-2" />
           添加用户
         </Button>
@@ -97,24 +103,40 @@ export function RBACManagement() {
       {/* 用户列表 */}
       <div className="space-y-3">
         {filteredUsers.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+          <div className={cn(
+            'text-center py-12',
+            'text-gray-600 dark:text-muted-foreground'
+          )}>
             <p>没有找到用户</p>
           </div>
         ) : (
           filteredUsers.map((user) => (
             <div
               key={user.id}
-              className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow"
+              className={cn(
+                'flex items-center justify-between p-4 rounded-xl transition-all',
+                'bg-white dark:bg-card border border-gray-200 dark:border-border',
+                'hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-700'
+              )}
             >
               <div className="flex items-center gap-4 flex-1">
-                <div className={`p-2 rounded-lg ${getRoleColor(user.role)}`}>
+                <div className={cn(
+                  'p-3 rounded-xl',
+                  getRoleColor(user.role)
+                )}>
                   {getRoleIcon(user.role)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                  <h3 className={cn(
+                    'text-base font-bold truncate',
+                    'text-gray-900 dark:text-foreground'
+                  )}>
                     {user.username}
                   </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+                  <p className={cn(
+                    'text-sm truncate mt-0.5',
+                    'text-gray-500 dark:text-muted-foreground'
+                  )}>
                     {user.email}
                   </p>
                 </div>
@@ -122,31 +144,29 @@ export function RBACManagement() {
               <div className="flex items-center gap-3">
                 <Select
                   value={user.role}
-                  onValueChange={(value: 'admin' | 'editor' | 'viewer') => 
+                  onValueChange={(value: 'admin' | 'editor') =>
                     handleRoleChange(user.id, value)
                   }
                   disabled={isLoading}
                 >
-                  <SelectTrigger className="w-32 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+                  <SelectTrigger className={cn(
+                    'w-[110px] h-9 text-sm font-medium',
+                    'bg-white dark:bg-input border-gray-200 dark:border-border',
+                    'hover:bg-gray-50 dark:hover:bg-secondary transition-colors'
+                  )}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">
+                  <SelectContent className="bg-white dark:bg-popover">
+                    <SelectItem value="admin" className="cursor-pointer">
                       <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-blue-600" />
+                        <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         <span>管理员</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="editor">
+                    <SelectItem value="editor" className="cursor-pointer">
                       <div className="flex items-center gap-2">
-                        <Edit className="w-4 h-4 text-purple-600" />
+                        <Edit className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                         <span>编辑者</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="viewer">
-                      <div className="flex items-center gap-2">
-                        <Eye className="w-4 h-4 text-gray-600" />
-                        <span>查看者</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -154,7 +174,13 @@ export function RBACManagement() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className={cn(
+                    'h-9 w-9',
+                    'text-red-600 dark:text-red-400',
+                    'hover:text-red-700 dark:hover:text-red-300',
+                    'hover:bg-red-50 dark:hover:bg-red-900/20',
+                    'transition-colors'
+                  )}
                   onClick={() => {
                     // TODO: 实现删除用户功能
                     toast.info('删除功能待实现')
@@ -169,20 +195,35 @@ export function RBACManagement() {
       </div>
 
       {/* 角色说明 */}
-      <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
-        <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">角色权限说明</h4>
-        <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-blue-600" />
-            <span><strong>管理员 (Admin):</strong> 可访问管理仪表盘，管理模板和用户权限</span>
+      <div className={cn(
+        'mt-6 p-5 rounded-xl border',
+        'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20',
+        'border-blue-100 dark:border-blue-900/20'
+      )}>
+        <h4 className={cn(
+          'text-sm font-bold mb-3 flex items-center gap-2',
+          'text-gray-900 dark:text-foreground'
+        )}>
+          <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          角色权限说明
+        </h4>
+        <div className={cn(
+          'space-y-2.5 text-sm',
+          'text-gray-700 dark:text-muted-foreground'
+        )}>
+          <div className="flex items-start gap-3 p-2 rounded-lg bg-white/60 dark:bg-card/40">
+            <Shield className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <strong className="text-gray-900 dark:text-foreground">管理员 (Admin)</strong>
+              <p className="text-xs mt-0.5">可访问管理仪表盘，管理模板和用户权限</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Edit className="w-4 h-4 text-purple-600" />
-            <span><strong>编辑者 (Editor):</strong> 可访问模板库，编辑和使用模板</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Eye className="w-4 h-4 text-gray-600" />
-            <span><strong>查看者 (Viewer):</strong> 仅可查看模板，功能受限</span>
+          <div className="flex items-start gap-3 p-2 rounded-lg bg-white/60 dark:bg-card/40">
+            <Edit className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <strong className="text-gray-900 dark:text-foreground">编辑者 (Editor)</strong>
+              <p className="text-xs mt-0.5">可访问模板库，编辑和使用模板</p>
+            </div>
           </div>
         </div>
       </div>

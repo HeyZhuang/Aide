@@ -35,8 +35,10 @@
         "close": "關閉"
     },
     "userMenu": {
+        "my": "我的",
         "myWorks": "我的作品",
         "accountSettings": "賬戶設置",
+        "adminPanel": "管理員面板",
         "signOut": "退出登錄"
     },
     "accountDialog": {
@@ -51,6 +53,14 @@
     "messages": {
         "fetchTemplatesFailed": "獲取PSD模板失敗",
         "logoutFailed": "退出登錄失敗"
+    },
+    "project": {
+        "creating": "創建中...",
+        "newProject": "新建專案",
+        "viewerMode": {
+            "title": "查看者模式：",
+            "description": "您當前以查看者身份登錄，只能查看模板和專案，無法創建新專案或編輯內容。"
+        }
     },
     "subscription": {
         "title": "升級你的套餐",

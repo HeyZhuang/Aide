@@ -24,6 +24,17 @@ export type TMaterialAddImagesToChatEvent = {
   height?: number
 }[]
 
+export type TImageQuestionClickEvent = {
+  imageId: string
+  imageUrl: string
+  imageName: string
+}
+
+export type TAddImageToChatEvent = {
+  imageUrl: string
+  imageName: string
+}
+
 export type TEvents = {
   // ********** Socket events - Start **********
   'Socket::Session::Error': ISocket.SessionErrorEvent
@@ -45,7 +56,13 @@ export type TEvents = {
   // ********** Canvas events - Start **********
   'Canvas::AddImagesToChat': TCanvasAddImagesToChatEvent
   'Canvas::MagicGenerate': TCanvasMagicGenerateEvent
+  'Canvas::ImageQuestionClick': TImageQuestionClickEvent
+  'Canvas::ToggleImageQuestionMode': boolean
   // ********** Canvas events - End **********
+
+  // ********** Chat events - Start **********
+  'Chat::AddImageToChat': TAddImageToChatEvent
+  // ********** Chat events - End **********
 
   // ********** Material events - Start **********
   'Material::AddImagesToChat': TMaterialAddImagesToChatEvent

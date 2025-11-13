@@ -1,19 +1,11 @@
-import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
-import { TemplateList } from './TemplateList'
-import { TemplateUpload } from './TemplateUpload'
 import { RBACManagement } from './RBACManagement'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Upload, 
-  List, 
-  Shield, 
+import {
+  Shield,
   LogOut,
   Home,
-  Users,
-  LayoutGrid
 } from 'lucide-react'
 import { logout } from '@/api/auth'
 import { toast } from 'sonner'
@@ -21,7 +13,6 @@ import { toast } from 'sonner'
 export function AdminDashboard() {
   const { authStatus, refreshAuth } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('templates')
 
   const handleLogout = async () => {
     try {
@@ -84,43 +75,7 @@ export function AdminDashboard() {
 
         {/* 主要内容区域 */}
         <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 rounded-2xl p-6 shadow-xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-slate-100/50 dark:bg-slate-700/50">
-              <TabsTrigger 
-                value="templates" 
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
-              >
-                <LayoutGrid className="w-4 h-4 mr-2" />
-                模板管理
-              </TabsTrigger>
-              <TabsTrigger 
-                value="upload"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                上传模板
-              </TabsTrigger>
-              <TabsTrigger 
-                value="rbac"
-                className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:text-slate-900 dark:data-[state=active]:text-slate-100"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                RBAC 管理
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="templates" className="mt-0">
-              <TemplateList />
-            </TabsContent>
-
-            <TabsContent value="upload" className="mt-0">
-              <TemplateUpload onUploadSuccess={() => setActiveTab('templates')} />
-            </TabsContent>
-
-            <TabsContent value="rbac" className="mt-0">
-              <RBACManagement />
-            </TabsContent>
-          </Tabs>
+          <RBACManagement />
         </div>
       </div>
 
@@ -149,5 +104,4 @@ export function AdminDashboard() {
     </div>
   )
 }
-
 

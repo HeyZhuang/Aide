@@ -4,7 +4,8 @@ import { TextToolbar } from './TextToolbar'
 import { ImageToolbar } from './ImageToolbar'
 import { GroupToolbar } from './GroupToolbar'
 import { ShapeToolbar } from './ShapeToolbar'
-import { 
+import { FrameToolbar } from './FrameToolbar'
+import {
   ExcalidrawTextElement,
   ExcalidrawImageElement,
   ExcalidrawElement
@@ -12,7 +13,7 @@ import {
 
 export function CanvasTopToolbar() {
   const { excalidrawAPI } = useCanvas()
-  const [selectedElementType, setSelectedElementType] = useState<'text' | 'image' | 'shape' | 'group' | null>(null)
+  const [selectedElementType, setSelectedElementType] = useState<'text' | 'image' | 'shape' | 'frame' | 'group' | null>(null)
   const [selectedElement, setSelectedElement] = useState<ExcalidrawElement | null>(null)
   const [updateKey, setUpdateKey] = useState(0)
 
@@ -39,11 +40,13 @@ export function CanvasTopToolbar() {
         setSelectedElement({ ...element })
         // 强制更新组件
         // setUpdateKey(prev => prev + 1)
-        
+
         if (element.type === 'text') {
           setSelectedElementType('text')
         } else if (element.type === 'image') {
           setSelectedElementType('image')
+        } else if (element.type === 'frame') {
+          setSelectedElementType('frame')
         } else if (['rectangle', 'ellipse', 'diamond', 'line', 'arrow'].includes(element.type)) {
           setSelectedElementType('shape')
         } else {
@@ -68,7 +71,7 @@ export function CanvasTopToolbar() {
   }
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-5 z-20">
+    <div className="absolute left-1/2 -translate-x-1/2 top-5 z-20 max-w-[calc(100vw-140px)] px-4">
       {selectedElementType === 'text' && selectedElement && (
         <TextToolbar key={`text-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement as ExcalidrawTextElement} />
       )}
@@ -77,6 +80,9 @@ export function CanvasTopToolbar() {
       )}
       {selectedElementType === 'shape' && selectedElement && (
         <ShapeToolbar key={`shape-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement} />
+      )}
+      {selectedElementType === 'frame' && selectedElement && (
+        <FrameToolbar key={`frame-${selectedElement.id}-${updateKey}`} selectedElement={selectedElement} />
       )}
       {selectedElementType === 'group' && (
         <GroupToolbar />

@@ -15,6 +15,7 @@ import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as Agent_studioRouteImport } from './routes/agent_studio'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as CanvasIdRouteImport } from './routes/canvas.$id'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 
@@ -48,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const CanvasIdRoute = CanvasIdRouteImport.update({
   id: '/canvas/$id',
   path: '/canvas/$id',
@@ -68,16 +74,17 @@ export interface FileRoutesByFullPath {
   '/psd-editor': typeof PsdEditorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/canvas/$id': typeof CanvasIdRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
   '/agent_studio': typeof Agent_studioRoute
   '/assets': typeof AssetsRoute
   '/knowledge': typeof KnowledgeRoute
   '/psd-editor': typeof PsdEditorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/canvas/$id': typeof CanvasIdRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +96,7 @@ export interface FileRoutesById {
   '/psd-editor': typeof PsdEditorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/canvas/$id': typeof CanvasIdRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,16 +109,17 @@ export interface FileRouteTypes {
     | '/psd-editor'
     | '/admin/dashboard'
     | '/canvas/$id'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/agent_studio'
     | '/assets'
     | '/knowledge'
     | '/psd-editor'
     | '/admin/dashboard'
     | '/canvas/$id'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/psd-editor'
     | '/admin/dashboard'
     | '/canvas/$id'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/canvas/$id': {
       id: '/canvas/$id'
       path: '/canvas/$id'
@@ -196,10 +213,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

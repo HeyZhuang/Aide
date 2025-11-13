@@ -81,6 +81,8 @@ function CanvasContent() {
 
   // 聊天窗口最小化状态
   const [isChatMinimized, setIsChatMinimized] = useState(true)
+  // 图片询问模式状态
+  const [isImageQuestionMode, setIsImageQuestionMode] = useState(false)
   // AI助手窗口容器的引用
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -92,8 +94,30 @@ function CanvasContent() {
         return
       }
 
+      const target = event.target as Node
+
       // 如果点击的是AI助手窗口内部，不关闭
-      if (chatContainerRef.current && chatContainerRef.current.contains(event.target as Node)) {
+      if (chatContainerRef.current && chatContainerRef.current.contains(target)) {
+        return
+      }
+
+      // 检查是否点击了任何弹窗或下拉菜单（使用 Portal 渲染）
+      // 这包括 DropdownMenu、Dialog、Tooltip 等组件
+      const element = target as HTMLElement
+
+      // 检查点击目标是否在 Portal 容器中
+      let isInPortal = false
+
+      // 遍历所有可能的 Portal 容器
+      const portalElements = document.querySelectorAll('[role="dialog"], [role="menu"], [role="tooltip"]')
+      for (const portal of portalElements) {
+        if (portal.contains(target)) {
+          isInPortal = true
+          break
+        }
+      }
+
+      if (isInPortal) {
         return
       }
 
@@ -415,8 +439,6 @@ function CanvasContent() {
     setPsdData(updatedPsdData)
   }
 
-  // 未登录用户也可以查看画布（只读模式），不需要强制登录
-
   // 如果有错误，显示错误信息
   if (error) {
     return (
@@ -455,24 +477,8 @@ function CanvasContent() {
     }
   }
 
-  // 获取用户角色
-  // 未登录用户视为 viewer（只读模式）
-  const userRole = authStatus.is_logged_in ? (authStatus.user_info?.role || 'viewer') : 'viewer'
-  const isViewer = userRole === 'viewer' || !authStatus.is_logged_in
-
   return (
     <div className='flex flex-col w-screen h-screen'>
-      {/* Viewer 角色提示横幅 */}
-      {isViewer && (
-        <div className="w-full p-3 bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
-            <strong>查看者模式：</strong>
-            {authStatus.is_logged_in
-              ? '您当前以查看者身份登录，只能查看画布内容，无法进行编辑操作。'
-              : '您当前以游客身份访问，只能查看画布内容，无法进行编辑操作。请登录以编辑画布。'}
-          </p>
-        </div>
-      )}
       <CanvasHeader
         canvasName={canvasName}
         canvasId={id}
@@ -596,8 +602,8 @@ function CanvasContent() {
       </div>
 
       {/* Chat Interface - Small floating window at the bottom center */}
-      {/* 只有在用户登录成功后才显示AI助手（Editor 或 Admin） */}
-      {authStatus.is_logged_in && userRole !== 'viewer' && (
+      {/* 所有用户都可以使用AI助手 */}
+      {authStatus.is_logged_in && (
         <div
           ref={chatContainerRef}
           className={`bottom-chat-container ${isChatMinimized ? 'minimized' : ''}`}
@@ -610,8 +616,14 @@ function CanvasContent() {
             isMinimized={isChatMinimized}
             onToggleMinimize={() => setIsChatMinimized(!isChatMinimized)}
           />
+
         </div>
       )}
     </div>
   )
 }
+
+
+
+
+
