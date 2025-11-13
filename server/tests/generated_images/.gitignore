@@ -1,0 +1,10 @@
+# 忽略所有测试生成的图片文件
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.bmp
+*.gif
+
+# 但保留此 .gitignore 文件
+!.gitignore

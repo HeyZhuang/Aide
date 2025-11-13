@@ -152,7 +152,17 @@ def _create_text_model(text_model: ModelInfo) -> Any:
             model=model,
             base_url=url,
         )
+    elif provider == 'gemini':
+        # Gemini 使用 ChatGoogleGenerativeAI (通过 langchain-google-genai)
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=api_key,  # type: ignore
+            timeout=300,
+            temperature=0,
+        )
     else:
+        # OpenAI 兼容的提供商（jaaz, openai 等）
         # Create httpx client with SSL configuration for ChatOpenAI
         http_client = HttpClient.create_sync_client()
         http_async_client = HttpClient.create_async_client()
