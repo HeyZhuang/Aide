@@ -1286,7 +1286,7 @@ async def parse_psd_template(filename: str):
         raise HTTPException(status_code=500, detail=f"Error parsing PSD template: {str(e)}")
 
 
-@router.post("/add-image-layer/{file_id}")
+@router.post("/add_image_layer/{file_id}")
 async def add_image_layer_to_psd(
     file_id: str,
     image: UploadFile = File(...),
@@ -1299,8 +1299,8 @@ async def add_image_layer_to_psd(
     
     Args:
         file_id: PSD文件ID
-        image: 要上传的图片文件
-        layer_name: 图层名称（可选，默认使用文件名）
+        image: 要上传的图片文件二进制数据
+        layer_name: 图层名称，默认使用文件名
         x: 图层X坐标（默认0）
         y: 图层Y坐标（默认0）
     
@@ -1311,7 +1311,7 @@ async def add_image_layer_to_psd(
             "message": "成功添加图层"
         }
     """
-    print(f'🎨 添加图片图层到PSD: file_id={file_id}, image={image.filename}')
+    print(f'添加图片图层到PSD: file_id={file_id}, image={image.filename}')
     
     try:
         # 验证PSD文件是否存在
@@ -1325,7 +1325,7 @@ async def add_image_layer_to_psd(
         
         layers = metadata.get('layers', [])
         
-        # 生成新图层索引
+        # 生成新图层索引，自动会读取并从psd元数据的最大索引开始
         if layers:
             max_index = max([layer['index'] for layer in layers])
             new_layer_index = max_index + 1
@@ -1374,7 +1374,7 @@ async def add_image_layer_to_psd(
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        print(f'✅ 成功添加图层: {layer_name} (索引: {new_layer_index})')
+        print(f'功添加图层: {layer_name} (索引: {new_layer_index})')
         
         return JSONResponse({
             'success': True,
@@ -1385,19 +1385,19 @@ async def add_image_layer_to_psd(
     except HTTPException:
         raise
     except Exception as e:
-        print(f'❌ 添加图层失败: {e}')
+        print(f'添加图层失败: {e}')
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"添加图层失败: {str(e)}")
 
 
-@router.post("/add-image-layers-batch/{file_id}")
+@router.post("/add_image_layers_batch/{file_id}")
 async def add_image_layers_batch_to_psd(
     file_id: str,
     images: List[UploadFile] = File(...)
 ):
     """
-    批量上传多张图片并添加为PSD的多个新图层（原子性操作：全部成功或全部失败）
+    批量上传多张图片并添加为PSD的多个新图层,全部成功或全部失败
     
     Args:
         file_id: PSD文件ID
@@ -1421,7 +1421,7 @@ async def add_image_layers_batch_to_psd(
             "message": 错误描述
         }
     """
-    print(f'🎨 批量添加图片图层到PSD: file_id={file_id}, 图片数量={len(images)}')
+    print(f'批量添加图片图层到PSD: file_id={file_id}, 图片数量={len(images)}')
     
     try:
         # 验证至少有一张图片
@@ -1505,7 +1505,7 @@ async def add_image_layers_batch_to_psd(
         for idx, result in enumerate(results):
             if isinstance(result, Exception):
                 # 发现失败，清理已创建的临时文件
-                print(f'❌ 批量添加图层失败，正在清理临时文件...')
+                print(f'批量添加图层失败，正在清理临时文件...')
                 for temp_file in temp_files:
                     try:
                         if os.path.exists(temp_file):
@@ -1536,7 +1536,7 @@ async def add_image_layers_batch_to_psd(
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        print(f'✅ 成功批量添加 {len(new_layers)} 个图层')
+        print(f'成功批量添加 {len(new_layers)} 个图层')
         
         return JSONResponse({
             'success': True,
@@ -1548,7 +1548,7 @@ async def add_image_layers_batch_to_psd(
     except HTTPException:
         raise
     except Exception as e:
-        print(f'❌ 批量添加图层失败: {e}')
+        print(f'批量添加图层失败: {e}')
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"批量添加图层失败: {str(e)}")

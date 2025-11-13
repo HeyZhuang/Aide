@@ -47,8 +47,13 @@ class DatabaseService:
                 self._migration_manager.migrate(conn, current_version[0], CURRENT_VERSION)
 
     async def create_canvas(self, id: str, name: str, user_id: str):
-        """Create a new canvas associated with a user"""
+        """创建新画布，关联到用户"""
         logger.debug(f"[DB] 开始创建画布: canvas_id={id}, name={name}, user_id={user_id}")
+        
+        # 验证画布名称长度
+        if not name or len(name) > 30:
+            raise ValueError(f"画布名称长度必须在1-30字符之间，当前长度: {len(name) if name else 0}")
+        
         try:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("""
@@ -104,7 +109,19 @@ class DatabaseService:
             raise
 
     async def create_chat_session(self, id: str, model: str, provider: str, canvas_id: str, title: Optional[str] = None):
-        """Save a new chat session"""
+        """保存新的聊天会话"""
+        # 验证字段长度
+        if model and len(model) > 30:
+            raise ValueError(f"AI模型名称最长30字符，当前长度: {len(model)}")
+        if provider and len(provider) > 30:
+            raise ValueError(f"AI服务提供者名称最长30字符，当前长度: {len(provider)}")
+        
+        # 会话标题超长时自动截取前200字符
+        if title and len(title) > 200:
+            original_length = len(title)
+            title = title[:200]
+            logger.debug(f"[DB] 会话标题超长，已自动截取: 原长度={original_length}, 截取后={len(title)}")
+        
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute("""
                 INSERT INTO chat_sessions (id, model, provider, canvas_id, title)
@@ -239,8 +256,13 @@ class DatabaseService:
             raise
 
     async def rename_canvas(self, id: str, name: str):
-        """Rename canvas"""
+        """重命名画布"""
         logger.debug(f"[DB] 开始重命名画布: canvas_id={id}, 新名称={name}")
+        
+        # 验证画布名称长度
+        if not name or len(name) > 30:
+            raise ValueError(f"画布名称长度必须在1-30字符之间，当前长度: {len(name) if name else 0}")
+        
         try:
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute("UPDATE canvases SET name = ? WHERE id = ?", (name, id))
@@ -274,13 +296,17 @@ class DatabaseService:
             await db.commit()
 
     async def get_comfy_workflow(self, id: int):
-        """Get comfy workflow dict"""
+        """获取 ComfyUI 工作流字典"""
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cursor = await db.execute(
                 "SELECT api_json FROM comfy_workflows WHERE id = ?", (id,)
             )
             row = await cursor.fetchone()
+        
+        if not row:
+            raise ValueError(f"Workflow with id {id} not found")
+        
         try:
             workflow_json = (
                 row["api_json"]

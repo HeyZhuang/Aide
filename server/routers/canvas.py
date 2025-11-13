@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
+from pydantic import BaseModel, Field
 #from routers.agent import chat
 from services.chat_service import handle_chat
 from services.db_service import db_service
@@ -14,6 +15,17 @@ from typing import Dict, Any, Optional
 logger = get_logger("routers.canvas")
 
 router = APIRouter(prefix="/api/canvas")
+
+# ================== Pydantic 模型 ==================
+
+class CanvasCreateRequest(BaseModel):
+    """创建画布请求"""
+    canvas_id: str
+    name: str = Field(..., min_length=1, max_length=200, description="画布名称，最长200字符")
+
+class CanvasRenameRequest(BaseModel):
+    """重命名画布请求"""
+    name: str = Field(..., min_length=1, max_length=200, description="画布名称，最长200字符")
 
 @router.get("/list")
 async def list_canvases(current_user: Dict[str, Any] = Depends(get_current_user)):
