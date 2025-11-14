@@ -5,7 +5,7 @@
 set -e
 
 DOMAIN="ch-love.online"
-SERVER_IP="34.210.234.150"
+SERVER_IP="54.189.143.120"
 NGINX_CONFIG="/etc/nginx/sites-available/psd-canvas"
 NGINX_CONFIG_SOURCE="/home/ubuntu/psd-canvas-jaaz/nginx-psd-canvas.conf"
 
@@ -115,7 +115,7 @@ echo "   將添加 $DOMAIN 到 server_name..."
 sudo cp $NGINX_CONFIG_SOURCE $NGINX_CONFIG
 
 # 使用 sed 更新 HTTP server block
-sudo sed -i "s/server_name.*prototype.atcommgroup.com;/server_name 54.189.143.120 34.210.234.150 prototype.atcommgroup.com $DOMAIN;/" $NGINX_CONFIG
+sudo sed -i "s/server_name.*prototype.atcommgroup.com;/server_name 54.189.143.120 prototype.atcommgroup.com $DOMAIN;/" $NGINX_CONFIG
 
 # 添加新域名的 HTTPS server block（在文件末尾之前）
 sudo tee -a $NGINX_CONFIG > /dev/null <<EOF

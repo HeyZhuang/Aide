@@ -4,7 +4,17 @@
  */
 import { getAccessToken } from './auth'
 
-const BASE_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:57988'
+// 使用相对路径，通过前端服务器代理到后端
+// 如果设置了 VITE_API_URL 且不为空，使用它；否则使用相对路径
+const BASE_API_URL = import.meta.env.VITE_API_URL || ''
+
+// 辅助函数：构建API URL
+function buildApiUrl(path: string): string {
+    if (BASE_API_URL) {
+        return `${BASE_API_URL}${path}`
+    }
+    return path
+}
 
 export interface Template {
     id: string
@@ -42,7 +52,7 @@ export async function listTemplates(category?: string): Promise<Template[]> {
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const url = new URL(`${BASE_API_URL}/api/templates`)
+    const url = new URL(buildApiUrl('/api/templates'), BASE_API_URL ? undefined : window.location.origin)
     if (category) {
         url.searchParams.append('category', category)
     }
@@ -72,7 +82,7 @@ export async function getTemplate(templateId: string): Promise<Template> {
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/${templateId}`, {
+    const response = await fetch(buildApiUrl(`/api/templates/${templateId}`), {
         method: 'GET',
         headers,
     })
@@ -108,7 +118,7 @@ export async function uploadTemplate(request: UploadTemplateRequest): Promise<Te
         formData.append('tags', request.tags)
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/upload`, {
+    const response = await fetch(buildApiUrl('/api/templates/upload'), {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -134,7 +144,7 @@ export async function downloadTemplate(templateId: string): Promise<Blob> {
         throw new Error('请先登录')
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/${templateId}/download`, {
+    const response = await fetch(buildApiUrl(`/api/templates/${templateId}/download`), {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -159,7 +169,7 @@ export async function getTemplateThumbnail(templateId: string): Promise<string> 
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    return `${BASE_API_URL}/api/templates/${templateId}/thumbnail`
+    return buildApiUrl(`/api/templates/${templateId}/thumbnail`)
 }
 
 /**
@@ -172,7 +182,7 @@ export async function deleteTemplate(templateId: string): Promise<void> {
         throw new Error('请先登录')
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/${templateId}`, {
+    const response = await fetch(buildApiUrl(`/api/templates/${templateId}`), {
         method: 'DELETE',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -209,7 +219,7 @@ export async function getTemplateCategories(): Promise<TemplateCategory[]> {
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/categories`, {
+    const response = await fetch(buildApiUrl('/api/templates/categories'), {
         method: 'GET',
         headers,
     })
@@ -250,7 +260,7 @@ export async function getTemplates(params?: GetTemplatesParams): Promise<Templat
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const url = new URL(`${BASE_API_URL}/api/templates`)
+    const url = new URL(buildApiUrl('/api/templates'), BASE_API_URL ? undefined : window.location.origin)
     if (params) {
         if (params.category) {
             url.searchParams.append('category', params.category)
@@ -295,7 +305,7 @@ export async function getTemplateStats(): Promise<TemplateStats> {
         headers['Authorization'] = `Bearer ${token}`
     }
 
-    const response = await fetch(`${BASE_API_URL}/api/templates/stats`, {
+    const response = await fetch(buildApiUrl('/api/templates/stats'), {
         method: 'GET',
         headers,
     })

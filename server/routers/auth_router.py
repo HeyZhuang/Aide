@@ -517,9 +517,13 @@ async def google_auth_start(request: Request):
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=503, detail="Google OAuth 未配置，请设置 GOOGLE_CLIENT_ID 和 GOOGLE_CLIENT_SECRET")
     
-    # 获取回调 URL
-    base_url = str(request.base_url).rstrip('/')
+    # 获取回调 URL - 使用請求的實際域名
+    # 優先使用 X-Forwarded-Proto 和 X-Forwarded-Host（如果通過 nginx 代理）
+    scheme = request.headers.get("X-Forwarded-Proto", "https")
+    host = request.headers.get("X-Forwarded-Host") or request.headers.get("Host") or str(request.base_url.host)
+    base_url = f"{scheme}://{host}".rstrip('/')
     redirect_uri = GOOGLE_REDIRECT_URI or f"{base_url}/api/auth/google/callback"
+    logger.info(f"Google OAuth redirect_uri: {redirect_uri} (from host: {host})")
     
     # 创建 OAuth flow
     flow = Flow.from_client_config(
@@ -628,9 +632,12 @@ async def google_auth_callback(
         # 获取 flow 对象
         flow = device_info.get("oauth_flow")
         if not flow:
-            # 重新创建 flow
-            base_url = str(request.base_url).rstrip('/')
+            # 重新创建 flow - 使用請求的實際域名
+            scheme = request.headers.get("X-Forwarded-Proto", "https")
+            host = request.headers.get("X-Forwarded-Host") or request.headers.get("Host") or str(request.base_url.host)
+            base_url = f"{scheme}://{host}".rstrip('/')
             redirect_uri = GOOGLE_REDIRECT_URI or f"{base_url}/api/auth/google/callback"
+            logger.info(f"Google OAuth callback redirect_uri: {redirect_uri} (from host: {host})")
             flow = Flow.from_client_config(
                 {
                     "web": {

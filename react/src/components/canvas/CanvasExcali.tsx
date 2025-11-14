@@ -5,7 +5,7 @@ import { useTheme } from '@/hooks/use-theme'
 import { eventBus, TImageQuestionClickEvent } from '@/lib/event'
 import * as ISocket from '@/types/socket'
 import { CanvasData } from '@/types/types'
-import { Excalidraw, convertToExcalidrawElements, exportToCanvas } from '@excalidraw/excalidraw'
+import { CaptureUpdateAction, Excalidraw, convertToExcalidrawElements, exportToCanvas } from '@excalidraw/excalidraw'
 import {
   ExcalidrawImageElement,
   ExcalidrawEmbeddableElement,
@@ -963,7 +963,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
             excalidrawAPI.updateScene({
               elements: updatedElements,
-              commitToHistory: true
+              captureUpdate: CaptureUpdateAction.IMMEDIATELY
             });
 
             console.log('✅ 系统字体应用成功！');
@@ -988,7 +988,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
 
               excalidrawAPI.updateScene({
                 elements: updatedElements,
-                commitToHistory: true
+                captureUpdate: CaptureUpdateAction.IMMEDIATELY
               });
 
               console.log('✅ 自定义字体应用成功！');
@@ -1029,9 +1029,9 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             height: 30,
             strokeColor: '#000000',
             backgroundColor: 'transparent',
-            fillStyle: 'hachure',
+            fillStyle: 'hachure' as const,
             strokeWidth: 1,
-            strokeStyle: 'solid',
+            strokeStyle: 'solid' as const,
             roughness: 1,
             opacity: 100,
             angle: 0,
@@ -1045,19 +1045,18 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             link: null,
             locked: false,
             fontSize: 20,
-            fontFamily: fontFamily,
+            fontFamily: fontFamily as any,
             text: textContent,
-            textAlign: 'left',
-            verticalAlign: 'top',
+            textAlign: 'left' as const,
+            verticalAlign: 'top' as const,
             containerId: null,
-            originalText: textContent,
-            lineCount: 1
+            originalText: textContent
           }]);
 
           // 添加到画布
           excalidrawAPI.updateScene({
             elements: [...elements, ...textElements],
-            commitToHistory: true
+            captureUpdate: CaptureUpdateAction.IMMEDIATELY
           });
 
           console.log('✅ 新文字元素已添加到画布');
@@ -1609,9 +1608,9 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             height: 30, // 初始高度，后续会根据内容调整
             strokeColor: '#000000',
             backgroundColor: 'transparent',
-            fillStyle: 'hachure',
+            fillStyle: 'hachure' as const,
             strokeWidth: 1,
-            strokeStyle: 'solid',
+            strokeStyle: 'solid' as const,
             roughness: 1,
             opacity: 100,
             angle: 0,
@@ -1625,13 +1624,12 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
             link: null,
             locked: false,
             fontSize: 20,
-            fontFamily: slogan.font.split(',')[0].replace(/['"]/g, '').trim(), // 提取字体名称
+            fontFamily: slogan.font.split(',')[0].replace(/['"]/g, '').trim() as any,
             text: slogan.text,
             textAlign: 'left' as const,
             verticalAlign: 'top' as const,
             containerId: null,
-            originalText: slogan.text,
-            lineCount: 1
+            originalText: slogan.text
           };
 
           textElements.push(textElement);
@@ -1644,7 +1642,7 @@ const CanvasExcali: React.FC<CanvasExcaliProps> = ({
         // 添加到画布
         excalidrawAPI.updateScene({
           elements: [...elements, ...convertedElements],
-          commitToHistory: true
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY
         });
 
         console.log('✅ 文字模板已添加到画布');

@@ -68,7 +68,7 @@ export default function TopMenu({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* {right} */}
+        {right}
         <Button
           size={'sm'}
           variant="ghost"
