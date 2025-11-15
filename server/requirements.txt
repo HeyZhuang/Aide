@@ -10,12 +10,16 @@ httpx
 aiohttp
 gunicorn
 aiosqlite
+asyncpg
+supabase
+psycopg2-binary
 requests
 Pillow
 nanoid
 python-multipart
 aiofiles
 certifi
+python-dotenv
 websocket-client # needed for comfyui execution
 rich # needed for comfyui execution
 typer # needed for comfyui execution

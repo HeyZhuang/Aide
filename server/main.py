@@ -1,7 +1,20 @@
 import sys
 import io
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import FastAPI
+
+# 加載環境變數（從項目根目錄的 config.env）
+root_dir = Path(__file__).parent.parent
+config_env_path = root_dir / "config.env"
+if config_env_path.exists():
+    load_dotenv(config_env_path)
+    print(f"✅ 已加載配置文件: {config_env_path}")
+else:
+    # 嘗試從當前目錄加載
+    load_dotenv()
+    print("⚠️  使用默認環境變數或當前目錄的 .env 文件")
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware

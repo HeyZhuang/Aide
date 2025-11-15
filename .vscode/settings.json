@@ -1,29 +1,51 @@
 {
-  "python.languageServer": "None",
-  "python.analysis.typeCheckingMode": "off",
-  "python.analysis.extraPaths": [
-    "server/"
-  ],
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "black-formatter.args": [
     "--config",
     "pyproject.toml"
   ],
-  "editor.formatOnSave": true,
-  "prettier.enable": true,
-  "python.analysis.autoImportCompletions": true,
-  "i18n-ally.localesPaths": [
-    "react/src/i18n/locales"
+  "deno.enablePaths": [
+    "supabase/functions"
   ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
+  ],
+  "editor.formatOnSave": true,
+  "i18n-ally.displayLanguage": "zh-CN",
   "i18n-ally.enabledFrameworks": [
     "react-i18next"
   ],
   "i18n-ally.keystyle": "nested",
+  "i18n-ally.localesPaths": [
+    "react/src/i18n/locales"
+  ],
   "i18n-ally.namespace": true,
   "i18n-ally.pathMatcher": "{locale}/{namespaces}.json",
-  "i18n-ally.displayLanguage": "zh-CN",
-  "i18n-ally.sourceLanguage": "en"
+  "i18n-ally.sourceLanguage": "en",
+  "prettier.enable": true,
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.extraPaths": [
+    "server/"
+  ],
+  "python.analysis.typeCheckingMode": "off",
+  "python.languageServer": "None"
 }
