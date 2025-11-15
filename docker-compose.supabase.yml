@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Supabase Studio (管理界面)
+  studio:
+    image: supabase/studio:20241014-ce42139
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/profile', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    ports:
+      - "54321:3000"
+    environment:
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: postgres
+      DEFAULT_ORGANIZATION_NAME: "Default Organization"
+      DEFAULT_PROJECT_NAME: "Default Project"
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_REST_URL: http://localhost:54321/rest/v1/
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+      LOGFLARE_API_KEY: your-logflare-key
+      LOGFLARE_URL: http://analytics:4000
+      NEXT_PUBLIC_ENABLE_LOGS: "true"
+
+  # PostgreSQL Meta API (用于 Studio 连接数据库)
+  meta:
+    image: supabase/postgres-meta:v0.83.2
+    restart: unless-stopped
+    ports:
+      - "54322:8080"
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: host.docker.internal
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: psd_canvas
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: psd_canvas_local_2024
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # REST API (可选)
+  rest:
+    image: postgrest/postgrest:v12.0.1
+    restart: unless-stopped
+    ports:
+      - "54323:3000"
+    environment:
+      PGRST_DB_URI: postgresql://postgres:psd_canvas_local_2024@host.docker.internal:5432/psd_canvas
+      PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:54323
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: your-jwt-secret
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  default:
+    name: supabase_network
