@@ -1,6 +1,5 @@
 from typing import List, Dict, Any, Optional
 from langgraph.prebuilt import create_react_agent  # type: ignore
-from langgraph.graph.graph import CompiledGraph
 from langchain_core.tools import BaseTool
 from models.tool_model import ToolInfoJson
 from services.langgraph_service.configs.image_vide_creator_config import ImageVideoCreatorAgentConfig
@@ -19,7 +18,7 @@ class AgentManager:
         model: Any,
         tool_list: List[ToolInfoJson],
         system_prompt: str = ""
-    ) -> List[CompiledGraph]:
+    ) -> List[Any]:
         """创建所有智能体
 
         Args:
@@ -63,7 +62,7 @@ class AgentManager:
     def _create_langgraph_agent(
         model: Any,
         config: BaseAgentConfig
-    ) -> CompiledGraph:
+    ) -> Any:
         """根据配置创建单个 LangGraph 智能体
 
         Args:

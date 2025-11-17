@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from .video_generation import generate_video_with_provider
 from .utils.image_utils import process_input_image
@@ -30,7 +30,7 @@ class GenerateVideoBySeedanceV1LiteInputI2VSchema(BaseModel):
         default=True,
         description="Optional. Whether to keep the camera fixed (no camera movement)."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
 class GenerateVideoBySeedanceV1LiteInputT2VSchema(BaseModel):
@@ -53,16 +53,14 @@ class GenerateVideoBySeedanceV1LiteInputT2VSchema(BaseModel):
         default=True,
         description="Optional. Whether to keep the camera fixed (no camera movement)."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_video_by_seedance_v1_lite_i2v",
-      description="Generate high-quality videos using Seedance V1 Lite model. Supports image-to-video/first-last-frame-video generation.",
-      args_schema=GenerateVideoBySeedanceV1LiteInputI2VSchema)
+@tool(args_schema=GenerateVideoBySeedanceV1LiteInputI2VSchema)
 async def generate_video_by_seedance_v1_lite_i2v(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     resolution: str = "480p",
     duration: int = 5,
     aspect_ratio: str = "16:9",
@@ -115,13 +113,11 @@ async def generate_video_by_seedance_v1_lite_i2v(
     )
 
 
-@tool("generate_video_by_seedance_v1_lite_t2v",
-      description="Generate high-quality videos using Seedance V1 Lite model. Supports text-to-video generation.",
-      args_schema=GenerateVideoBySeedanceV1LiteInputT2VSchema)
+@tool(args_schema=GenerateVideoBySeedanceV1LiteInputT2VSchema)
 async def generate_video_by_seedance_v1_lite_t2v(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     resolution: str = "480p",
     duration: int = 5,
     aspect_ratio: str = "16:9",

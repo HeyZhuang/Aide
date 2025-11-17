@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from services.jaaz_service import JaazService
 from tools.video_generation.video_canvas_utils import send_video_start_notification, process_video_result
@@ -12,16 +12,14 @@ class GenerateVideoByVeo3FastInputSchema(BaseModel):
     prompt: str = Field(
         description="Required. The prompt for video generation. Describe what you want to see in the video."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_video_by_veo3_fast_jaaz",
-      description="Generate high-quality videos using Veo3 Fast model. Fast text-to-video generation with optimized performance.",
-      args_schema=GenerateVideoByVeo3FastInputSchema)
+@tool(args_schema=GenerateVideoByVeo3FastInputSchema)
 async def generate_video_by_veo3_fast_jaaz(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
 ) -> str:
     """
     Generate a video using Veo3 Fast model via Jaaz service

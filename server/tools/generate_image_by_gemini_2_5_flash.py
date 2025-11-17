@@ -19,7 +19,7 @@ Flash 模型特点：
 
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId
+from langchain_core.tools import tool, InjectedToolArg
 from langchain_core.runnables import RunnableConfig
 
 from tools.utils.image_generation_core import generate_image_with_provider
@@ -77,28 +77,15 @@ class GenerateImageByGemini25FlashInputSchema(BaseModel):
         )
     )
 
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool(
-    "generate_image_by_gemini_2_5_flash",
-    description=(
-        "Generate or edit images using Google Gemini 2.5 Flash Image model. "
-        "This is a fast and cost-effective model suitable for: "
-        "- Quick image generation (5-10 seconds) "
-        "- Rapid prototyping and iteration "
-        "- Image editing and transformation "
-        "- Style transfer and variations "
-        "Supports both text-to-image (without input_images) and image-to-image (with input_images). "
-        "For higher quality images, use the Pro version instead."
-    ),
-    args_schema=GenerateImageByGemini25FlashInputSchema
-)
+@tool(args_schema=GenerateImageByGemini25FlashInputSchema)
 async def generate_image_by_gemini_2_5_flash(
     prompt: str,
     aspect_ratio: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     input_images: list[str] | None = None,
 ) -> str:
     """

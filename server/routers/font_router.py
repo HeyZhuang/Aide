@@ -1,8 +1,5 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, Query, Form
 from fastapi.responses import JSONResponse, FileResponse
-from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, DateTime, JSON, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session, relationship
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -12,51 +9,7 @@ import uuid
 import shutil
 from fontTools.ttLib import TTFont
 import mimetypes
-
-# 数据库配置
-DATABASE_URL = "sqlite:///./user_data/fonts.db"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# 字体数据库模型
-class FontCategory(Base):
-    __tablename__ = "font_categories"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
-    icon = Column(String, nullable=True)
-    color = Column(String, nullable=True, default="#3b82f6")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class FontItem(Base):
-    __tablename__ = "font_items"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, nullable=False)
-    font_family = Column(String, nullable=False)
-    font_file_name = Column(String, nullable=False)
-    font_file_path = Column(String, nullable=False)
-    font_file_url = Column(String, nullable=False)
-    font_format = Column(String, nullable=False)  # ttf, otf, woff, woff2
-    file_size = Column(Integer, nullable=False)
-    description = Column(Text, nullable=True)
-    category_id = Column(String, ForeignKey("font_categories.id"), nullable=True)
-    tags = Column(JSON, nullable=True, default=list)
-    usage_count = Column(Integer, default=0)
-    is_favorite = Column(Boolean, default=False)
-    is_public = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_by = Column(String, nullable=True)
-    
-    # 字体元数据
-    font_metadata = Column(JSON, nullable=True)  # 存储字体信息如字重、样式等
-    
-    # 关系
-    category = relationship("FontCategory", backref="fonts")
+from services.db_service import db_service
 
 # Pydantic模型
 class FontCategoryCreate(BaseModel):
@@ -84,17 +37,6 @@ class FontItemUpdate(BaseModel):
     category_id: Optional[str] = None
     tags: Optional[List[str]] = None
     is_public: Optional[bool] = None
-
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
-
-# 依赖注入
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # 字体文件上传目录
 FONT_UPLOAD_DIR = "user_data/font_uploads"
@@ -212,77 +154,130 @@ router = APIRouter(prefix="/api/fonts", tags=["fonts"])
 
 # 分类管理
 @router.get("/categories")
-async def get_font_categories(db: Session = Depends(get_db)):
+async def get_font_categories():
     """获取所有字体分类"""
-    categories = db.query(FontCategory).all()
-    return [{
-        "id": cat.id,
-        "name": cat.name,
-        "description": cat.description,
-        "icon": cat.icon,
-        "color": cat.color,
-        "created_at": cat.created_at.isoformat(),
-        "updated_at": cat.updated_at.isoformat(),
-    } for cat in categories]
+    try:
+        rows = await db_service._fetch("""
+            SELECT id, name, description, icon, color, created_at, updated_at
+            FROM font_categories
+            ORDER BY name
+        """)
+        
+        return [{
+            "id": str(row['id']),
+            "name": row['name'],
+            "description": row['description'],
+            "icon": row['icon'],
+            "color": row['color'],
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        } for row in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取字体分类失败: {str(e)}")
 
 @router.post("/categories")
-async def create_font_category(category: FontCategoryCreate, db: Session = Depends(get_db)):
+async def create_font_category(category: FontCategoryCreate):
     """创建新字体分类"""
-    db_category = FontCategory(**category.dict())
-    db.add(db_category)
-    db.commit()
-    db.refresh(db_category)
-    
-    return {
-        "id": db_category.id,
-        "name": db_category.name,
-        "description": db_category.description,
-        "icon": db_category.icon,
-        "color": db_category.color,
-        "created_at": db_category.created_at.isoformat(),
-        "updated_at": db_category.updated_at.isoformat(),
-    }
+    try:
+        category_id = str(uuid.uuid4())
+        await db_service._execute("""
+            INSERT INTO font_categories (id, name, description, icon, color)
+            VALUES ($1, $2, $3, $4, $5)
+        """, category_id, category.name, category.description, category.icon, category.color)
+        
+        row = await db_service._fetchrow("""
+            SELECT id, name, description, icon, color, created_at, updated_at
+            FROM font_categories WHERE id = $1
+        """, category_id)
+        
+        return {
+            "id": str(row['id']),
+            "name": row['name'],
+            "description": row['description'],
+            "icon": row['icon'],
+            "color": row['color'],
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建字体分类失败: {str(e)}")
 
 @router.put("/categories/{category_id}")
-async def update_font_category(category_id: str, category: FontCategoryUpdate, db: Session = Depends(get_db)):
+async def update_font_category(category_id: str, category: FontCategoryUpdate):
     """更新字体分类"""
-    db_category = db.query(FontCategory).filter(FontCategory.id == category_id).first()
-    if not db_category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    
-    update_data = category.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(db_category, field, value)
-    
-    db_category.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(db_category)
-    
-    return {
-        "id": db_category.id,
-        "name": db_category.name,
-        "description": db_category.description,
-        "icon": db_category.icon,
-        "color": db_category.color,
-        "created_at": db_category.created_at.isoformat(),
-        "updated_at": db_category.updated_at.isoformat(),
-    }
+    try:
+        # 检查分类是否存在
+        existing = await db_service._fetchrow("SELECT id FROM font_categories WHERE id = $1", category_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Category not found")
+        
+        # 构建更新语句
+        update_fields = []
+        values = []
+        param_count = 1
+        
+        if category.name is not None:
+            update_fields.append(f"name = ${param_count}")
+            values.append(category.name)
+            param_count += 1
+        
+        if category.description is not None:
+            update_fields.append(f"description = ${param_count}")
+            values.append(category.description)
+            param_count += 1
+        
+        if category.icon is not None:
+            update_fields.append(f"icon = ${param_count}")
+            values.append(category.icon)
+            param_count += 1
+        
+        if category.color is not None:
+            update_fields.append(f"color = ${param_count}")
+            values.append(category.color)
+            param_count += 1
+        
+        if update_fields:
+            values.append(category_id)
+            query = f"UPDATE font_categories SET {', '.join(update_fields)} WHERE id = ${param_count}"
+            await db_service._execute(query, *values)
+        
+        row = await db_service._fetchrow("""
+            SELECT id, name, description, icon, color, created_at, updated_at
+            FROM font_categories WHERE id = $1
+        """, category_id)
+        
+        return {
+            "id": str(row['id']),
+            "name": row['name'],
+            "description": row['description'],
+            "icon": row['icon'],
+            "color": row['color'],
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新字体分类失败: {str(e)}")
 
 @router.delete("/categories/{category_id}")
-async def delete_font_category(category_id: str, db: Session = Depends(get_db)):
+async def delete_font_category(category_id: str):
     """删除字体分类"""
-    db_category = db.query(FontCategory).filter(FontCategory.id == category_id).first()
-    if not db_category:
-        raise HTTPException(status_code=404, detail="Category not found")
-    
-    # 检查是否有字体使用此分类
-    fonts_count = db.query(FontItem).filter(FontItem.category_id == category_id).count()
-    if fonts_count > 0:
-        raise HTTPException(status_code=400, detail=f"Cannot delete category with {fonts_count} fonts")
-    
-    db.delete(db_category)
-    db.commit()
-    return {"message": "Category deleted successfully"}
+    try:
+        # 检查是否有字体使用此分类
+        fonts_count = await db_service._fetchval("""
+            SELECT COUNT(*) FROM font_items WHERE category_id = $1
+        """, category_id)
+        
+        if fonts_count > 0:
+            raise HTTPException(status_code=400, detail=f"Cannot delete category with {fonts_count} fonts")
+        
+        result = await db_service._execute("DELETE FROM font_categories WHERE id = $1", category_id)
+        return {"message": "Category deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除字体分类失败: {str(e)}")
 
 # 字体管理
 @router.get("/items")
@@ -291,68 +286,105 @@ async def get_fonts(
     tags: Optional[List[str]] = Query(None),
     is_favorite: Optional[bool] = Query(None),
     is_public: Optional[bool] = Query(None),
-    created_by: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    created_by: Optional[str] = Query(None)
 ):
     """获取字体列表"""
-    query = db.query(FontItem)
-    
-    if category_id:
-        query = query.filter(FontItem.category_id == category_id)
-    if is_favorite is not None:
-        query = query.filter(FontItem.is_favorite == is_favorite)
-    if is_public is not None:
-        query = query.filter(FontItem.is_public == is_public)
-    if created_by:
-        query = query.filter(FontItem.created_by == created_by)
-    
-    fonts = query.all()
-    return [{
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "font_file_name": font.font_file_name,
-        "font_file_url": font.font_file_url,
-        "font_format": font.font_format,
-        "file_size": font.file_size,
-        "description": font.description,
-        "category_id": font.category_id,
-        "tags": font.tags or [],
-        "usage_count": font.usage_count,
-        "is_favorite": font.is_favorite,
-        "is_public": font.is_public,
-        "font_metadata": font.font_metadata or {},
-        "created_at": font.created_at.isoformat(),
-        "updated_at": font.updated_at.isoformat(),
-        "created_by": font.created_by,
-    } for font in fonts]
+    try:
+        # 构建查询条件
+        conditions = []
+        values = []
+        param_count = 1
+        
+        if category_id:
+            conditions.append(f"category_id = ${param_count}")
+            values.append(category_id)
+            param_count += 1
+        
+        if is_favorite is not None:
+            conditions.append(f"is_favorite = ${param_count}")
+            values.append(is_favorite)
+            param_count += 1
+        
+        if is_public is not None:
+            conditions.append(f"is_public = ${param_count}")
+            values.append(is_public)
+            param_count += 1
+        
+        if created_by:
+            conditions.append(f"created_by = ${param_count}")
+            values.append(created_by)
+            param_count += 1
+        
+        where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+        
+        query = f"""
+            SELECT id, name, font_family, font_file_name, font_file_url, font_format,
+                   file_size, description, category_id, tags, usage_count, is_favorite,
+                   is_public, font_metadata, created_by, created_at, updated_at
+            FROM font_items
+            {where_clause}
+            ORDER BY created_at DESC
+        """
+        
+        rows = await db_service._fetch(query, *values)
+        
+        return [{
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "font_file_name": row['font_file_name'],
+            "font_file_url": row['font_file_url'],
+            "font_format": row['font_format'],
+            "file_size": row['file_size'],
+            "description": row['description'],
+            "category_id": str(row['category_id']) if row['category_id'] else None,
+            "tags": row['tags'] or [],
+            "usage_count": row['usage_count'],
+            "is_favorite": row['is_favorite'],
+            "is_public": row['is_public'],
+            "font_metadata": row['font_metadata'] or {},
+            "created_by": str(row['created_by']) if row['created_by'] else None,
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        } for row in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取字体列表失败: {str(e)}")
 
 @router.get("/items/{font_id}")
-async def get_font(font_id: str, db: Session = Depends(get_db)):
+async def get_font(font_id: str):
     """获取单个字体"""
-    font = db.query(FontItem).filter(FontItem.id == font_id).first()
-    if not font:
-        raise HTTPException(status_code=404, detail="Font not found")
-    
-    return {
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "font_file_name": font.font_file_name,
-        "font_file_url": font.font_file_url,
-        "font_format": font.font_format,
-        "file_size": font.file_size,
-        "description": font.description,
-        "category_id": font.category_id,
-        "tags": font.tags or [],
-        "usage_count": font.usage_count,
-        "is_favorite": font.is_favorite,
-        "is_public": font.is_public,
-        "font_metadata": font.font_metadata or {},
-        "created_at": font.created_at.isoformat(),
-        "updated_at": font.updated_at.isoformat(),
-        "created_by": font.created_by,
-    }
+    try:
+        row = await db_service._fetchrow("""
+            SELECT id, name, font_family, font_file_name, font_file_url, font_format,
+                   file_size, description, category_id, tags, usage_count, is_favorite,
+                   is_public, font_metadata, created_by, created_at, updated_at
+            FROM font_items WHERE id = $1
+        """, font_id)
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Font not found")
+        
+        return {
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "font_file_name": row['font_file_name'],
+            "font_file_url": row['font_file_url'],
+            "font_format": row['font_format'],
+            "file_size": row['file_size'],
+            "description": row['description'],
+            "category_id": str(row['category_id']) if row['category_id'] else None,
+            "tags": row['tags'] or [],
+            "usage_count": row['usage_count'],
+            "is_favorite": row['is_favorite'],
+            "is_public": row['is_public'],
+            "font_metadata": row['font_metadata'] or {},
+            "created_by": str(row['created_by']) if row['created_by'] else None,
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取字体失败: {str(e)}")
 
 @router.post("/items")
 async def upload_font(
@@ -361,8 +393,7 @@ async def upload_font(
     description: str = Form(""),
     category_id: str = Form(""),
     tags: str = Form("[]"),
-    is_public: str = Form("false"),
-    db: Session = Depends(get_db)
+    is_public: str = Form("false")
 ):
     """上传字体文件"""
     try:
@@ -371,48 +402,54 @@ async def upload_font(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON format")
     
-    # 保存字体文件
-    file_info = save_font_file(font_file)
-    
-    # 创建字体记录
-    font = FontItem(
-        name=name,
-        font_family=file_info['font_metadata']['font_family'],
-        font_file_name=font_file.filename,
-        font_file_path=file_info['file_path'],
-        font_file_url=file_info['file_url'],
-        font_format=file_info['font_format'],
-        file_size=file_info['file_size'],
-        description=description,
-        category_id=category_id if category_id else None,
-        tags=tags_list,
-        is_public=is_public_bool,
-        font_metadata=file_info['font_metadata'],
-    )
-    
-    db.add(font)
-    db.commit()
-    db.refresh(font)
-    
-    return {
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "font_file_name": font.font_file_name,
-        "font_file_url": font.font_file_url,
-        "font_format": font.font_format,
-        "file_size": font.file_size,
-        "description": font.description,
-        "category_id": font.category_id,
-        "tags": font.tags,
-        "usage_count": font.usage_count,
-        "is_favorite": font.is_favorite,
-        "is_public": font.is_public,
-        "font_metadata": font.font_metadata,
-        "created_at": font.created_at.isoformat(),
-        "updated_at": font.updated_at.isoformat(),
-        "created_by": font.created_by,
-    }
+    try:
+        # 保存字体文件
+        file_info = save_font_file(font_file)
+        
+        # 创建字体记录
+        font_id = str(uuid.uuid4())
+        await db_service._execute("""
+            INSERT INTO font_items (
+                id, name, font_family, font_file_name, font_file_path, font_file_url,
+                font_format, file_size, description, category_id, tags, is_public, font_metadata
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        """, 
+            font_id, name, file_info['font_metadata']['font_family'], font_file.filename,
+            file_info['file_path'], file_info['file_url'], file_info['font_format'],
+            file_info['file_size'], description, 
+            category_id if category_id else None, json.dumps(tags_list), is_public_bool,
+            json.dumps(file_info['font_metadata'])
+        )
+        
+        # 获取创建的字体记录
+        row = await db_service._fetchrow("""
+            SELECT id, name, font_family, font_file_name, font_file_url, font_format,
+                   file_size, description, category_id, tags, usage_count, is_favorite,
+                   is_public, font_metadata, created_by, created_at, updated_at
+            FROM font_items WHERE id = $1
+        """, font_id)
+        
+        return {
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "font_file_name": row['font_file_name'],
+            "font_file_url": row['font_file_url'],
+            "font_format": row['font_format'],
+            "file_size": row['file_size'],
+            "description": row['description'],
+            "category_id": str(row['category_id']) if row['category_id'] else None,
+            "tags": row['tags'] or [],
+            "usage_count": row['usage_count'],
+            "is_favorite": row['is_favorite'],
+            "is_public": row['is_public'],
+            "font_metadata": row['font_metadata'] or {},
+            "created_by": str(row['created_by']) if row['created_by'] else None,
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"上传字体失败: {str(e)}")
 
 @router.put("/items/{font_id}")
 async def update_font(
@@ -421,97 +458,151 @@ async def update_font(
     description: Optional[str] = Form(None),
     category_id: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
-    is_public: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    is_public: Optional[str] = Form(None)
 ):
     """更新字体信息"""
-    font = db.query(FontItem).filter(FontItem.id == font_id).first()
-    if not font:
-        raise HTTPException(status_code=404, detail="Font not found")
-    
-    # 更新基本字段
-    if name is not None:
-        font.name = name
-    if description is not None:
-        font.description = description
-    if category_id is not None:
-        font.category_id = category_id if category_id else None
-    if tags is not None:
-        try:
-            font.tags = json.loads(tags)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="Invalid tags JSON format")
-    if is_public is not None:
-        font.is_public = is_public.lower() == "true"
-    
-    font.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(font)
-    
-    return {
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "font_file_name": font.font_file_name,
-        "font_file_url": font.font_file_url,
-        "font_format": font.font_format,
-        "file_size": font.file_size,
-        "description": font.description,
-        "category_id": font.category_id,
-        "tags": font.tags,
-        "usage_count": font.usage_count,
-        "is_favorite": font.is_favorite,
-        "is_public": font.is_public,
-        "font_metadata": font.font_metadata,
-        "created_at": font.created_at.isoformat(),
-        "updated_at": font.updated_at.isoformat(),
-        "created_by": font.created_by,
-    }
+    try:
+        # 检查字体是否存在
+        existing = await db_service._fetchrow("SELECT id FROM font_items WHERE id = $1", font_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Font not found")
+        
+        # 构建更新语句
+        update_fields = []
+        values = []
+        param_count = 1
+        
+        if name is not None:
+            update_fields.append(f"name = ${param_count}")
+            values.append(name)
+            param_count += 1
+        
+        if description is not None:
+            update_fields.append(f"description = ${param_count}")
+            values.append(description)
+            param_count += 1
+        
+        if category_id is not None:
+            update_fields.append(f"category_id = ${param_count}")
+            values.append(category_id if category_id else None)
+            param_count += 1
+        
+        if tags is not None:
+            try:
+                tags_list = json.loads(tags)
+                update_fields.append(f"tags = ${param_count}")
+                values.append(json.dumps(tags_list))
+                param_count += 1
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid tags JSON format")
+        
+        if is_public is not None:
+            update_fields.append(f"is_public = ${param_count}")
+            values.append(is_public.lower() == "true")
+            param_count += 1
+        
+        if update_fields:
+            values.append(font_id)
+            query = f"UPDATE font_items SET {', '.join(update_fields)} WHERE id = ${param_count}"
+            await db_service._execute(query, *values)
+        
+        # 获取更新后的字体记录
+        row = await db_service._fetchrow("""
+            SELECT id, name, font_family, font_file_name, font_file_url, font_format,
+                   file_size, description, category_id, tags, usage_count, is_favorite,
+                   is_public, font_metadata, created_by, created_at, updated_at
+            FROM font_items WHERE id = $1
+        """, font_id)
+        
+        return {
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "font_file_name": row['font_file_name'],
+            "font_file_url": row['font_file_url'],
+            "font_format": row['font_format'],
+            "file_size": row['file_size'],
+            "description": row['description'],
+            "category_id": str(row['category_id']) if row['category_id'] else None,
+            "tags": row['tags'] or [],
+            "usage_count": row['usage_count'],
+            "is_favorite": row['is_favorite'],
+            "is_public": row['is_public'],
+            "font_metadata": row['font_metadata'] or {},
+            "created_by": str(row['created_by']) if row['created_by'] else None,
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新字体失败: {str(e)}")
 
 @router.delete("/items/{font_id}")
-async def delete_font(font_id: str, db: Session = Depends(get_db)):
+async def delete_font(font_id: str):
     """删除字体"""
-    font = db.query(FontItem).filter(FontItem.id == font_id).first()
-    if not font:
-        raise HTTPException(status_code=404, detail="Font not found")
-    
-    # 删除字体文件
-    if os.path.exists(font.font_file_path):
-        os.remove(font.font_file_path)
-    
-    db.delete(font)
-    db.commit()
-    return {"message": "Font deleted successfully"}
+    try:
+        # 获取字体信息
+        font = await db_service._fetchrow("""
+            SELECT font_file_path FROM font_items WHERE id = $1
+        """, font_id)
+        
+        if not font:
+            raise HTTPException(status_code=404, detail="Font not found")
+        
+        # 删除字体文件
+        if os.path.exists(font['font_file_path']):
+            os.remove(font['font_file_path'])
+        
+        # 删除数据库记录
+        await db_service._execute("DELETE FROM font_items WHERE id = $1", font_id)
+        return {"message": "Font deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除字体失败: {str(e)}")
 
 @router.post("/items/{font_id}/favorite")
-async def toggle_font_favorite(font_id: str, db: Session = Depends(get_db)):
+async def toggle_font_favorite(font_id: str):
     """切换字体收藏状态"""
-    font = db.query(FontItem).filter(FontItem.id == font_id).first()
-    if not font:
-        raise HTTPException(status_code=404, detail="Font not found")
-    
-    font.is_favorite = not font.is_favorite
-    font.updated_at = datetime.utcnow()
-    db.commit()
-    db.refresh(font)
-    
-    return {
-        "id": font.id,
-        "is_favorite": font.is_favorite,
-    }
+    try:
+        # 检查字体是否存在
+        font = await db_service._fetchrow("SELECT is_favorite FROM font_items WHERE id = $1", font_id)
+        if not font:
+            raise HTTPException(status_code=404, detail="Font not found")
+        
+        new_favorite_status = not font['is_favorite']
+        await db_service._execute("""
+            UPDATE font_items SET is_favorite = $1 WHERE id = $2
+        """, new_favorite_status, font_id)
+        
+        return {
+            "id": font_id,
+            "is_favorite": new_favorite_status,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"切换收藏状态失败: {str(e)}")
 
 @router.post("/items/{font_id}/usage")
-async def increment_font_usage(font_id: str, db: Session = Depends(get_db)):
+async def increment_font_usage(font_id: str):
     """增加字体使用次数"""
-    font = db.query(FontItem).filter(FontItem.id == font_id).first()
-    if not font:
-        raise HTTPException(status_code=404, detail="Font not found")
-    
-    font.usage_count += 1
-    font.updated_at = datetime.utcnow()
-    db.commit()
-    
-    return {"message": "Usage count incremented"}
+    try:
+        # 检查字体是否存在
+        font = await db_service._fetchrow("SELECT id FROM font_items WHERE id = $1", font_id)
+        if not font:
+            raise HTTPException(status_code=404, detail="Font not found")
+        
+        await db_service._execute("""
+            UPDATE font_items SET usage_count = usage_count + 1 WHERE id = $1
+        """, font_id)
+        
+        return {"message": "Usage count incremented"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"增加使用次数失败: {str(e)}")
 
 @router.get("/search")
 async def search_fonts(
@@ -519,79 +610,113 @@ async def search_fonts(
     category_id: Optional[str] = Query(None),
     tags: Optional[List[str]] = Query(None),
     is_favorite: Optional[bool] = Query(None),
-    is_public: Optional[bool] = Query(None),
-    db: Session = Depends(get_db)
+    is_public: Optional[bool] = Query(None)
 ):
     """搜索字体"""
-    query = db.query(FontItem)
-    
-    # 文本搜索
-    if q:
-        query = query.filter(
-            FontItem.name.contains(q) |
-            FontItem.font_family.contains(q) |
-            FontItem.description.contains(q)
-        )
-    
-    # 其他筛选条件
-    if category_id:
-        query = query.filter(FontItem.category_id == category_id)
-    if is_favorite is not None:
-        query = query.filter(FontItem.is_favorite == is_favorite)
-    if is_public is not None:
-        query = query.filter(FontItem.is_public == is_public)
-    
-    fonts = query.all()
-    return [{
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "font_file_name": font.font_file_name,
-        "font_file_url": font.font_file_url,
-        "font_format": font.font_format,
-        "file_size": font.file_size,
-        "description": font.description,
-        "category_id": font.category_id,
-        "tags": font.tags or [],
-        "usage_count": font.usage_count,
-        "is_favorite": font.is_favorite,
-        "is_public": font.is_public,
-        "font_metadata": font.font_metadata or {},
-        "created_at": font.created_at.isoformat(),
-        "updated_at": font.updated_at.isoformat(),
-        "created_by": font.created_by,
-    } for font in fonts]
+    try:
+        # 构建查询条件
+        conditions = ["(name ILIKE $1 OR font_family ILIKE $1 OR description ILIKE $1)"]
+        values = [f"%{q}%"]
+        param_count = 2
+        
+        if category_id:
+            conditions.append(f"category_id = ${param_count}")
+            values.append(category_id)
+            param_count += 1
+        
+        if is_favorite is not None:
+            conditions.append(f"is_favorite = ${param_count}")
+            values.append(is_favorite)
+            param_count += 1
+        
+        if is_public is not None:
+            conditions.append(f"is_public = ${param_count}")
+            values.append(is_public)
+            param_count += 1
+        
+        where_clause = "WHERE " + " AND ".join(conditions)
+        
+        query = f"""
+            SELECT id, name, font_family, font_file_name, font_file_url, font_format,
+                   file_size, description, category_id, tags, usage_count, is_favorite,
+                   is_public, font_metadata, created_by, created_at, updated_at
+            FROM font_items
+            {where_clause}
+            ORDER BY created_at DESC
+        """
+        
+        rows = await db_service._fetch(query, *values)
+        
+        return [{
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "font_file_name": row['font_file_name'],
+            "font_file_url": row['font_file_url'],
+            "font_format": row['font_format'],
+            "file_size": row['file_size'],
+            "description": row['description'],
+            "category_id": str(row['category_id']) if row['category_id'] else None,
+            "tags": row['tags'] or [],
+            "usage_count": row['usage_count'],
+            "is_favorite": row['is_favorite'],
+            "is_public": row['is_public'],
+            "font_metadata": row['font_metadata'] or {},
+            "created_by": str(row['created_by']) if row['created_by'] else None,
+            "created_at": row['created_at'].isoformat(),
+            "updated_at": row['updated_at'].isoformat(),
+        } for row in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"搜索字体失败: {str(e)}")
 
 @router.get("/stats")
-async def get_font_stats(db: Session = Depends(get_db)):
+async def get_font_stats():
     """获取字体统计信息"""
-    total_fonts = db.query(FontItem).count()
-    total_categories = db.query(FontCategory).count()
-    
-    # 最常用的字体
-    most_used = db.query(FontItem).order_by(FontItem.usage_count.desc()).limit(5).all()
-    most_used_fonts = [{
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "usage_count": font.usage_count,
-    } for font in most_used]
-    
-    # 最近的字体
-    recent = db.query(FontItem).order_by(FontItem.created_at.desc()).limit(5).all()
-    recent_fonts = [{
-        "id": font.id,
-        "name": font.name,
-        "font_family": font.font_family,
-        "created_at": font.created_at.isoformat(),
-    } for font in recent]
-    
-    return {
-        "total_fonts": total_fonts,
-        "total_categories": total_categories,
-        "most_used_fonts": most_used_fonts,
-        "recent_fonts": recent_fonts,
-    }
+    try:
+        # 总字体数
+        total_fonts = await db_service._fetchval("SELECT COUNT(*) FROM font_items")
+        
+        # 总分类数
+        total_categories = await db_service._fetchval("SELECT COUNT(*) FROM font_categories")
+        
+        # 最常用的字体
+        most_used_rows = await db_service._fetch("""
+            SELECT id, name, font_family, usage_count
+            FROM font_items
+            ORDER BY usage_count DESC
+            LIMIT 5
+        """)
+        
+        most_used_fonts = [{
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "usage_count": row['usage_count'],
+        } for row in most_used_rows]
+        
+        # 最近的字体
+        recent_rows = await db_service._fetch("""
+            SELECT id, name, font_family, created_at
+            FROM font_items
+            ORDER BY created_at DESC
+            LIMIT 5
+        """)
+        
+        recent_fonts = [{
+            "id": str(row['id']),
+            "name": row['name'],
+            "font_family": row['font_family'],
+            "created_at": row['created_at'].isoformat(),
+        } for row in recent_rows]
+        
+        return {
+            "total_fonts": total_fonts,
+            "total_categories": total_categories,
+            "most_used_fonts": most_used_fonts,
+            "recent_fonts": recent_fonts,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取统计信息失败: {str(e)}")
 
 # 字体文件服务
 @router.get("/files/{filename}")
@@ -625,7 +750,7 @@ async def get_font_file(filename: str):
 
 # 批量导入现有字体
 @router.post("/import-existing")
-async def import_existing_fonts(db: Session = Depends(get_db)):
+async def import_existing_fonts():
     """导入fonts文件夹中的现有字体"""
     fonts_dir = "fonts"
     if not os.path.exists(fonts_dir):
@@ -634,53 +759,55 @@ async def import_existing_fonts(db: Session = Depends(get_db)):
     imported_count = 0
     errors = []
     
-    for filename in os.listdir(fonts_dir):
-        if any(filename.lower().endswith(ext) for ext in SUPPORTED_FONT_FORMATS):
-            try:
-                # 检查是否已经存在
-                existing_font = db.query(FontItem).filter(FontItem.font_file_name == filename).first()
-                if existing_font:
-                    continue
-                
-                file_path = os.path.join(fonts_dir, filename)
-                
-                # 创建模拟的UploadFile对象
-                class MockUploadFile:
-                    def __init__(self, file_path, filename):
-                        self.filename = filename
-                        self.file = open(file_path, 'rb')
-                
-                mock_file = MockUploadFile(file_path, filename)
-                
-                # 保存字体文件
-                file_info = save_font_file(mock_file)
-                mock_file.file.close()
-                
-                # 创建字体记录
-                font = FontItem(
-                    name=os.path.splitext(filename)[0],
-                    font_family=file_info['font_metadata']['font_family'],
-                    font_file_name=filename,
-                    font_file_path=file_info['file_path'],
-                    font_file_url=file_info['file_url'],
-                    font_format=file_info['font_format'],
-                    file_size=file_info['file_size'],
-                    description=f"从现有文件导入: {filename}",
-                    tags=["imported"],
-                    is_public=False,
-                    font_metadata=file_info['font_metadata'],
-                )
-                
-                db.add(font)
-                imported_count += 1
-                
-            except Exception as e:
-                errors.append(f"导入 {filename} 失败: {str(e)}")
-    
-    db.commit()
-    
-    return {
-        "message": f"成功导入 {imported_count} 个字体",
-        "imported_count": imported_count,
-        "errors": errors
-    }
+    try:
+        for filename in os.listdir(fonts_dir):
+            if any(filename.lower().endswith(ext) for ext in SUPPORTED_FONT_FORMATS):
+                try:
+                    # 检查是否已经存在
+                    existing_font = await db_service._fetchrow("""
+                        SELECT id FROM font_items WHERE font_file_name = $1
+                    """, filename)
+                    
+                    if existing_font:
+                        continue
+                    
+                    file_path = os.path.join(fonts_dir, filename)
+                    
+                    # 创建模拟的UploadFile对象
+                    class MockUploadFile:
+                        def __init__(self, file_path, filename):
+                            self.filename = filename
+                            self.file = open(file_path, 'rb')
+                    
+                    mock_file = MockUploadFile(file_path, filename)
+                    
+                    # 保存字体文件
+                    file_info = save_font_file(mock_file)
+                    mock_file.file.close()
+                    
+                    # 创建字体记录
+                    font_id = str(uuid.uuid4())
+                    await db_service._execute("""
+                        INSERT INTO font_items (
+                            id, name, font_family, font_file_name, font_file_path, font_file_url,
+                            font_format, file_size, description, tags, is_public, font_metadata
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    """, 
+                        font_id, os.path.splitext(filename)[0], file_info['font_metadata']['font_family'],
+                        filename, file_info['file_path'], file_info['file_url'], file_info['font_format'],
+                        file_info['file_size'], f"从现有文件导入: {filename}", json.dumps(["imported"]),
+                        False, json.dumps(file_info['font_metadata'])
+                    )
+                    
+                    imported_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"导入 {filename} 失败: {str(e)}")
+        
+        return {
+            "message": f"成功导入 {imported_count} 个字体",
+            "imported_count": imported_count,
+            "errors": errors
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"批量导入失败: {str(e)}")

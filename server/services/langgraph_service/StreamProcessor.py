@@ -1,7 +1,7 @@
 # type: ignore[import]
 import traceback
 from typing import Optional, List, Dict, Any, Callable, Awaitable
-from langchain_core.messages import AIMessageChunk, ToolCall, convert_to_openai_messages, ToolMessage
+from langchain_core.messages import AIMessageChunk, ToolCall, convert_to_messages, ToolMessage
 from langgraph.graph import StateGraph
 import json
 

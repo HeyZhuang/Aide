@@ -175,13 +175,29 @@ def _create_text_model(text_model: ModelInfo) -> Any:
         # 支持的模型: gemini-2.0-flash-exp (默认), gemini-2.5-flash
         # 配置位置: server/user_data/config.toml [gemini] section
         # 自动切换逻辑: 见 chat_service.py handle_chat() 函数
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        return ChatGoogleGenerativeAI(
-            model=model,
-            google_api_key=api_key,  # type: ignore
-            timeout=300,
-            temperature=0,
-        )
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
+                model=model,
+                google_api_key=api_key,  # type: ignore
+                timeout=300,
+                temperature=0,
+            )
+        except ImportError as e:
+            print(f"❌ [Gemini导入失败] {e}")
+            print(f"🔄 [自动降级] 使用 OpenAI 兼容模式替代 Gemini")
+            # 降级到OpenAI兼容模式
+            http_client = HttpClient.create_sync_client()
+            http_async_client = HttpClient.create_async_client()
+            return ChatOpenAI(
+                model="gpt-4o-mini",  # 使用默认模型
+                api_key=config_service.app_config.get('openai', {}).get("api_key", "sk-fake"),
+                timeout=300,
+                base_url="https://api.openai.com/v1",
+                temperature=0,
+                http_client=http_client,
+                http_async_client=http_async_client
+            )
     else:
         # OpenAI 兼容的提供商（jaaz, openai 等）
         # Create httpx client with SSL configuration for ChatOpenAI

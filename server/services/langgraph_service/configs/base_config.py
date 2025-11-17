@@ -3,7 +3,7 @@ from typing_extensions import TypedDict
 from langgraph.types import Command
 from langgraph.prebuilt import InjectedState
 from langchain_core.messages import ToolMessage
-from langchain_core.tools import BaseTool, InjectedToolCallId, tool  # type: ignore
+from langchain_core.tools import BaseTool, InjectedToolArg, tool  # type: ignore
 from langgraph_swarm.handoff import METADATA_KEY_HANDOFF_DESTINATION
 from models.tool_model import ToolInfoJson
 
@@ -49,7 +49,7 @@ def create_handoff_tool(
     """)
     def handoff_to_agent(
         state: Annotated[Dict[str, Any], InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
+        tool_call_id: Annotated[str, InjectedToolArg],
     ) -> Command[Any]:
         tool_message = ToolMessage(
             content=f"<hide_in_user_ui> Successfully transferred to {agent_name}",

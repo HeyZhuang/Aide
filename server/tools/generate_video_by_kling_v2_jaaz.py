@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from services.jaaz_service import JaazService
 from tools.video_generation.video_canvas_utils import send_video_start_notification, process_video_result
@@ -30,17 +30,15 @@ class GenerateVideoByKlingV2InputSchema(BaseModel):
     input_images: list[str] = Field(
         description="Required. Images to use as reference or starting frame. Pass a list of image_id here, e.g. ['im_jurheut7.png']. Only the first image will be used as start_image."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_video_by_kling_v2_jaaz",
-      description="Generate high-quality videos using Kling V2.1 model. Supports image-to-video generation with advanced controls like negative prompts and guidance scale.",
-      args_schema=GenerateVideoByKlingV2InputSchema)
+@tool(args_schema=GenerateVideoByKlingV2InputSchema)
 async def generate_video_by_kling_v2_jaaz(
     prompt: str,
     input_images: list[str],
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     negative_prompt: str = "",
     guidance_scale: float = 0.5,
     aspect_ratio: str = "16:9",

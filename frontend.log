@@ -1,0 +1,8 @@
+
+> @jaaz/agent-ui@0.0.0 preview
+> vite preview --host 0.0.0.0 --port 3000
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: http://172.31.60.235:3000/
+  ➜  Network: http://172.18.0.1:3000/
+  ➜  press h + enter to show help

@@ -32,7 +32,7 @@ from .utils.image_canvas_utils import (
     generate_new_image_element,
 )
 from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import InjectedToolCallId, tool, BaseTool
+from langchain_core.tools import InjectedToolArg, tool, BaseTool
 from pydantic import BaseModel, Field, create_model
 from routers.comfyui_execution import upload_image
 from services.config_service import FILES_DIR, config_service, IMAGE_FORMATS
@@ -90,7 +90,7 @@ def _build_input_schema(wf: Dict[str, Any]) -> type[BaseModel]:
             )
     # add a tool_call_id - fix the field definition format
     fields["tool_call_id"] = (
-        Annotated[str, InjectedToolCallId],
+        Annotated[str, InjectedToolArg],
         Field(description="Tool call identifier"),
     )
 
@@ -109,7 +109,7 @@ def build_tool(wf: Dict[str, Any]) -> BaseTool:
     )
     async def _run(
         config: RunnableConfig,
-        tool_call_id: Annotated[str, InjectedToolCallId],
+        tool_call_id: Annotated[str, InjectedToolArg],
         **kwargs,
     ) -> str:
         """

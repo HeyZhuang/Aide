@@ -489,6 +489,92 @@ CREATE POLICY "用户可查看会话消息" ON chat_messages
     );
 
 -- ============================================
+-- 11. 字体分类表 (font_categories)
+-- ============================================
+-- 存储字体分类信息
+CREATE TABLE IF NOT EXISTS font_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(100),
+    color VARCHAR(20) DEFAULT '#3b82f6',
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+COMMENT ON TABLE font_categories IS '字体分类表 - 存储字体分类信息';
+COMMENT ON COLUMN font_categories.id IS '分类唯一标识符';
+COMMENT ON COLUMN font_categories.name IS '分类名称';
+COMMENT ON COLUMN font_categories.description IS '分类描述';
+COMMENT ON COLUMN font_categories.icon IS '分类图标';
+COMMENT ON COLUMN font_categories.color IS '分类颜色';
+COMMENT ON COLUMN font_categories.created_at IS '分类创建时间';
+COMMENT ON COLUMN font_categories.updated_at IS '分类最后更新时间';
+
+CREATE INDEX IF NOT EXISTS idx_font_categories_name ON font_categories(name);
+
+-- ============================================
+-- 12. 字体表 (font_items)
+-- ============================================
+-- 存储字体文件信息
+CREATE TABLE IF NOT EXISTS font_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(200) NOT NULL,
+    font_family VARCHAR(200) NOT NULL,
+    font_file_name VARCHAR(255) NOT NULL,
+    font_file_path VARCHAR(500) NOT NULL,
+    font_file_url VARCHAR(500) NOT NULL,
+    font_format VARCHAR(20) NOT NULL,
+    file_size INTEGER NOT NULL,
+    description TEXT,
+    category_id UUID REFERENCES font_categories(id) ON DELETE SET NULL,
+    tags JSONB DEFAULT '[]'::jsonb,
+    usage_count INTEGER DEFAULT 0,
+    is_favorite BOOLEAN DEFAULT FALSE,
+    is_public BOOLEAN DEFAULT FALSE,
+    font_metadata JSONB,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+COMMENT ON TABLE font_items IS '字体表 - 存储字体文件信息';
+COMMENT ON COLUMN font_items.id IS '字体唯一标识符';
+COMMENT ON COLUMN font_items.name IS '字体名称';
+COMMENT ON COLUMN font_items.font_family IS '字体族名称';
+COMMENT ON COLUMN font_items.font_file_name IS '字体文件名';
+COMMENT ON COLUMN font_items.font_file_path IS '字体文件路径';
+COMMENT ON COLUMN font_items.font_file_url IS '字体文件访问URL';
+COMMENT ON COLUMN font_items.font_format IS '字体格式（ttf, otf, woff, woff2）';
+COMMENT ON COLUMN font_items.file_size IS '文件大小（字节）';
+COMMENT ON COLUMN font_items.description IS '字体描述';
+COMMENT ON COLUMN font_items.category_id IS '所属分类ID';
+COMMENT ON COLUMN font_items.tags IS '字体标签（JSON数组）';
+COMMENT ON COLUMN font_items.usage_count IS '使用次数';
+COMMENT ON COLUMN font_items.is_favorite IS '是否收藏';
+COMMENT ON COLUMN font_items.is_public IS '是否公开';
+COMMENT ON COLUMN font_items.font_metadata IS '字体元数据（JSON格式）';
+COMMENT ON COLUMN font_items.created_by IS '创建者用户ID';
+COMMENT ON COLUMN font_items.created_at IS '字体创建时间';
+COMMENT ON COLUMN font_items.updated_at IS '字体最后更新时间';
+
+CREATE INDEX IF NOT EXISTS idx_font_items_name ON font_items(name);
+CREATE INDEX IF NOT EXISTS idx_font_items_font_family ON font_items(font_family);
+CREATE INDEX IF NOT EXISTS idx_font_items_category_id ON font_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_font_items_is_favorite ON font_items(is_favorite) WHERE is_favorite = TRUE;
+CREATE INDEX IF NOT EXISTS idx_font_items_is_public ON font_items(is_public);
+CREATE INDEX IF NOT EXISTS idx_font_items_created_by ON font_items(created_by);
+CREATE INDEX IF NOT EXISTS idx_font_items_usage_count ON font_items(usage_count DESC);
+CREATE INDEX IF NOT EXISTS idx_font_items_created_at ON font_items(created_at DESC);
+
+-- 字体表触发器
+CREATE TRIGGER update_font_categories_updated_at BEFORE UPDATE ON font_categories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_font_items_updated_at BEFORE UPDATE ON font_items
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
 -- 初始化数据
 -- ============================================
 

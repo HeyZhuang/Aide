@@ -255,7 +255,12 @@ class AuthService:
         else:
             expires_at = datetime.fromisoformat(str(expires_at))
         
+        # 确保两个datetime对象都是UTC时区感知的
         now = datetime.utcnow()
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=None)
+        if now.tzinfo is None:
+            now = now.replace(tzinfo=None)
         
         logger.debug(f"Token过期时间: {expires_at}, 当前时间: {now}, 是否过期: {now > expires_at}")
         

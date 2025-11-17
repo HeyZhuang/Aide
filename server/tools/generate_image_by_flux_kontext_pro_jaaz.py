@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from tools.utils.image_generation_core import generate_image_with_provider
 
@@ -16,19 +16,12 @@ class GenerateImageByFluxKontextProInputSchema(BaseModel):
         default=None,
         description="Optional; Image to use as reference. Only one image is allowed, e.g. ['im_jurheut7.png']. Best for image editing cases like: Editing specific parts of the image, Removing specific objects, Maintaining visual elements across scenes (character/object consistency), Generating new content in the style of the reference (style transfer), etc."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_image_by_flux_kontext_pro_jaaz",
-      description="Generate an image by Flux Kontext Pro model using text prompt or optionally pass an image for reference or editing. Good for object removal, image editing, etc. Only one input image is allowed.",
-      args_schema=GenerateImageByFluxKontextProInputSchema)
-async def generate_image_by_flux_kontext_pro_jaaz(
-    prompt: str,
-    aspect_ratio: str,
-    config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
-    input_images: list[str] | None = None,
-) -> str:
+@tool(args_schema=GenerateImageByFluxKontextProInputSchema)
+async def generate_image_by_flux_kontext_pro_jaaz(args_schema=GenerateImageByFluxKontextProInputSchema) ->  str:
+    """Generate Image By Flux Kontext Pro Jaaz tool function."""
     ctx = config.get('configurable', {})
     canvas_id = ctx.get('canvas_id', '')
     session_id = ctx.get('session_id', '')

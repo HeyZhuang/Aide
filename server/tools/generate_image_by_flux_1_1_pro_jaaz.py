@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from tools.utils.image_generation_core import generate_image_with_provider
 
@@ -12,17 +12,15 @@ class GenerateImageByFlux11ProInputSchema(BaseModel):
     aspect_ratio: str = Field(
         description="Required. Aspect ratio of the image, only these values are allowed: 1:1, 16:9, 4:3, 3:4, 9:16. Choose the best fitting aspect ratio according to the prompt. Best ratio for posters is 3:4"
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_image_by_flux_1_1_pro",
-      description="Generate an image by Flux 1.1 Pro model using text prompt. This model does NOT support input images for reference or editing. Use this model for high-quality image generation with Flux's advanced AI. Supports multiple providers with automatic fallback.",
-      args_schema=GenerateImageByFlux11ProInputSchema)
+@tool(args_schema=GenerateImageByFlux11ProInputSchema)
 async def generate_image_by_flux_1_1_pro(
     prompt: str,
     aspect_ratio: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
 ) -> str:
     """
     Generate an image using Flux 1.1 Pro model via the provider framework

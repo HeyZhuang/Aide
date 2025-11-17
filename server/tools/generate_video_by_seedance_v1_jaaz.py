@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from services.jaaz_service import JaazService
 from tools.video_generation.video_canvas_utils import send_video_start_notification, process_video_result
@@ -31,16 +31,14 @@ class GenerateVideoBySeedanceV1InputSchema(BaseModel):
         default=True,
         description="Optional. Whether to keep the camera fixed (no camera movement)."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_video_by_seedance_v1_jaaz",
-      description="Generate high-quality videos using Seedance V1 model. Supports multiple providers and text-to-video/image-to-video generation.",
-      args_schema=GenerateVideoBySeedanceV1InputSchema)
+@tool(args_schema=GenerateVideoBySeedanceV1InputSchema)
 async def generate_video_by_seedance_v1_jaaz(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     resolution: str = "480p",
     duration: int = 5,
     aspect_ratio: str = "16:9",

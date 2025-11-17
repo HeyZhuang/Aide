@@ -1,6 +1,6 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from services.jaaz_service import JaazService
 from tools.video_generation.video_canvas_utils import send_video_start_notification, process_video_result
@@ -27,16 +27,14 @@ class GenerateVideoByHailuoInputSchema(BaseModel):
         default=None,
         description="Optional. Images to use as reference or starting frame. Pass a list of image_id here, e.g. ['im_jurheut7.png']. Only the first image will be used as start_image."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_video_by_hailuo_02_jaaz",
-      description="Generate high-quality videos using Hailuo 02 model. Supports text-to-video generation with prompt enhancement. Fixed 6-second duration and 1080p resolution.",
-      args_schema=GenerateVideoByHailuoInputSchema)
+@tool(args_schema=GenerateVideoByHailuoInputSchema)
 async def generate_video_by_hailuo_02_jaaz(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     prompt_enhancer: bool = False,
     resolution: str = "768p",
     duration: int = 6,

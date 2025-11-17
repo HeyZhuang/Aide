@@ -1,18 +1,16 @@
 from typing import Annotated
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from tools.utils.image_generation_core import generate_image_with_provider
 from tools.generate_image_by_recraft_v3_jaaz import GenerateImageByRecraftV3InputSchema
 
 
-@tool("generate_image_by_recraft_v3_replicate",
-      description="Generate an image by Recraft V3 model using text prompt. This model does NOT support input images for reference or editing. Use this model for high-quality image generation with Recraft's advanced AI. Supports multiple providers with automatic fallback.",
-      args_schema=GenerateImageByRecraftV3InputSchema)
+@tool(args_schema=GenerateImageByRecraftV3InputSchema)
 async def generate_image_by_recraft_v3_replicate(
     prompt: str,
     aspect_ratio: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
 ) -> str:
     """
     Generate an image using Recraft V3 model via the Replicate provider framework

@@ -1,6 +1,6 @@
 from typing import Annotated, List, Dict, Any
 from pydantic import BaseModel, Field
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from services.jaaz_service import JaazService
 from tools.utils.image_canvas_utils import save_image_to_canvas, send_image_start_notification, send_image_error_notification
@@ -18,16 +18,14 @@ class GenerateImageByMidjourneyInputSchema(BaseModel):
         default=None,
         description="Optional. A list of image URLs to use as input for the image generation. If provided, the images will be used as input for the image generation."
     )
-    tool_call_id: Annotated[str, InjectedToolCallId]
+    tool_call_id: Annotated[str, InjectedToolArg]
 
 
-@tool("generate_image_by_midjourney_jaaz",
-      description="Generate high-quality images using Midjourney model. Returns multiple images and saves them to canvas. Use this for artistic and creative image generation.",
-      args_schema=GenerateImageByMidjourneyInputSchema)
+@tool(args_schema=GenerateImageByMidjourneyInputSchema)
 async def generate_image_by_midjourney_jaaz(
     prompt: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     input_images: List[str] | None = None,
 ) -> str:
     """

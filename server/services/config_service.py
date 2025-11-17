@@ -118,6 +118,22 @@ class ConfigService:
         """Get the correct jaaz URL"""
         return os.getenv('BASE_API_URL', 'https://jaaz.app').rstrip('/') + '/api/v1/'
 
+    def _load_env_variables(self) -> None:
+        """从环境变量加载API密钥"""
+        # 加载Gemini API密钥
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        if gemini_api_key and gemini_api_key not in ['', 'YOUR_GEMINI_API_KEY', 'your_api_key_here']:
+            if 'gemini' in self.app_config:
+                self.app_config['gemini']['api_key'] = gemini_api_key
+                print(f"✅ 从环境变量加载 Gemini API key: {gemini_api_key[:10]}...")
+        
+        # 可以添加其他提供商的环境变量加载
+        openai_api_key = os.getenv('OPENAI_API_KEY')
+        if openai_api_key and openai_api_key not in ['', 'YOUR_OPENAI_API_KEY']:
+            if 'openai' in self.app_config:
+                self.app_config['openai']['api_key'] = openai_api_key
+                print(f"✅ 从环境变量加载 OpenAI API key: {openai_api_key[:10]}...")
+
     async def initialize(self) -> None:
         try:
             # Ensure the user_data directory exists
@@ -127,7 +143,8 @@ class ConfigService:
             if not self.exists_config():
                 print(
                     f"Config file not found at {self.config_file}, creating default configuration")
-                # Create default config file
+                # Create default config file with environment variables
+                self._load_env_variables()
                 with open(self.config_file, "w") as f:
                     toml.dump(self.app_config, f)
                 print(f"Default config file created at {self.config_file}")
@@ -154,6 +171,9 @@ class ConfigService:
             # 确保 jaaz URL 始终正确
             if 'jaaz' in self.app_config:
                 self.app_config['jaaz']['url'] = self._get_jaaz_url()
+            
+            # 从环境变量加载API密钥（覆盖配置文件中的值）
+            self._load_env_variables()
         except Exception as e:
             print(f"Error loading config: {e}")
             traceback.print_exc()

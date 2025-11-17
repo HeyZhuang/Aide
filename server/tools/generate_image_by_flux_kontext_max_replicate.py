@@ -1,18 +1,16 @@
 from typing import Annotated
-from langchain_core.tools import tool, InjectedToolCallId  # type: ignore
+from langchain_core.tools import tool, InjectedToolArg  # type: ignore
 from langchain_core.runnables import RunnableConfig
 from tools.utils.image_generation_core import generate_image_with_provider
 from tools.generate_image_by_flux_kontext_max_jaaz import GenerateImageByFluxKontextMaxInputSchema
 
 
-@tool("generate_image_by_flux_kontext_max_replicate",
-      description="Generate an image by Flux Kontext Max model using text prompt or optionally pass an image for reference or editing. Use this model for high-quality image generation with Flux's advanced AI.",
-      args_schema=GenerateImageByFluxKontextMaxInputSchema)
+@tool(args_schema=GenerateImageByFluxKontextMaxInputSchema)
 async def generate_image_by_flux_kontext_max_replicate(
     prompt: str,
     aspect_ratio: str,
     config: RunnableConfig,
-    tool_call_id: Annotated[str, InjectedToolCallId],
+    tool_call_id: Annotated[str, InjectedToolArg],
     input_image: str | None = None,
 ) -> str:
     """

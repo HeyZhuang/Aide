@@ -1,0 +1,29 @@
+nohup: ignoring input
+INFO:     Started server process [2900552]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 57988): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+✅ 已加載配置文件: /home/ubuntu/ckz/psd-canvas-jaaz/config.env
+Importing websocket_router
+Importing routers
+✅ Manager route imported
+✅ Auth router imported
+✅ PSD目录初始化成功: /home/ubuntu/ckz/psd-canvas-jaaz/server/user_data/files/psd
+Successfully imported PSD routers
+Importing websocket_state
+Importing websocket_service
+Importing config_service
+Importing tool_service
+Creating FastAPI app
+Including routers
+✅ Manager route included
+✅ Auth router included
+Creating socketio app
+✅ [端口同步] DEFAULT_PORT 已设置为: 57988
+🌟Starting server, UI_DIST_DIR: None
+Initializing config_service
+✅ 从环境变量加载 Gemini API key: AIzaSyDwFK...
+Initializing broadcast_init_done
+Broadcasted init_done to all clients
