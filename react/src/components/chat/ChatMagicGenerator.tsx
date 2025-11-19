@@ -1,10 +1,10 @@
 import { sendMagicGenerate } from '@/api/magic'
-import { useConfigs } from '@/contexts/configs'
 import { eventBus, TCanvasMagicGenerateEvent } from '@/lib/event'
 import { Message, PendingType } from '@/types/types'
 import { useCallback, useEffect } from 'react'
 import { DEFAULT_SYSTEM_PROMPT } from '@/constants'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigate } from '@tanstack/react-router'
 
 type ChatMagicGeneratorProps = {
     sessionId: string
@@ -23,13 +23,13 @@ const ChatMagicGenerator: React.FC<ChatMagicGeneratorProps> = ({
     setPending,
     scrollToBottom
 }) => {
-    const { setShowLoginDialog } = useConfigs()
     const { authStatus } = useAuth()
+    const navigate = useNavigate()
 
     const handleMagicGenerate = useCallback(
         async (data: TCanvasMagicGenerateEvent) => {
             if (!authStatus.is_logged_in) {
-                setShowLoginDialog(true)
+                navigate({ to: '/login' })
                 return
             }
 
@@ -75,7 +75,7 @@ const ChatMagicGenerator: React.FC<ChatMagicGeneratorProps> = ({
                 setPending(false)
             }
         },
-        [sessionId, canvasId, messages, setMessages, setPending, scrollToBottom, authStatus.is_logged_in, setShowLoginDialog]
+        [sessionId, canvasId, messages, setMessages, setPending, scrollToBottom, authStatus.is_logged_in, navigate]
     )
 
     useEffect(() => {

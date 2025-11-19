@@ -455,9 +455,15 @@ async function pollGoogleAuthStatus(deviceCode: string): Promise<{ token: string
 }
 
 export async function logout(): Promise<{ status: string; message: string }> {
+  // Import dynamically to avoid circular dependency
+  const { useAuthStore } = await import('@/stores/auth-store')
+  
   // Clear local storage
   localStorage.removeItem('jaaz_access_token')
   localStorage.removeItem('jaaz_user_info')
+
+  // Clear Zustand store
+  useAuthStore.getState().clearAuth()
 
   // Clear jaaz provider api_key
   await clearJaazApiKey()

@@ -40,6 +40,7 @@ import ModelSelectorV3 from './ModelSelectorV3'
 import { useAuth } from '@/contexts/AuthContext'
 import { useBalance } from '@/hooks/use-balance'
 import { BASE_API_URL } from '@/constants'
+import { useNavigate } from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,8 +73,9 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
 }) => {
   const { t } = useTranslation()
   const { authStatus } = useAuth()
-  const { textModel, selectedTools, setShowLoginDialog } = useConfigs()
+  const { textModel, selectedTools } = useConfigs()
   const { balance } = useBalance()
+  const navigate = useNavigate()
   const [prompt, setPrompt] = useState('')
   const textareaRef = useRef<TextAreaRef>(null)
   const [images, setImages] = useState<
@@ -211,7 +213,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     if (!textModel) {
       toast.error(t('chat:textarea.selectModel'))
       if (!authStatus.is_logged_in) {
-        setShowLoginDialog(true)
+        navigate({ to: '/login' })
       }
       return
     }
@@ -327,7 +329,7 @@ const ChatTextarea: React.FC<ChatTextareaProps> = ({
     selectedAspectRatio,
     quantity,
     authStatus.is_logged_in,
-    setShowLoginDialog,
+    navigate,
     balance,
     RechargeContent,
     psdFiles,

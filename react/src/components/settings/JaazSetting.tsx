@@ -6,7 +6,7 @@ import { LOGO_URL } from '@/constants'
 import { LLMConfig } from '@/types/types'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
-import { useConfigs } from '@/contexts/configs'
+import { useNavigate } from '@tanstack/react-router'
 
 interface JaazSettingProps {
   config: LLMConfig
@@ -19,7 +19,7 @@ export default function JaazSetting({
 }: JaazSettingProps) {
   const { t } = useTranslation()
   const { authStatus } = useAuth()
-  const { setShowLoginDialog } = useConfigs()
+  const navigate = useNavigate()
 
   // Get available models from constants
   const availableModels = config.models || {}
@@ -107,7 +107,7 @@ export default function JaazSetting({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowLoginDialog(true)}
+            onClick={() => navigate({ to: '/login' })}
           >
             {t('common:auth.login')}
           </Button>

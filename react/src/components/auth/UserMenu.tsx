@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/AuthContext'
-import { useConfigs, useRefreshModels } from '@/contexts/configs'
+import { useRefreshModels } from '@/contexts/configs'
 import { BASE_API_URL } from '@/constants'
 import { Button } from '@/components/ui/button'
+import { useNavigate } from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,8 +21,8 @@ import { User, CreditCard, LogOut } from 'lucide-react'
 
 export function UserMenu() {
   const { authStatus, refreshAuth } = useAuth()
-  const { setShowLoginDialog } = useConfigs()
   const refreshModels = useRefreshModels()
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
@@ -50,8 +51,8 @@ export function UserMenu() {
               </PointsDisplay>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="end" 
+          <DropdownMenuContent
+            align="end"
             className="bg-white/80 backdrop-blur-xl dark:bg-black/80 border border-white/30 dark:border-white/10 rounded-xl shadow-lg min-w-[200px]"
           >
             <DropdownMenuLabel className="flex items-center gap-2 py-2">
@@ -90,8 +91,8 @@ export function UserMenu() {
               {t('common:auth.userManagement')}
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-white/30 dark:bg-white/10" />
-            <DropdownMenuItem 
-              onClick={handleLogout} 
+            <DropdownMenuItem
+              onClick={handleLogout}
               className="hover:bg-white/30 dark:hover:bg-white/10 rounded-lg py-2 flex items-center gap-2"
             >
               <LogOut className="h-4 w-4" />
@@ -109,9 +110,9 @@ export function UserMenu() {
 
   // 未登录状态，显示登录按钮
   return (
-    <Button 
-      variant="outline" 
-      onClick={() => setShowLoginDialog(true)} 
+    <Button
+      variant="outline"
+      onClick={() => navigate({ to: '/login' })}
       className="border-white/30 dark:border-white/10 hover:bg-white/20 dark:hover:bg-white/10 transition-colors"
     >
       {t('common:auth.login')}

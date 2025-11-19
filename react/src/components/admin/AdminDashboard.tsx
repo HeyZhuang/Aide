@@ -8,6 +8,7 @@ import {
   Home,
 } from 'lucide-react'
 import { logout } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth-store'
 import { toast } from 'sonner'
 
 export function AdminDashboard() {
@@ -18,10 +19,11 @@ export function AdminDashboard() {
     try {
       await logout()
       await refreshAuth()
-      navigate({ to: '/' })
+      navigate({ to: '/login' })
       toast.success('已退出登录')
     } catch (error) {
       console.error('退出登录失败:', error)
+      toast.error('退出登录失败')
     }
   }
 

@@ -374,7 +374,7 @@ export function LoginDialog() {
   const isError = authMessage && (authMessage.includes('失败') || authMessage.includes('过期') || authMessage.includes('错误'))
 
   return (
-    <Dialog open={open} onOpenChange={setShowLoginDialog}>
+    <Dialog open={open} onOpenChange={setShowLoginDialog} >
       <DialogContent className="sm:max-w-5xl p-0 border-0 bg-transparent shadow-2xl max-h-[90vh] overflow-hidden">
         <div className="flex h-[85vh] max-h-[700px] rounded-2xl overflow-hidden" style={{
           background: isDark ? 'rgba(28, 28, 30, 0.98)' : 'rgba(255, 255, 255, 0.98)',
@@ -475,14 +475,14 @@ export function LoginDialog() {
                   </div>
 
                   {/* Email 登录按钮 */}
-                  <Button
+                  {/* <Button
                     onClick={() => setShowEmailLogin(true)}
                     disabled={!agreeToTerms}
                     className="w-full h-12 text-sm font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-all"
                   >
                     <Mail className="w-5 h-5 mr-2" />
                     Join with Email
-                  </Button>
+                  </Button> */}
 
                   {/* 服务条款 */}
                   <div className="flex items-start gap-2.5 mt-4">
