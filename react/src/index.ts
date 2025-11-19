@@ -145,8 +145,7 @@ export {
   useSidebar,
 } from './components/ui/sidebar'
 
-// Auth Components
-export { LoginDialog } from './components/auth/LoginDialog'
+
 export { UserMenu } from './components/auth/UserMenu'
 
 // Common Components
