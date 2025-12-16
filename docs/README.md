@@ -12,11 +12,6 @@
 
 ---
 
-<p align="center">
-  <img src="https://via.placeholder.com/800x400?text=kklay+Dashboard+Screenshot" alt="kklay Dashboard" width="800">
-  <br>
-  <em></em>
-</p>
 
 </div>
 
