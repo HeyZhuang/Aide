@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🎨 kklay | 智能电商与广告设计垂直 SaaS 平台
+# 🎨 Aide | 智能电商与广告设计垂直 SaaS 平台
 
 **在线 PSD 解析 · 智能自动排版 · Gen-AI 内容生成**
 
-[![Project Status](https://img.shields.io/badge/Status-Prototype-orange)](https://github.com/HeyZhuang/kklay)
-[![Tech Stack](https://img.shields.io/badge/Stack-Fullstack-blue)](https://github.com/HeyZhuang/kklay)
+[![Project Status](https://img.shields.io/badge/Status-Prototype-orange)](https://github.com/HeyZhuang/Aide)
+[![Tech Stack](https://img.shields.io/badge/Stack-Fullstack-blue)](https://github.com/HeyZhuang/Aide)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 [🌐 在线演示 (Demo)](http://54.189.143.120:3004/canvas/default) | [🎨 UI 设计 (Figma)](https://www.figma.com/design/NyTzlErt4jqPZfr3OCR3hU/Canvas-Design-System--Community-?node-id=936-52339&t=RdAjnRZb4uTMxEWW-0) | [🏠 项目主页](https://ch-love.online)
@@ -17,7 +17,7 @@
 
 ## 📖 项目介绍 | Introduction
 
-[cite_start]**kklay** 是一个针对电商与广告领域的垂直 SaaS 出海设计平台 [cite: 116][cite_start]。立足于 AI 设计工具市场年复合增长率超 30% 的背景，我们致力于解决传统设计软件无法高效批量生产、通用工具缺乏深度 PSD 图层支持的痛点 [cite: 116]。
+[cite_start]**Aide** 是一个针对电商与广告领域的垂直 SaaS 出海设计平台 [cite: 116][cite_start]。立足于 AI 设计工具市场年复合增长率超 30% 的背景，我们致力于解决传统设计软件无法高效批量生产、通用工具缺乏深度 PSD 图层支持的痛点 [cite: 116]。
 
 [cite_start]本项目构建了一套**“在线 PSD 解析 + 智能编辑 + AI 生成”**的完整工作流 [cite: 117]。通过后端解析引擎与前端画布的无缝映射，结合生成式 AI 技术，帮助电商运营与广告投放人员快速产出符合品牌规范的高质量视觉素材。
 
@@ -54,8 +54,8 @@
 
 1.  **克隆仓库**
     ```bash
-    git clone git@github.com:HeyZhuang/kklay.git
-    cd kklay
+    git clone git@github.com:HeyZhuang/Aide.git
+    cd Aide
     ```
 
 2.  **前端启动**
